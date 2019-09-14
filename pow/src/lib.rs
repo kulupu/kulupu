@@ -1,3 +1,5 @@
+mod compact;
+
 use core::cmp::{min, max};
 use std::sync::Arc;
 use primitives::{U256, H256};
@@ -9,6 +11,8 @@ use client::{blockchain::HeaderBackend, backend::AuxStore};
 use codec::{Encode, Decode};
 use consensus_pow::{PowAux, PowAlgorithm};
 use consensus_pow_primitives::{Difficulty, Seal as RawSeal, TimestampApi};
+use compact::Compact;
+use log::*;
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode)]
 pub struct Seal {
@@ -60,23 +64,6 @@ pub const DIFFICULTY_DAMP_FACTOR: Difficulty = 3;
 /// avoids getting stuck when trying to increase difficulty subject to dampening
 pub const MIN_DIFFICULTY: Difficulty = DIFFICULTY_DAMP_FACTOR;
 
-fn difficulty_from_hash(
-	hash: H256
-) -> Difficulty {
-	let mut num = U256::from(&hash[..]);
-	if num == U256::max_value() {
-		num = num - U256::one();
-	}
-
-	let diff = U256::max_value() / (num + U256::one());
-
-	if diff >= U256::from(u64::max_value()) {
-		u64::max_value() as u128
-	} else {
-		num.as_u128()
-	}
-}
-
 fn key_hash<B, C>(
 	client: &C,
 	parent: &BlockId<B>
@@ -96,7 +83,7 @@ fn key_hash<B, C>(
 
 	let mut current = parent_header;
 	while UniqueSaturatedInto::<u64>::unique_saturated_into(*current.number()) != key_number {
-		current = client.header(BlockId::Hash(current.hash()))
+		current = client.header(BlockId::Hash(*current.parent_hash()))
 			.map_err(|e| format!("Client execution error: {:?}", e))?
 			.ok_or(format!("Block with hash {:?} not found", current.hash()))?;
 	}
@@ -226,7 +213,8 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 			Err(_) => return Ok(false),
 		};
 
-		if difficulty_from_hash(seal.work) < difficulty {
+		let compact = Compact::from(difficulty);
+		if !compact.verify(seal.work) {
 			return Ok(false)
 		}
 
@@ -268,7 +256,8 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 
 			let seal = compute.compute();
 
-			if difficulty_from_hash(seal.work) >= difficulty {
+			let compact = Compact::from(difficulty);
+			if !compact.verify(seal.work) {
 				return Ok(Some(seal.encode()))
 			}
 		}
