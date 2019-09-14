@@ -172,6 +172,12 @@ pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
 }
 
+impl<C> RandomXAlgorithm<C> {
+	pub fn new(client: Arc<C>) -> Self {
+		Self { client }
+	}
+}
+
 impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi,
 	C::Api: TimestampApi<B, u64>,

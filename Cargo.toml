@@ -27,13 +27,11 @@ substrate-service = { path = "vendor/substrate/core/service" }
 inherents = { package = "substrate-inherents", path = "vendor/substrate/core/inherents" }
 transaction-pool = { package = "substrate-transaction-pool", path = "vendor/substrate/core/transaction-pool" }
 network = { package = "substrate-network", path = "vendor/substrate/core/network" }
-babe = { package = "substrate-consensus-babe", path = "vendor/substrate/core/consensus/babe" }
-babe-primitives = { package = "substrate-consensus-babe-primitives", path = "vendor/substrate/core/consensus/babe/primitives" }
-grandpa = { package = "substrate-finality-grandpa", path = "vendor/substrate/core/finality-grandpa" }
-grandpa-primitives = { package = "substrate-finality-grandpa-primitives", path = "vendor/substrate/core/finality-grandpa/primitives" }
 substrate-client = { path = "vendor/substrate/core/client" }
 basic-authorship = { package = "substrate-basic-authorship", path = "vendor/substrate/core/basic-authorship" }
 node-template-runtime = { path = "runtime" }
+consensus-pow = { package = "substrate-consensus-pow", path = "vendor/substrate/core/consensus/pow" }
+kulupu-pow = { path = "pow" }
 
 [build-dependencies]
 vergen = "3"

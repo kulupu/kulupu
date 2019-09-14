@@ -16,9 +16,6 @@ use sr_primitives::{
 };
 use sr_primitives::traits::{NumberFor, BlakeTwo256, Block as BlockT, DigestFor, StaticLookup, Verify, ConvertInto};
 use sr_primitives::weights::Weight;
-use babe::{AuthorityId as BabeId};
-use grandpa::{AuthorityId as GrandpaId, AuthorityWeight as GrandpaWeight};
-use grandpa::fg_primitives::{self, ScheduledChange};
 use client::{
 	block_builder::api::{CheckInherentsResult, InherentData, self as block_builder_api},
 	runtime_api as client_api, impl_runtime_apis
@@ -61,9 +58,6 @@ pub type Hash = primitives::H256;
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
 
-/// Used for the module template in `./template.rs`
-mod template;
-
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -79,17 +73,6 @@ pub mod opaque {
 	pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 	/// Opaque block identifier type.
 	pub type BlockId = generic::BlockId<Block>;
-
-	pub type SessionHandlers = (Grandpa, Babe);
-
-	impl_opaque_keys! {
-		pub struct SessionKeys {
-			#[id(key_types::GRANDPA)]
-			pub grandpa: GrandpaId,
-			#[id(key_types::BABE)]
-			pub babe: BabeId,
-		}
-	}
 }
 
 /// This runtime version.
@@ -186,15 +169,6 @@ parameter_types! {
 	pub const ExpectedBlockTime: u64 = MILLISECS_PER_BLOCK;
 }
 
-impl babe::Trait for Runtime {
-	type EpochDuration = EpochDuration;
-	type ExpectedBlockTime = ExpectedBlockTime;
-}
-
-impl grandpa::Trait for Runtime {
-	type Event = Event;
-}
-
 impl indices::Trait for Runtime {
 	/// The type for recording indexing into the account enumeration. If this ever overflows, there
 	/// will be problems!
@@ -214,7 +188,7 @@ parameter_types! {
 impl timestamp::Trait for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
-	type OnTimestampSet = Babe;
+	type OnTimestampSet = ();
 	type MinimumPeriod = MinimumPeriod;
 }
 
@@ -251,11 +225,6 @@ impl sudo::Trait for Runtime {
 	type Proposal = Call;
 }
 
-/// Used for the module template in `./template.rs`
-impl template::Trait for Runtime {
-	type Event = Event;
-}
-
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -264,13 +233,9 @@ construct_runtime!(
 	{
 		System: system::{Module, Call, Storage, Config, Event},
 		Timestamp: timestamp::{Module, Call, Storage, Inherent},
-		Babe: babe::{Module, Call, Storage, Config, Inherent(Timestamp)},
-		Grandpa: grandpa::{Module, Call, Storage, Config, Event},
 		Indices: indices::{default, Config<T>},
 		Balances: balances::{default, Error},
 		Sudo: sudo,
-		// Used for the module template in `./template.rs`
-		TemplateModule: template::{Module, Call, Storage, Event<T>},
 	}
 );
 
@@ -355,54 +320,15 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl fg_primitives::GrandpaApi<Block> for Runtime {
-		fn grandpa_pending_change(digest: &DigestFor<Block>)
-			-> Option<ScheduledChange<NumberFor<Block>>>
-		{
-			Grandpa::pending_change(digest)
-		}
-
-		fn grandpa_forced_change(digest: &DigestFor<Block>)
-			-> Option<(NumberFor<Block>, ScheduledChange<NumberFor<Block>>)>
-		{
-			Grandpa::forced_change(digest)
-		}
-
-		fn grandpa_authorities() -> Vec<(GrandpaId, GrandpaWeight)> {
-			Grandpa::grandpa_authorities()
-		}
-	}
-
-	impl babe_primitives::BabeApi<Block> for Runtime {
-		fn startup_data() -> babe_primitives::BabeConfiguration {
-			// The choice of `c` parameter (where `1 - c` represents the
-			// probability of a slot being empty), is done in accordance to the
-			// slot duration and expected target block time, for safely
-			// resisting network delays of maximum two seconds.
-			// <https://research.web3.foundation/en/latest/polkadot/BABE/Babe/#6-practical-results>
-			babe_primitives::BabeConfiguration {
-				median_required_blocks: 1000,
-				slot_duration: Babe::slot_duration(),
-				c: PRIMARY_PROBABILITY,
-			}
-		}
-
-		fn epoch() -> babe_primitives::Epoch {
-			babe_primitives::Epoch {
-				start_slot: Babe::epoch_start_slot(),
-				authorities: Babe::authorities(),
-				epoch_index: Babe::epoch_index(),
-				randomness: Babe::randomness(),
-				duration: EpochDuration::get(),
-				secondary_slots: Babe::secondary_slots().0,
-			}
-		}
-	}
-
 	impl substrate_session::SessionKeys<Block> for Runtime {
 		fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
-			let seed = seed.as_ref().map(|s| rstd::str::from_utf8(&s).expect("Seed is an utf8 string"));
-			opaque::SessionKeys::generate(seed)
+			Default::default()
+		}
+	}
+
+	impl pow_primitives::TimestampApi<Block, u64> for Runtime {
+		fn timestamp() -> u64 {
+			timestamp::Module::<Runtime>::get()
 		}
 	}
 }

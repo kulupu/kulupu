@@ -1,5 +1,5 @@
 [package]
-name = "pow"
+name = "kulupu-pow"
 version = "0.1.0"
 authors = ["Wei Tang <hi@that.world>"]
 edition = "2018"

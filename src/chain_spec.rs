@@ -1,10 +1,8 @@
 use primitives::{Pair, Public};
 use node_template_runtime::{
-	AccountId, BabeConfig, BalancesConfig, GenesisConfig, GrandpaConfig,
-	SudoConfig, IndicesConfig, SystemConfig, WASM_BINARY, 
+	AccountId, BalancesConfig, GenesisConfig, SudoConfig,
+	IndicesConfig, SystemConfig, WASM_BINARY,
 };
-use babe_primitives::{AuthorityId as BabeId};
-use grandpa_primitives::{AuthorityId as GrandpaId};
 use substrate_service;
 
 // Note this is the URL for the telemetry server
@@ -31,16 +29,6 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 		.public()
 }
 
-/// Helper function to generate stash, controller and session key from seed
-pub fn get_authority_keys_from_seed(seed: &str) -> (AccountId, AccountId, GrandpaId, BabeId) {
-	(
-		get_from_seed::<AccountId>(&format!("{}//stash", seed)),
-		get_from_seed::<AccountId>(seed),
-		get_from_seed::<GrandpaId>(seed),
-		get_from_seed::<BabeId>(seed),
-	)
-}
-
 impl Alternative {
 	/// Get an actual chain config from one of the alternatives.
 	pub(crate) fn load(self) -> Result<ChainSpec, String> {
@@ -48,17 +36,16 @@ impl Alternative {
 			Alternative::Development => ChainSpec::from_genesis(
 				"Development",
 				"dev",
-				|| testnet_genesis(vec![
-					get_authority_keys_from_seed("Alice"),
-				],
-				get_from_seed::<AccountId>("Alice"),
-				vec![
+				|| testnet_genesis(
 					get_from_seed::<AccountId>("Alice"),
-					get_from_seed::<AccountId>("Bob"),
-					get_from_seed::<AccountId>("Alice//stash"),
-					get_from_seed::<AccountId>("Bob//stash"),
-				],
-				true),
+					vec![
+						get_from_seed::<AccountId>("Alice"),
+						get_from_seed::<AccountId>("Bob"),
+						get_from_seed::<AccountId>("Alice//stash"),
+						get_from_seed::<AccountId>("Bob//stash"),
+					],
+					true
+				),
 				vec![],
 				None,
 				None,
@@ -68,26 +55,24 @@ impl Alternative {
 			Alternative::LocalTestnet => ChainSpec::from_genesis(
 				"Local Testnet",
 				"local_testnet",
-				|| testnet_genesis(vec![
-					get_authority_keys_from_seed("Alice"),
-					get_authority_keys_from_seed("Bob"),
-				], 
-				get_from_seed::<AccountId>("Alice"),
-				vec![
+				|| testnet_genesis(
 					get_from_seed::<AccountId>("Alice"),
-					get_from_seed::<AccountId>("Bob"),
-					get_from_seed::<AccountId>("Charlie"),
-					get_from_seed::<AccountId>("Dave"),
-					get_from_seed::<AccountId>("Eve"),
-					get_from_seed::<AccountId>("Ferdie"),
-					get_from_seed::<AccountId>("Alice//stash"),
-					get_from_seed::<AccountId>("Bob//stash"),
-					get_from_seed::<AccountId>("Charlie//stash"),
-					get_from_seed::<AccountId>("Dave//stash"),
-					get_from_seed::<AccountId>("Eve//stash"),
-					get_from_seed::<AccountId>("Ferdie//stash"),
-				],
-				true),
+					vec![
+						get_from_seed::<AccountId>("Alice"),
+						get_from_seed::<AccountId>("Bob"),
+						get_from_seed::<AccountId>("Charlie"),
+						get_from_seed::<AccountId>("Dave"),
+						get_from_seed::<AccountId>("Eve"),
+						get_from_seed::<AccountId>("Ferdie"),
+						get_from_seed::<AccountId>("Alice//stash"),
+						get_from_seed::<AccountId>("Bob//stash"),
+						get_from_seed::<AccountId>("Charlie//stash"),
+						get_from_seed::<AccountId>("Dave//stash"),
+						get_from_seed::<AccountId>("Eve//stash"),
+						get_from_seed::<AccountId>("Ferdie//stash"),
+					],
+					true
+				),
 				vec![],
 				None,
 				None,
@@ -106,8 +91,8 @@ impl Alternative {
 	}
 }
 
-fn testnet_genesis(initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId)>,
-	root_key: AccountId, 
+fn testnet_genesis(
+	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	_enable_println: bool) -> GenesisConfig {
 	GenesisConfig {
@@ -124,12 +109,6 @@ fn testnet_genesis(initial_authorities: Vec<(AccountId, AccountId, GrandpaId, Ba
 		}),
 		sudo: Some(SudoConfig {
 			key: root_key,
-		}),
-		babe: Some(BabeConfig {
-			authorities: initial_authorities.iter().map(|x| (x.3.clone(), 1)).collect(),
-		}),
-		grandpa: Some(GrandpaConfig {
-			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
 		}),
 	}
 }

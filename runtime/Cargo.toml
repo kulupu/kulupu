@@ -13,19 +13,17 @@ runtime-io = { package = "sr-io", path = "../vendor/substrate/core/sr-io", defau
 version = { package = "sr-version", path = "../vendor/substrate/core/sr-version", default_features = false }
 support = { package = "srml-support", path = "../vendor/substrate/srml/support", default_features = false }
 primitives = { package = "substrate-primitives", path = "../vendor/substrate/core/primitives", default_features = false }
-substrate-session = { path = "../vendor/substrate/core/session", default-features = false }
 balances = { package = "srml-balances", path = "../vendor/substrate/srml/balances", default_features = false }
-babe = { package = "srml-babe", path = "../vendor/substrate/srml/babe", default-features = false }
-babe-primitives = { package = "substrate-consensus-babe-primitives", path = "../vendor/substrate/core/consensus/babe/primitives", default-features = false }
 executive = { package = "srml-executive", path = "../vendor/substrate/srml/executive", default_features = false }
 indices = { package = "srml-indices", path = "../vendor/substrate/srml/indices", default_features = false }
-grandpa = { package = "srml-grandpa", path = "../vendor/substrate/srml/grandpa", default-features = false }
 system = { package = "srml-system", path = "../vendor/substrate/srml/system", default_features = false }
 timestamp = { package = "srml-timestamp", path = "../vendor/substrate/srml/timestamp", default_features = false }
-sudo = { package = "srml-sudo", path = "../vendor/substrate/srml/sudo", default_features = false }
 sr-primitives = { path = "../vendor/substrate/core/sr-primitives", default_features = false }
 client = { package = "substrate-client", path = "../vendor/substrate/core/client", default_features = false }
 offchain-primitives = { package = "substrate-offchain-primitives", path = "../vendor/substrate/core/offchain/primitives", default-features = false }
+sudo = { package = "srml-sudo", path = "../vendor/substrate/srml/sudo", default_features = false }
+pow-primitives = { package = "substrate-consensus-pow-primitives", path = "../vendor/substrate/core/consensus/pow/primitives", default-features = false }
+substrate-session = { path = "../vendor/substrate/core/session", default-features = false }
 
 [build-dependencies]
 wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.2" }
@@ -39,20 +37,18 @@ std = [
 	"runtime-io/std",
 	"support/std",
 	"balances/std",
-	"babe/std",
-	"babe-primitives/std",
 	"executive/std",
 	"indices/std",
-	"grandpa/std",
 	"primitives/std",
 	"sr-primitives/std",
 	"system/std",
 	"timestamp/std",
-	"sudo/std",
 	"version/std",
 	"serde",
 	"safe-mix/std",
 	"offchain-primitives/std",
+	"sudo/std",
+	"pow-primitives/std",
 	"substrate-session/std",
 ]
 no_std = []
