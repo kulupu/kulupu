@@ -1,0 +1,46 @@
+[package]
+name = "node-template"
+version = "2.0.0"
+authors = ["Anonymous"]
+build = "build.rs"
+edition = "2018"
+
+[[bin]]
+name = "node-template"
+path = "src/main.rs"
+
+[dependencies]
+derive_more = "0.14.0"
+futures = "0.1"
+ctrlc = { version = "3.0", features = ["termination"] }
+log = "0.4"
+tokio = "0.1"
+exit-future = "0.1"
+parking_lot = "0.9.0"
+codec = { package = "parity-scale-codec", version = "1.0.0" }
+trie-root = "0.15.2"
+sr-io = { path = "vendor/substrate/core/sr-io" }
+substrate-cli = { path = "vendor/substrate/core/cli" }
+primitives = { package = "substrate-primitives", path = "vendor/substrate/core/primitives" }
+substrate-executor = { path = "vendor/substrate/core/executor" }
+substrate-service = { path = "vendor/substrate/core/service" }
+inherents = { package = "substrate-inherents", path = "vendor/substrate/core/inherents" }
+transaction-pool = { package = "substrate-transaction-pool", path = "vendor/substrate/core/transaction-pool" }
+network = { package = "substrate-network", path = "vendor/substrate/core/network" }
+babe = { package = "substrate-consensus-babe", path = "vendor/substrate/core/consensus/babe" }
+babe-primitives = { package = "substrate-consensus-babe-primitives", path = "vendor/substrate/core/consensus/babe/primitives" }
+grandpa = { package = "substrate-finality-grandpa", path = "vendor/substrate/core/finality-grandpa" }
+grandpa-primitives = { package = "substrate-finality-grandpa-primitives", path = "vendor/substrate/core/finality-grandpa/primitives" }
+substrate-client = { path = "vendor/substrate/core/client" }
+basic-authorship = { package = "substrate-basic-authorship", path = "vendor/substrate/core/basic-authorship" }
+node-template-runtime = { path = "runtime" }
+
+[build-dependencies]
+vergen = "3"
+
+[workspace]
+members = [
+	"runtime",
+	"pow",
+]
+exclude = ["vendor"]

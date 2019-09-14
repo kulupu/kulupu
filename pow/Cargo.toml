@@ -1,0 +1,14 @@
+[package]
+name = "pow"
+version = "0.1.0"
+authors = ["Wei Tang <hi@that.world>"]
+edition = "2018"
+
+[dependencies]
+consensus-pow = { package = "substrate-consensus-pow", path = "../vendor/substrate/core/consensus/pow" }
+consensus-pow-primitives = { package = "substrate-consensus-pow-primitives", path = "../vendor/substrate/core/consensus/pow/primitives" }
+sr-primitives = { path = "../vendor/substrate/core/sr-primitives" }
+primitives = { package = "substrate-primitives", path = "../vendor/substrate/core/primitives" }
+client = { package = "substrate-client", path = "../vendor/substrate/core/client" }
+randomx = { path = "../vendor/randomx" }
+codec = { package = "parity-scale-codec", version = "1.0.0" }
