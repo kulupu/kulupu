@@ -1,6 +1,32 @@
-# Substrate Node Template
+# Kulupu
 
-A new SRML-based Substrate node, ready for hacking.
+Proof-of-work blockchain built on
+[Substrate](https://github.com/paritytech/substrate).
+
+## Overview
+
+Kulupu is a sister project related to [Solri](https://solri.org). Kulupu's goal
+is to create a working proof-of-work blockchain built using unmodified Substrate
+blockchain framework. Compared with Solri, Kulupu aims to take a more practical
+approach of an on-chain governed self-updating blockchain, while Solri maintains
+the ideal minimalist blockchain design.
+
+The consensus engine for Kulupu is the CPU mining algorithm RandomX. For initial
+launch, the emission rate is fixed at one coin per second. This, however can be
+changed using hard fork or on-chain governance in the future.
+
+## Network Launch
+
+Currently, you can start your local testnet using the instructions provided
+below. We plan to launch a testnet shortly after, with mainnet immediately after
+if no issue is found.
+
+Substrate contains a variety of features including smart contracts and
+democracy. However, for initial launch of Kulupu, we plan to only enable basic
+balance and transfer module. This is to keep the network focused, and reduce
+risks in terms of stability and safety. Also note that initially the democracy
+module is also disabled, meaning we'll be updating runtime via hard fork until
+that part is enabled.
 
 ## Build
 
