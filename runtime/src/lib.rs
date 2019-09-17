@@ -8,13 +8,14 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+mod difficulty;
+
 use rstd::prelude::*;
-use primitives::{OpaqueMetadata, crypto::key_types};
+use primitives::OpaqueMetadata;
 use sr_primitives::{
-	ApplyResult, transaction_validity::TransactionValidity, generic, create_runtime_str,
-	impl_opaque_keys, AnySignature
+	ApplyResult, transaction_validity::TransactionValidity, generic, create_runtime_str, AnySignature
 };
-use sr_primitives::traits::{NumberFor, BlakeTwo256, Block as BlockT, DigestFor, StaticLookup, Verify, ConvertInto};
+use sr_primitives::traits::{NumberFor, BlakeTwo256, Block as BlockT, StaticLookup, Verify, ConvertInto};
 use sr_primitives::weights::Weight;
 use client::{
 	block_builder::api::{CheckInherentsResult, InherentData, self as block_builder_api},
@@ -225,6 +226,8 @@ impl sudo::Trait for Runtime {
 	type Proposal = Call;
 }
 
+impl difficulty::Trait for Runtime { }
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -236,6 +239,7 @@ construct_runtime!(
 		Indices: indices::{default, Config<T>},
 		Balances: balances::{default, Error},
 		Sudo: sudo,
+		Difficulty: difficulty::{Module, Call, Storage, Config},
 	}
 );
 
@@ -321,7 +325,7 @@ impl_runtime_apis! {
 	}
 
 	impl substrate_session::SessionKeys<Block> for Runtime {
-		fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
+		fn generate_session_keys(_seed: Option<Vec<u8>>) -> Vec<u8> {
 			Default::default()
 		}
 	}
@@ -329,6 +333,12 @@ impl_runtime_apis! {
 	impl pow_primitives::TimestampApi<Block, u64> for Runtime {
 		fn timestamp() -> u64 {
 			timestamp::Module::<Runtime>::get()
+		}
+	}
+
+	impl pow_primitives::DifficultyApi<Block> for Runtime {
+		fn difficulty() -> u128 {
+			difficulty::Module::<Runtime>::difficulty()
 		}
 	}
 }

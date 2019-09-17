@@ -1,0 +1,12 @@
+[package]
+name = "kulupu-primitives"
+version = "0.1.0"
+authors = ["Wei Tang <hi@that.world>"]
+edition = "2018"
+
+[dependencies]
+pow-primitives = { package = "substrate-consensus-pow-primitives", path = "../vendor/substrate/core/consensus/pow/primitives", default-features = false }
+
+[features]
+default = ["std"]
+std = ["pow-primitives/std"]

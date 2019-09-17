@@ -1,7 +1,7 @@
 use primitives::{Pair, Public};
-use node_template_runtime::{
+use kulupu_runtime::{
 	AccountId, BalancesConfig, GenesisConfig, SudoConfig,
-	IndicesConfig, SystemConfig, WASM_BINARY,
+	IndicesConfig, SystemConfig, DifficultyConfig, WASM_BINARY,
 };
 use substrate_service;
 
@@ -109,6 +109,9 @@ fn testnet_genesis(
 		}),
 		sudo: Some(SudoConfig {
 			key: root_key,
+		}),
+		difficulty: Some(DifficultyConfig {
+			initial_difficulty: 3,
 		}),
 	}
 }

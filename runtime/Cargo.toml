@@ -1,7 +1,7 @@
 [package]
-name = "node-template-runtime"
-version = "2.0.0"
-authors = ["Anonymous"]
+name = "kulupu-runtime"
+version = "0.1.0"
+authors = ["Wei Tang <hi@that.world>"]
 edition = "2018"
 
 [dependencies]
@@ -23,6 +23,7 @@ client = { package = "substrate-client", path = "../vendor/substrate/core/client
 offchain-primitives = { package = "substrate-offchain-primitives", path = "../vendor/substrate/core/offchain/primitives", default-features = false }
 sudo = { package = "srml-sudo", path = "../vendor/substrate/srml/sudo", default_features = false }
 pow-primitives = { package = "substrate-consensus-pow-primitives", path = "../vendor/substrate/core/consensus/pow/primitives", default-features = false }
+kulupu-primitives = { path = "../primitives", default-features = false }
 substrate-session = { path = "../vendor/substrate/core/session", default-features = false }
 
 [build-dependencies]
@@ -50,5 +51,6 @@ std = [
 	"sudo/std",
 	"pow-primitives/std",
 	"substrate-session/std",
+	"kulupu-primitives/std",
 ]
 no_std = []

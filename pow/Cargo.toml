@@ -13,3 +13,4 @@ client = { package = "substrate-client", path = "../vendor/substrate/core/client
 randomx = { path = "../vendor/randomx" }
 codec = { package = "parity-scale-codec", version = "1.0.0" }
 log = "0.4"
+kulupu-primitives = { path = "../primitives" }

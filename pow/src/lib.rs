@@ -1,6 +1,5 @@
 mod compact;
 
-use core::cmp::{min, max};
 use std::sync::Arc;
 use primitives::{U256, H256};
 use sr_primitives::generic::BlockId;
@@ -9,8 +8,9 @@ use sr_primitives::traits::{
 };
 use client::{blockchain::HeaderBackend, backend::AuxStore};
 use codec::{Encode, Decode};
-use consensus_pow::{PowAux, PowAlgorithm};
-use consensus_pow_primitives::{Difficulty, Seal as RawSeal, TimestampApi};
+use consensus_pow::PowAlgorithm;
+use consensus_pow_primitives::{Difficulty, Seal as RawSeal, DifficultyApi};
+use kulupu_primitives::{DAY_HEIGHT, HOUR_HEIGHT};
 use compact::Compact;
 use log::*;
 
@@ -39,31 +39,6 @@ impl Compute {
 	}
 }
 
-/// Block interval, in seconds, the network will tune its next_target for.
-pub const BLOCK_TIME_SEC: u64 = 60;
-
-/// Nominal height for standard time intervals, hour is 60 blocks
-pub const HOUR_HEIGHT: u64 = 3600 / BLOCK_TIME_SEC;
-/// A day is 1440 blocks
-pub const DAY_HEIGHT: u64 = 24 * HOUR_HEIGHT;
-/// A week is 10_080 blocks
-pub const WEEK_HEIGHT: u64 = 7 * DAY_HEIGHT;
-/// A year is 524_160 blocks
-pub const YEAR_HEIGHT: u64 = 52 * WEEK_HEIGHT;
-
-/// Number of blocks used to calculate difficulty adjustments
-pub const DIFFICULTY_ADJUST_WINDOW: u64 = HOUR_HEIGHT;
-/// Average time span of the difficulty adjustment window
-pub const BLOCK_TIME_WINDOW: u64 = DIFFICULTY_ADJUST_WINDOW * BLOCK_TIME_SEC;
-/// Clamp factor to use for difficulty adjustment
-/// Limit value to within this factor of goal
-pub const CLAMP_FACTOR: Difficulty = 2;
-/// Dampening factor to use for difficulty adjustment
-pub const DIFFICULTY_DAMP_FACTOR: Difficulty = 3;
-/// Minimum difficulty, enforced in diff retargetting
-/// avoids getting stuck when trying to increase difficulty subject to dampening
-pub const MIN_DIFFICULTY: Difficulty = DIFFICULTY_DAMP_FACTOR;
-
 fn key_hash<B, C>(
 	client: &C,
 	parent: &BlockId<B>
@@ -91,70 +66,6 @@ fn key_hash<B, C>(
 	Ok(current.hash())
 }
 
-/// Difficulty data from earliest to latest.
-fn difficulty_data<B, C>(
-	client: &C,
-	parent: &BlockId<B>
-) -> Result<Vec<(u64, Difficulty)>, String> where
-	B: BlockT<Hash=H256>,
-	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi,
-	C::Api: TimestampApi<B, u64>,
-{
-	let needed_block_count = DIFFICULTY_ADJUST_WINDOW as usize + 1;
-	let parent_header = client.header(parent.clone())
-		.map_err(|e| format!("Client execution error: {:?}", e))?
-		.ok_or("Parent header not found")?;
-	let parent_hash = parent_header.hash();
-	let parent_timestamp = client.runtime_api()
-		.timestamp(&BlockId::Hash(parent_hash))
-		.map_err(|e| format!("{:?}", e))?;
-
-	let mut last_difficulty = PowAux::read(client, &parent_hash)?.difficulty;
-	let mut current = Some(parent_header.hash());
-
-	let mut ret = Vec::new();
-	while ret.len() < needed_block_count {
-		if let Some(hash) = current {
-			let header = client.header(BlockId::Hash(hash))
-				.map_err(|e| format!("Client execution error: {:?}", e))?;
-			if let Some(header) = header {
-				let aux = PowAux::read(client, &hash)?;
-				let timestamp = client.runtime_api()
-					.timestamp(&BlockId::Hash(hash))
-					.map_err(|e| format!("{:?}", e))?;
-
-				ret.push((timestamp, aux.difficulty));
-				last_difficulty = aux.difficulty;
-				current = Some(header.parent_hash().clone());
-			} else {
-				let last_timestamp = ret.last().map(|v| v.0).unwrap_or(parent_timestamp);
-
-				ret.push((last_timestamp.saturating_sub(BLOCK_TIME_SEC), last_difficulty));
-				current = None;
-			}
-		} else {
-			let last_timestamp = ret.last().map(|v| v.0).unwrap_or(parent_timestamp);
-
-			ret.push((last_timestamp.saturating_sub(BLOCK_TIME_SEC), last_difficulty));
-			current = None;
-		}
-	}
-
-	ret.reverse();
-
-	Ok(ret)
-}
-
-/// Move value linearly toward a goal
-pub fn damp(actual: Difficulty, goal: Difficulty, damp_factor: Difficulty) -> Difficulty {
-	(actual + (damp_factor - 1) * goal) / damp_factor
-}
-
-/// limit value to be within some factor from a goal
-pub fn clamp(actual: Difficulty, goal: Difficulty, clamp_factor: Difficulty) -> Difficulty {
-	max(goal / clamp_factor, min(actual, goal * clamp_factor))
-}
-
 pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
 }
@@ -167,36 +78,11 @@ impl<C> RandomXAlgorithm<C> {
 
 impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi,
-	C::Api: TimestampApi<B, u64>,
+	C::Api: DifficultyApi<B>,
 {
 	fn difficulty(&self, parent: &BlockId<B>) -> Result<Difficulty, String> {
-		// Create vector of difficulty data running from earliest
-		// to latest, and pad with simulated pre-genesis data to allow earlier
-		// adjustment if there isn't enough window data length will be
-		// DIFFICULTY_ADJUST_WINDOW + 1 (for initial block time bound)
-		let diff_data = difficulty_data(self.client.as_ref(), parent)?;
-
-		// Get the timestamp delta across the window
-		let ts_delta = diff_data[DIFFICULTY_ADJUST_WINDOW as usize].0 - diff_data[0].0;
-
-		// Get the difficulty sum of the last DIFFICULTY_ADJUST_WINDOW elements
-		let diff_sum: Difficulty = diff_data
-			.iter()
-			.skip(1)
-			.map(|v| v.1)
-			.sum();
-
-		// adjust time delta toward goal subject to dampening and clamping
-		let adj_ts = clamp(
-			damp(ts_delta as u128, BLOCK_TIME_WINDOW as u128, DIFFICULTY_DAMP_FACTOR),
-			BLOCK_TIME_WINDOW as u128,
-			CLAMP_FACTOR,
-		);
-
-		// minimum difficulty avoids getting stuck due to dampening
-		let difficulty = max(MIN_DIFFICULTY, diff_sum * BLOCK_TIME_SEC as u128 / adj_ts);
-
-		Ok(difficulty)
+		self.client.runtime_api().difficulty(parent)
+			.map_err(|e| format!("Fetching difficulty from runtime failed: {:?}", e))
 	}
 
 	fn verify(
