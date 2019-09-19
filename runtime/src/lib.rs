@@ -336,8 +336,8 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl pow_primitives::DifficultyApi<Block> for Runtime {
-		fn difficulty() -> u128 {
+	impl pow_primitives::DifficultyApi<Block, kulupu_primitives::Difficulty> for Runtime {
+		fn difficulty() -> kulupu_primitives::Difficulty {
 			difficulty::Module::<Runtime>::difficulty()
 		}
 	}

@@ -1403,6 +1403,7 @@ dependencies = [
  "exit-future 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "kulupu-pow 0.1.0",
+ "kulupu-primitives 0.1.0",
  "kulupu-runtime 0.1.0",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1442,7 +1443,10 @@ dependencies = [
 name = "kulupu-primitives"
 version = "0.1.0"
 dependencies = [
+ "parity-scale-codec 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.100 (registry+https://github.com/rust-lang/crates.io-index)",
  "substrate-consensus-pow-primitives 2.0.0",
+ "substrate-primitives 2.0.0",
 ]
 
 [[package]]

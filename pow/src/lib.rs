@@ -1,5 +1,3 @@
-mod compact;
-
 use std::sync::Arc;
 use primitives::{U256, H256};
 use sr_primitives::generic::BlockId;
@@ -9,9 +7,8 @@ use sr_primitives::traits::{
 use client::{blockchain::HeaderBackend, backend::AuxStore};
 use codec::{Encode, Decode};
 use consensus_pow::PowAlgorithm;
-use consensus_pow_primitives::{Difficulty, Seal as RawSeal, DifficultyApi};
-use kulupu_primitives::{DAY_HEIGHT, HOUR_HEIGHT};
-use compact::Compact;
+use consensus_pow_primitives::{Seal as RawSeal, DifficultyApi};
+use kulupu_primitives::{Difficulty, DAY_HEIGHT, HOUR_HEIGHT};
 use log::*;
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode)]
@@ -37,6 +34,13 @@ impl Compute {
 			work: H256::from(work),
 		}
 	}
+}
+
+fn is_valid_hash(hash: &H256, difficulty: Difficulty) -> bool {
+	let num_hash = U256::from(&hash[..]);
+	let (_, overflowed) = num_hash.overflowing_mul(difficulty.0);
+
+	!overflowed
 }
 
 fn key_hash<B, C>(
@@ -78,11 +82,16 @@ impl<C> RandomXAlgorithm<C> {
 
 impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi,
-	C::Api: DifficultyApi<B>,
+	C::Api: DifficultyApi<B, Difficulty>,
 {
+	type Difficulty = Difficulty;
+
 	fn difficulty(&self, parent: &BlockId<B>) -> Result<Difficulty, String> {
-		self.client.runtime_api().difficulty(parent)
-			.map_err(|e| format!("Fetching difficulty from runtime failed: {:?}", e))
+		let difficulty = self.client.runtime_api().difficulty(parent)
+			.map_err(|e| format!("Fetching difficulty from runtime failed: {:?}", e));
+
+		println!("next difficulty: {:?}", difficulty);
+		difficulty
 	}
 
 	fn verify(
@@ -99,8 +108,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 			Err(_) => return Ok(false),
 		};
 
-		let compact = Compact::from(difficulty);
-		if !compact.verify(seal.work) {
+		if !is_valid_hash(&seal.work, difficulty) {
 			return Ok(false)
 		}
 
@@ -142,8 +150,8 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 
 			let seal = compute.compute();
 
-			let compact = Compact::from(difficulty);
-			if !compact.verify(seal.work) {
+			if is_valid_hash(&seal.work, difficulty) {
+				println!("Tried {} times", i);
 				return Ok(Some(seal.encode()))
 			}
 		}

@@ -3,6 +3,7 @@ use kulupu_runtime::{
 	AccountId, BalancesConfig, GenesisConfig, SudoConfig,
 	IndicesConfig, SystemConfig, DifficultyConfig, WASM_BINARY,
 };
+use kulupu_primitives::{U256, Difficulty};
 use substrate_service;
 
 // Note this is the URL for the telemetry server
@@ -111,7 +112,7 @@ fn testnet_genesis(
 			key: root_key,
 		}),
 		difficulty: Some(DifficultyConfig {
-			initial_difficulty: 3,
+			initial_difficulty: Difficulty(U256::from(3)),
 		}),
 	}
 }
