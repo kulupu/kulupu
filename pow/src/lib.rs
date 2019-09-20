@@ -27,6 +27,10 @@ pub struct Compute {
 impl Compute {
 	pub fn compute(self) -> Seal {
 		let mut vm = randomx::VM::new(&self.key_hash[..]);
+		self.compute_with(&mut vm)
+	}
+
+	pub fn compute_with(self, vm: &mut randomx::VM) -> Seal {
 		let work = vm.calculate(&(self.pre_hash, self.nonce).encode()[..]);
 
 		Seal {
@@ -134,6 +138,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		round: u32,
 	) -> Result<Option<RawSeal>, String> {
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
+		let mut vm = randomx::VM::new(&key_hash[..]);
 
 		for i in 0..round {
 			let nonce = {
@@ -148,10 +153,9 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				nonce,
 			};
 
-			let seal = compute.compute();
+			let seal = compute.compute_with(&mut vm);
 
 			if is_valid_hash(&seal.work, difficulty) {
-				println!("Tried {} times", i);
 				return Ok(Some(seal.encode()))
 			}
 		}
