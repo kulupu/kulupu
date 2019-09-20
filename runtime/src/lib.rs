@@ -129,7 +129,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
 	pub const MaximumBlockLength: u32 = 5 * 1024 * 1024;
 	pub const Version: RuntimeVersion = VERSION;
-	pub const Reward: Balance = 60 * 1000000000000000000;
+	pub const Reward: Balance = 60 * 1000000000000;
 }
 
 impl system::Trait for Runtime {
