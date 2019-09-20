@@ -60,7 +60,7 @@ impl Alternative {
 				|| mainnet_genesis(),
 				vec![],
 				None,
-				None,
+				Some("kul"),
 				None,
 				None
 			),
