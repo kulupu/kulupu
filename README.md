@@ -1,5 +1,7 @@
 # Kulupu
 
+[![Discord](https://img.shields.io/discord/586902457053872148.svg)](https://discord.gg/DZbg4rZ)
+
 Proof-of-work blockchain built on
 [Substrate](https://github.com/paritytech/substrate).
 
