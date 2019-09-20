@@ -120,6 +120,7 @@ pub fn new_full<C: Send + Default + 'static>(config: Configuration<C, GenesisCon
 			None,
 			500,
 			service.network(),
+			std::time::Duration::new(2, 0),
 			inherent_data_providers.clone(),
 		);
 	}
