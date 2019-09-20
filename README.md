@@ -71,3 +71,10 @@ Remember the public key, and pass it to node for mining. For example:
 ```
 cargo run --release -- --validator --author 0x7e946b7dd192307b4538d664ead95474062ac3738e04b5f3084998b76bc5122d
 ```
+
+## Proof of Work Parameters
+
+* **Algorithm**: RandomX
+* **Block time**: 60 seconds
+* **Issurance**: 1 KULU per second (60 KULU per block)
+* No premine
