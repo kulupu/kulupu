@@ -59,7 +59,7 @@ impl Alternative {
 				"kulupu",
 				|| mainnet_genesis(),
 				vec![
-					"/dns4/node.kulupu.network/tcp/30333/p2p/QmQBY8aUECher4fioDnUkuREKCxwoKNCfDUHoiCdrpJp9f".to_string(),
+					"/dns4/node.kulupu.network/tcp/30333/p2p/QmRpJhTrFUjPGKvvP9HDWC81ByK3WN2vvVPVKbn71BnMiB".to_string(),
 				],
 				None,
 				Some("kul"),
