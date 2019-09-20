@@ -1410,7 +1410,9 @@ dependencies = [
  "parking_lot 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sr-io 2.0.0",
  "srml-anyupgrade 0.1.0",
+ "srml-rewards 0.1.0",
  "srml-timestamp 2.0.0",
+ "structopt 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "substrate-basic-authorship 2.0.0",
  "substrate-cli 2.0.0",
  "substrate-client 2.0.0",
@@ -1471,7 +1473,7 @@ dependencies = [
  "srml-balances 2.0.0",
  "srml-executive 2.0.0",
  "srml-indices 2.0.0",
- "srml-sudo 2.0.0",
+ "srml-rewards 0.1.0",
  "srml-support 2.0.0",
  "srml-system 2.0.0",
  "srml-timestamp 2.0.0",
@@ -3464,16 +3466,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "srml-sudo"
-version = "2.0.0"
+name = "srml-rewards"
+version = "0.1.0"
 dependencies = [
  "parity-scale-codec 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.100 (registry+https://github.com/rust-lang/crates.io-index)",
- "sr-io 2.0.0",
  "sr-primitives 2.0.0",
  "sr-std 2.0.0",
+ "srml-balances 2.0.0",
  "srml-support 2.0.0",
  "srml-system 2.0.0",
+ "substrate-inherents 2.0.0",
 ]
 
 [[package]]

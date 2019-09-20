@@ -90,7 +90,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		let difficulty = self.client.runtime_api().difficulty(parent)
 			.map_err(|e| format!("Fetching difficulty from runtime failed: {:?}", e));
 
-		println!("next difficulty: {:?}", difficulty);
+		info!("Next block's difficulty: {:?}", difficulty);
 		difficulty
 	}
 

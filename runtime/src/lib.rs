@@ -129,6 +129,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
 	pub const MaximumBlockLength: u32 = 5 * 1024 * 1024;
 	pub const Version: RuntimeVersion = VERSION;
+	pub const Reward: Balance = 100000;
 }
 
 impl system::Trait for Runtime {
@@ -221,16 +222,15 @@ impl balances::Trait for Runtime {
 	type WeightToFee = ConvertInto;
 }
 
-impl sudo::Trait for Runtime {
-	type Event = Event;
-	type Proposal = Call;
-}
-
 impl difficulty::Trait for Runtime { }
 
 impl anyupgrade::Trait for Runtime {
 	type Event = Event;
 	type Proposal = Call;
+}
+
+impl rewards::Trait for Runtime {
+	type Reward = Reward;
 }
 
 construct_runtime!(
@@ -243,9 +243,9 @@ construct_runtime!(
 		Timestamp: timestamp::{Module, Call, Storage, Inherent},
 		Indices: indices::{default, Config<T>},
 		Balances: balances::{default, Error},
-		Sudo: sudo,
 		Difficulty: difficulty::{Module, Call, Storage, Config},
 		AnyUpgrade: anyupgrade::{Module, Call, Event, Inherent},
+		Rewards: rewards::{Module, Call, Inherent, Storage},
 	}
 );
 

@@ -35,6 +35,8 @@ consensus-pow = { package = "substrate-consensus-pow", path = "vendor/substrate/
 kulupu-pow = { path = "pow" }
 srml-timestamp = { path = "vendor/substrate/srml/timestamp" }
 srml-anyupgrade = { path = "anyupgrade" }
+srml-rewards = { path = "rewards" }
+structopt = "0.2"
 consensus-common = { package = "substrate-consensus-common", path = "vendor/substrate/core/consensus/common" }
 
 [build-dependencies]
@@ -45,5 +47,6 @@ members = [
 	"runtime",
 	"pow",
 	"anyupgrade",
+	"rewards",
 ]
 exclude = ["vendor"]

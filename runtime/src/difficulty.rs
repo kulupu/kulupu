@@ -29,9 +29,8 @@ pub trait Trait: timestamp::Trait { }
 decl_storage! {
 	trait Store for Module<T: Trait> as Difficulty {
 		/// Past difficulties and timestamps, from earliest to latest.
-		pub PastDifficultiesAndTimestamps
-			get(past_difficulties_and_timestamps):
-		[Option<DifficultyAndTimestamp<T::Moment>>; DIFFICULTY_ADJUST_WINDOW as usize]
+		PastDifficultiesAndTimestamps:
+		[Option<DifficultyAndTimestamp<T::Moment>>; 60]
 			= [None; DIFFICULTY_ADJUST_WINDOW as usize];
 		/// Initial difficulty.
 		pub InitialDifficulty config(initial_difficulty): Difficulty;
@@ -41,10 +40,7 @@ decl_storage! {
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn on_finalize(_n: T::BlockNumber) {
-			let mut data = Self::past_difficulties_and_timestamps();
-			#[cfg(feature = "std")] {
-				println!("data: {:?}", &data[..]);
-			}
+			let mut data = PastDifficultiesAndTimestamps::<T>::get();
 
 			for i in 1..data.len() {
 				data[i - 1] = data[i];
@@ -63,7 +59,7 @@ decl_module! {
 impl<T: Trait> Module<T> {
 	/// Get target difficulty for the next block.
 	pub fn difficulty() -> Difficulty {
-		let data = Self::past_difficulties_and_timestamps();
+		let data = PastDifficultiesAndTimestamps::<T>::get();
 
 		let mut ts_delta = 0;
 		for i in 1..(DIFFICULTY_ADJUST_WINDOW as usize) {

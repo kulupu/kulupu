@@ -21,11 +21,11 @@ timestamp = { package = "srml-timestamp", path = "../vendor/substrate/srml/times
 sr-primitives = { path = "../vendor/substrate/core/sr-primitives", default_features = false }
 client = { package = "substrate-client", path = "../vendor/substrate/core/client", default_features = false }
 offchain-primitives = { package = "substrate-offchain-primitives", path = "../vendor/substrate/core/offchain/primitives", default-features = false }
-sudo = { package = "srml-sudo", path = "../vendor/substrate/srml/sudo", default_features = false }
 pow-primitives = { package = "substrate-consensus-pow-primitives", path = "../vendor/substrate/core/consensus/pow/primitives", default-features = false }
 kulupu-primitives = { path = "../primitives", default-features = false }
 substrate-session = { path = "../vendor/substrate/core/session", default-features = false }
 anyupgrade = { package = "srml-anyupgrade", path = "../anyupgrade", default-features = false }
+rewards = { package = "srml-rewards", path = "../rewards", default-features = false }
 
 [build-dependencies]
 wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.2" }
@@ -49,10 +49,10 @@ std = [
 	"serde",
 	"safe-mix/std",
 	"offchain-primitives/std",
-	"sudo/std",
 	"pow-primitives/std",
 	"substrate-session/std",
 	"kulupu-primitives/std",
 	"anyupgrade/std",
+	"rewards/std",
 ]
 no_std = []

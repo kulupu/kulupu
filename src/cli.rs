@@ -3,10 +3,19 @@ use futures::{future, Future, sync::oneshot};
 use std::cell::RefCell;
 use tokio::runtime::Runtime;
 pub use substrate_cli::{VersionInfo, IntoExit, error};
-use substrate_cli::{informant, parse_and_prepare, ParseAndPrepare, NoCustom};
+use substrate_cli::{informant, parse_and_prepare, impl_augment_clap, ParseAndPrepare, NoCustom};
 use substrate_service::{AbstractService, Roles as ServiceRoles};
 use crate::chain_spec;
 use log::info;
+use structopt::StructOpt;
+
+#[derive(Debug, StructOpt, Clone)]
+pub struct CustomArgs {
+	#[structopt(long)]
+	author: Option<String>,
+}
+
+impl_augment_clap!(CustomArgs);
 
 /// Parse command line arguments into service configuration.
 pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()> where
@@ -14,37 +23,38 @@ pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()>
 	T: Into<std::ffi::OsString> + Clone,
 	E: IntoExit,
 {
-	match parse_and_prepare::<NoCustom, NoCustom, _>(&version, "substrate-node", args) {
+	match parse_and_prepare::<NoCustom, CustomArgs, _>(&version, "substrate-node", args) {
 		ParseAndPrepare::Run(cmd) => cmd.run::<(), _, _, _, _>(load_spec, exit,
-		|exit, _cli_args, _custom_args, config| {
+		|exit, _cli_args, custom_args, config| {
 			info!("{}", version.name);
 			info!("  version {}", config.full_version());
 			info!("  by {}, 2017, 2018", version.author);
 			info!("Chain specification: {}", config.chain_spec.name());
 			info!("Node name: {}", config.name);
 			info!("Roles: {:?}", config.roles);
+
 			let runtime = Runtime::new().map_err(|e| format!("{:?}", e))?;
 			match config.roles {
 				ServiceRoles::LIGHT => run_until_exit(
 					runtime,
-				 	service::new_light(config).map_err(|e| format!("{:?}", e))?,
+				 	service::new_light(config, custom_args.author.as_ref().map(|s| s.as_str())).map_err(|e| format!("{:?}", e))?,
 					exit
 				),
 				_ => run_until_exit(
 					runtime,
-					service::new_full(config).map_err(|e| format!("{:?}", e))?,
+					service::new_full(config, custom_args.author.as_ref().map(|s| s.as_str())).map_err(|e| format!("{:?}", e))?,
 					exit
 				),
 			}.map_err(|e| format!("{:?}", e))
 		}),
 		ParseAndPrepare::BuildSpec(cmd) => cmd.run(load_spec),
 		ParseAndPrepare::ExportBlocks(cmd) => cmd.run_with_builder::<(), _, _, _, _, _>(|config|
-			Ok(new_full_start!(config).0), load_spec, exit),
+			Ok(new_full_start!(config, None).0), load_spec, exit),
 		ParseAndPrepare::ImportBlocks(cmd) => cmd.run_with_builder::<(), _, _, _, _, _>(|config|
-			Ok(new_full_start!(config).0), load_spec, exit),
+			Ok(new_full_start!(config, None).0), load_spec, exit),
 		ParseAndPrepare::PurgeChain(cmd) => cmd.run(load_spec),
 		ParseAndPrepare::RevertChain(cmd) => cmd.run_with_builder::<(), _, _, _, _>(|config|
-			Ok(new_full_start!(config).0), load_spec),
+			Ok(new_full_start!(config, None).0), load_spec),
 		ParseAndPrepare::CustomCommand(_) => Ok(())
 	}?;
 

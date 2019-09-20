@@ -1,6 +1,5 @@
-use primitives::{Pair, Public};
 use kulupu_runtime::{
-	AccountId, BalancesConfig, GenesisConfig, SudoConfig,
+	AccountId, BalancesConfig, GenesisConfig,
 	IndicesConfig, SystemConfig, DifficultyConfig, WASM_BINARY,
 };
 use kulupu_primitives::{U256, Difficulty};
@@ -21,13 +20,8 @@ pub enum Alternative {
 	Development,
 	/// Whatever the current runtime is, with simple Alice/Bob auths.
 	LocalTestnet,
-}
-
-/// Helper function to generate a crypto pair from seed
-pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-	TPublic::Pair::from_string(&format!("//{}", seed), None)
-		.expect("static values are valid; qed")
-		.public()
+	/// Kulupu
+	Kulupu,
 }
 
 impl Alternative {
@@ -38,13 +32,7 @@ impl Alternative {
 				"Development",
 				"dev",
 				|| testnet_genesis(
-					get_from_seed::<AccountId>("Alice"),
-					vec![
-						get_from_seed::<AccountId>("Alice"),
-						get_from_seed::<AccountId>("Bob"),
-						get_from_seed::<AccountId>("Alice//stash"),
-						get_from_seed::<AccountId>("Bob//stash"),
-					],
+					vec![],
 					true
 				),
 				vec![],
@@ -57,23 +45,19 @@ impl Alternative {
 				"Local Testnet",
 				"local_testnet",
 				|| testnet_genesis(
-					get_from_seed::<AccountId>("Alice"),
-					vec![
-						get_from_seed::<AccountId>("Alice"),
-						get_from_seed::<AccountId>("Bob"),
-						get_from_seed::<AccountId>("Charlie"),
-						get_from_seed::<AccountId>("Dave"),
-						get_from_seed::<AccountId>("Eve"),
-						get_from_seed::<AccountId>("Ferdie"),
-						get_from_seed::<AccountId>("Alice//stash"),
-						get_from_seed::<AccountId>("Bob//stash"),
-						get_from_seed::<AccountId>("Charlie//stash"),
-						get_from_seed::<AccountId>("Dave//stash"),
-						get_from_seed::<AccountId>("Eve//stash"),
-						get_from_seed::<AccountId>("Ferdie//stash"),
-					],
+					vec![],
 					true
 				),
+				vec![],
+				None,
+				None,
+				None,
+				None
+			),
+			Alternative::Kulupu => ChainSpec::from_genesis(
+				"Kulupu",
+				"kulupu",
+				|| mainnet_genesis(),
 				vec![],
 				None,
 				None,
@@ -86,14 +70,14 @@ impl Alternative {
 	pub(crate) fn from(s: &str) -> Option<Self> {
 		match s {
 			"dev" => Some(Alternative::Development),
-			"" | "local" => Some(Alternative::LocalTestnet),
+			"local" => Some(Alternative::LocalTestnet),
+			"" | "kulupu" => Some(Alternative::Kulupu),
 			_ => None,
 		}
 	}
 }
 
 fn testnet_genesis(
-	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	_enable_println: bool) -> GenesisConfig {
 	GenesisConfig {
@@ -108,8 +92,24 @@ fn testnet_genesis(
 			balances: endowed_accounts.iter().cloned().map(|k|(k, 1 << 60)).collect(),
 			vesting: vec![],
 		}),
-		sudo: Some(SudoConfig {
-			key: root_key,
+		difficulty: Some(DifficultyConfig {
+			initial_difficulty: Difficulty(U256::from(3)),
+		}),
+	}
+}
+
+fn mainnet_genesis() -> GenesisConfig {
+	GenesisConfig {
+		system: Some(SystemConfig {
+			code: WASM_BINARY.to_vec(),
+			changes_trie_config: Default::default(),
+		}),
+		indices: Some(IndicesConfig {
+			ids: vec![],
+		}),
+		balances: Some(BalancesConfig {
+			balances: vec![],
+			vesting: vec![],
 		}),
 		difficulty: Some(DifficultyConfig {
 			initial_difficulty: Difficulty(U256::from(3)),
