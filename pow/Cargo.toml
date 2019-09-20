@@ -14,3 +14,6 @@ randomx = { path = "../vendor/randomx" }
 codec = { package = "parity-scale-codec", version = "1.0.0" }
 log = "0.4"
 kulupu-primitives = { path = "../primitives" }
+kulupu-runtime = { path = "../runtime" }
+consensus-common = { package = "substrate-consensus-common", path = "../vendor/substrate/core/consensus/common" }
+inherents = { package = "substrate-inherents", path = "../vendor/substrate/core/inherents" }

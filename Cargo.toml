@@ -33,6 +33,9 @@ kulupu-runtime = { path = "runtime" }
 kulupu-primitives = { path = "primitives" }
 consensus-pow = { package = "substrate-consensus-pow", path = "vendor/substrate/core/consensus/pow" }
 kulupu-pow = { path = "pow" }
+srml-timestamp = { path = "vendor/substrate/srml/timestamp" }
+srml-anyupgrade = { path = "anyupgrade" }
+consensus-common = { package = "substrate-consensus-common", path = "vendor/substrate/core/consensus/common" }
 
 [build-dependencies]
 vergen = "3"
@@ -41,5 +44,6 @@ vergen = "3"
 members = [
 	"runtime",
 	"pow",
+	"anyupgrade",
 ]
 exclude = ["vendor"]

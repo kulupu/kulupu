@@ -24,13 +24,33 @@ construct_simple_protocol! {
 	pub struct NodeProtocol where Block = Block { }
 }
 
+pub fn kulupu_inherent_data_providers() -> Result<inherents::InherentDataProviders, ServiceError> {
+	let mut inherent_data_providers = inherents::InherentDataProviders::new();
+
+	if !inherent_data_providers.has_provider(&srml_timestamp::INHERENT_IDENTIFIER) {
+		inherent_data_providers
+			.register_provider(srml_timestamp::InherentDataProvider)
+			.map_err(Into::into)
+			.map_err(consensus_common::Error::InherentData)?;
+	}
+
+	if !inherent_data_providers.has_provider(&srml_anyupgrade::INHERENT_IDENTIFIER) {
+		inherent_data_providers
+			.register_provider(srml_anyupgrade::InherentDataProvider(Default::default()))
+			.map_err(Into::into)
+			.map_err(consensus_common::Error::InherentData)?;
+	}
+
+	Ok(inherent_data_providers)
+}
+
 /// Starts a `ServiceBuilder` for a full service.
 ///
 /// Use this macro if you don't actually need the full service, but just the builder in order to
 /// be able to perform chain operations.
 macro_rules! new_full_start {
 	($config:expr) => {{
-		let inherent_data_providers = inherents::InherentDataProviders::new();
+		let inherent_data_providers = crate::service::kulupu_inherent_data_providers()?;
 
 		let builder = substrate_service::ServiceBuilder::new_full::<
 			kulupu_runtime::opaque::Block, kulupu_runtime::RuntimeApi, crate::service::Executor
@@ -97,7 +117,7 @@ pub fn new_full<C: Send + Default + 'static>(config: Configuration<C, GenesisCon
 pub fn new_light<C: Send + Default + 'static>(config: Configuration<C, GenesisConfig>)
 	-> Result<impl AbstractService, ServiceError>
 {
-	let inherent_data_providers = InherentDataProviders::new();
+	let inherent_data_providers = kulupu_inherent_data_providers()?;
 
 	ServiceBuilder::new_light::<Block, RuntimeApi, Executor>(config)?
 		.with_select_chain(|_config, backend| {

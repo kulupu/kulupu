@@ -228,6 +228,11 @@ impl sudo::Trait for Runtime {
 
 impl difficulty::Trait for Runtime { }
 
+impl anyupgrade::Trait for Runtime {
+	type Event = Event;
+	type Proposal = Call;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -240,6 +245,7 @@ construct_runtime!(
 		Balances: balances::{default, Error},
 		Sudo: sudo,
 		Difficulty: difficulty::{Module, Call, Storage, Config},
+		AnyUpgrade: anyupgrade::{Module, Call, Event, Inherent},
 	}
 );
 
