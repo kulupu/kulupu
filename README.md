@@ -80,3 +80,8 @@ cargo run --release -- --validator --author 0x7e946b7dd192307b4538d664ead9547406
 * **Block time**: 60 seconds
 * **Issurance**: 1 KULU per second (60 KULU per block)
 * No premine
+
+## Disclaimer
+
+This project is a side project by Wei Tang, and is not endorsed by Parity
+Technologies.
