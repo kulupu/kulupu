@@ -34,6 +34,14 @@ that part is enabled.
 
 ## Prerequisites
 
+Clone this repo and update the submodules:
+
+```bash
+git clone https://github.com/kulupu/kulupu
+cd kulupu
+git submodule update --init --recursive
+```
+
 Install Rust:
 
 ```bash
