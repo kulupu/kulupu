@@ -17,9 +17,11 @@ changed using hard fork or on-chain governance in the future.
 
 ## Network Launch
 
-Currently, you can start your local testnet using the instructions provided
-below. We plan to launch a testnet shortly after, with mainnet immediately after
-if no issue is found.
+The first launch attempt is on! We currently do not provide any official binary
+release, so please compile the node by yourself, using the instructions below.
+
+Launch attempt means that it's an experimental launch. We relaunch the network
+when bugs are found. Otherwise, the current network becomes the mainnet.
 
 Substrate contains a variety of features including smart contracts and
 democracy. However, for initial launch of Kulupu, we plan to only enable basic
