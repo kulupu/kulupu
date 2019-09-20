@@ -119,6 +119,7 @@ pub fn new_full<C: Send + Default + 'static>(config: Configuration<C, GenesisCon
 			proposer,
 			None,
 			500,
+			service.network(),
 			inherent_data_providers.clone(),
 		);
 	}
