@@ -13,6 +13,8 @@ use structopt::StructOpt;
 pub struct CustomArgs {
 	#[structopt(long)]
 	author: Option<String>,
+	#[structopt(long)]
+	threads: Option<usize>,
 }
 
 impl_augment_clap!(CustomArgs);
@@ -42,7 +44,11 @@ pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()>
 				),
 				_ => run_until_exit(
 					runtime,
-					service::new_full(config, custom_args.author.as_ref().map(|s| s.as_str())).map_err(|e| format!("{:?}", e))?,
+					service::new_full(
+						config,
+						custom_args.author.as_ref().map(|s| s.as_str()),
+						custom_args.threads.unwrap_or(1),
+					).map_err(|e| format!("{:?}", e))?,
 					exit
 				),
 			}.map_err(|e| format!("{:?}", e))

@@ -101,7 +101,7 @@ macro_rules! new_full_start {
 }
 
 /// Builds a new service for a full client.
-pub fn new_full<C: Send + Default + 'static>(config: Configuration<C, GenesisConfig>, author: Option<&str>)
+pub fn new_full<C: Send + Default + 'static>(config: Configuration<C, GenesisConfig>, author: Option<&str>, threads: usize)
 	-> Result<impl AbstractService, ServiceError>
 {
 	let is_authority = config.roles.is_authority();
@@ -116,22 +116,24 @@ pub fn new_full<C: Send + Default + 'static>(config: Configuration<C, GenesisCon
 		.build()?;
 
 	if is_authority {
-		let proposer = basic_authorship::ProposerFactory {
-			client: service.client(),
-			transaction_pool: service.transaction_pool(),
-		};
+		for _ in 0..threads {
+			let proposer = basic_authorship::ProposerFactory {
+				client: service.client(),
+				transaction_pool: service.transaction_pool(),
+			};
 
-		consensus_pow::start_mine(
-			Box::new(service.client().clone()),
-			service.client(),
-			kulupu_pow::RandomXAlgorithm::new(service.client()),
-			proposer,
-			None,
-			500,
-			service.network(),
-			std::time::Duration::new(2, 0),
-			inherent_data_providers.clone(),
-		);
+			consensus_pow::start_mine(
+				Box::new(service.client().clone()),
+				service.client(),
+				kulupu_pow::RandomXAlgorithm::new(service.client()),
+				proposer,
+				None,
+				500,
+				service.network(),
+				std::time::Duration::new(2, 0),
+				inherent_data_providers.clone(),
+			);
+		}
 	}
 
 	Ok(service)
