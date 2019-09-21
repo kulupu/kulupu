@@ -80,7 +80,7 @@ pub mod opaque {
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kulupu"),
 	impl_name: create_runtime_str!("kulupu"),
-	authoring_version: 5,
+	authoring_version: 3,
 	spec_version: 5,
 	impl_version: 5,
 	apis: RUNTIME_API_VERSIONS,
