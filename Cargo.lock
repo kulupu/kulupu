@@ -1411,6 +1411,7 @@ dependencies = [
  "sr-io 2.0.0",
  "srml-anyupgrade 0.1.0",
  "srml-rewards 0.1.0",
+ "srml-system 2.0.0",
  "srml-timestamp 2.0.0",
  "structopt 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "substrate-basic-authorship 2.0.0",

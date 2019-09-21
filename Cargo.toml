@@ -34,6 +34,7 @@ kulupu-primitives = { path = "primitives" }
 consensus-pow = { package = "substrate-consensus-pow", path = "vendor/substrate/core/consensus/pow" }
 kulupu-pow = { path = "pow" }
 srml-timestamp = { path = "vendor/substrate/srml/timestamp" }
+srml-system = { path = "vendor/substrate/srml/system" }
 srml-anyupgrade = { path = "anyupgrade" }
 srml-rewards = { path = "rewards" }
 structopt = "0.2"

@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 use std::str::FromStr;
+use std::collections::BTreeMap;
 use substrate_client::LongestChain;
 use kulupu_runtime::{self, GenesisConfig, opaque::Block, RuntimeApi, AccountId};
 use substrate_service::{error::{Error as ServiceError}, AbstractService, Configuration, ServiceBuilder};
@@ -35,8 +36,16 @@ pub fn kulupu_inherent_data_providers(author: Option<&str>) -> Result<inherents:
 	}
 
 	if !inherent_data_providers.has_provider(&srml_anyupgrade::INHERENT_IDENTIFIER) {
+		let upgrades = BTreeMap::default();
+		// To plan a new hard fork, insert an item such as:
+		// ```
+		// 	srml_anyupgrade::Call::<kulupu_runtime::Runtime>::any(
+		//		Box::new(srml_system::Call::set_code(<wasm>).into())
+		//	).encode()
+		// ```
+
 		inherent_data_providers
-			.register_provider(srml_anyupgrade::InherentDataProvider(Default::default()))
+			.register_provider(srml_anyupgrade::InherentDataProvider(upgrades))
 			.map_err(Into::into)
 			.map_err(consensus_common::Error::InherentData)?;
 	}

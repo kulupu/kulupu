@@ -146,7 +146,7 @@ impl<T: Trait> ProvideInherent for Module<T> {
 			.map_err(|_| InherentError::Other(RuntimeString::from("Invalid anyupgrade inherent data encoding.")))?
 		{
 			Some(whitelist) => whitelist,
-			None => return Err(InherentError::NotWhitelisted),
+			None => return Ok(()),
 		};
 
 		let current_num = UniqueSaturatedInto::<u64>::unique_saturated_into(
