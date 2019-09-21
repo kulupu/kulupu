@@ -55,4 +55,3 @@ std = [
 	"anyupgrade/std",
 	"rewards/std",
 ]
-no_std = []
