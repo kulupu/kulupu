@@ -36,27 +36,13 @@ pub fn kulupu_inherent_data_providers(author: Option<&str>) -> Result<inherents:
 	}
 
 	if !inherent_data_providers.has_provider(&srml_anyupgrade::INHERENT_IDENTIFIER) {
-		let mut upgrades = BTreeMap::default();
+		let upgrades = BTreeMap::default();
 		// To plan a new hard fork, insert an item such as:
 		// ```
 		// 	srml_anyupgrade::Call::<kulupu_runtime::Runtime>::any(
 		//		Box::new(srml_system::Call::set_code(<wasm>).into())
 		//	).encode()
 		// ```
-		upgrades.insert(3313, srml_anyupgrade::Call::<kulupu_runtime::Runtime>::any(
-			Box::new(
-				srml_system::Call::set_code(
-					include_bytes!("../res/1-kinshasa/kulupu_runtime.compact.wasm").to_vec()
-				).into()
-			)
-		).encode());
-		upgrades.insert(5011, srml_anyupgrade::Call::<kulupu_runtime::Runtime>::any(
-			Box::new(
-				srml_system::Call::set_code(
-					include_bytes!("../res/2-barcelona/kulupu_runtime.compact.wasm").to_vec()
-				).into()
-			)
-		).encode());
 
 		inherent_data_providers
 			.register_provider(srml_anyupgrade::InherentDataProvider((0, upgrades)))
