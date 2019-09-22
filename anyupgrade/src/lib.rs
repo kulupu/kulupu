@@ -13,6 +13,10 @@ use inherents::{InherentIdentifier, InherentData, ProvideInherent,
 use inherents::ProvideInherentData;
 use codec::{Encode, Decode};
 
+pub trait IsAnyUpgradeInherent {
+	fn is_anyupgrade_inherent(&self) -> bool;
+}
+
 pub trait Trait: system::Trait {
 	/// The overarching event type.
 	type Event: From<Event> + Into<<Self as system::Trait>::Event>;
@@ -61,6 +65,35 @@ decl_module! {
 	}
 }
 
+impl<T: Trait> Module<T> {
+	pub fn is_inherent_required(data: &InherentData) -> Result<bool, InherentError> {
+		let whitelist = match data.get_data::<InherentType>(&INHERENT_IDENTIFIER)
+			.map_err(|_| InherentError::Other(RuntimeString::from("Invalid anyupgrade inherent data encoding.")))?
+		{
+			Some(whitelist) => whitelist,
+			None => return Ok(false),
+		};
+
+		let current_num = UniqueSaturatedInto::<u64>::unique_saturated_into(
+			system::Module::<T>::block_number()
+		);
+
+		Ok(whitelist.get(&current_num).is_some())
+	}
+
+	pub fn check_inherents(has_anyupgrade_inherent: bool, data: &InherentData) -> Result<(), InherentError> {
+		if Self::is_inherent_required(&data)? {
+			if has_anyupgrade_inherent {
+				Ok(())
+			} else {
+				Err(InherentError::RequiredNotFound)
+			}
+		} else {
+			Ok(())
+		}
+	}
+}
+
 decl_event!(
 	pub enum Event {
 		AnyDone(bool),
@@ -75,12 +108,14 @@ pub const INHERENT_IDENTIFIER: InherentIdentifier = *b"anyupgra";
 pub enum InherentError {
 	NotWhitelisted,
 	Other(RuntimeString),
+	RequiredNotFound,
 }
 
 impl IsFatalError for InherentError {
 	fn is_fatal_error(&self) -> bool {
 		match *self {
 			InherentError::NotWhitelisted => true,
+			InherentError::RequiredNotFound => true,
 			InherentError::Other(_) => true,
 		}
 	}

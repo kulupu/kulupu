@@ -97,6 +97,7 @@ macro_rules! new_full_start {
 					Box::new(client.clone()),
 					client.clone(),
 					kulupu_pow::RandomXAlgorithm::new(client.clone()),
+					0,
 					inherent_data_providers.clone(),
 				)?;
 
@@ -165,6 +166,7 @@ pub fn new_light<C: Send + Default + 'static>(config: Configuration<C, GenesisCo
 				Box::new(client.clone()),
 				client.clone(),
 				kulupu_pow::RandomXAlgorithm::new(client.clone()),
+				0,
 				inherent_data_providers.clone(),
 			)?;
 
