@@ -67,7 +67,7 @@ decl_module! {
 
 impl<T: Trait> Module<T> {
 	pub fn is_inherent_required(data: &InherentData) -> Result<bool, InherentError> {
-		let whitelist = match data.get_data::<InherentType>(&INHERENT_IDENTIFIER)
+		let (check_from, whitelist) = match data.get_data::<InherentType>(&INHERENT_IDENTIFIER)
 			.map_err(|_| InherentError::Other(RuntimeString::from("Invalid anyupgrade inherent data encoding.")))?
 		{
 			Some(whitelist) => whitelist,
@@ -77,6 +77,9 @@ impl<T: Trait> Module<T> {
 		let current_num = UniqueSaturatedInto::<u64>::unique_saturated_into(
 			system::Module::<T>::block_number()
 		);
+		if current_num < check_from {
+			return Ok(false)
+		}
 
 		Ok(whitelist.get(&current_num).is_some())
 	}
@@ -133,7 +136,7 @@ impl InherentError {
 	}
 }
 
-pub type InherentType = BTreeMap<u64, Vec<u8>>;
+pub type InherentType = (u64, BTreeMap<u64, Vec<u8>>);
 
 #[cfg(feature = "std")]
 pub struct InherentDataProvider(pub InherentType);
@@ -159,7 +162,7 @@ impl<T: Trait> ProvideInherent for Module<T> {
 	const INHERENT_IDENTIFIER: InherentIdentifier = INHERENT_IDENTIFIER;
 
 	fn create_inherent(data: &InherentData) -> Option<Self::Call> {
-		let whitelist = data.get_data::<InherentType>(&INHERENT_IDENTIFIER)
+		let (_, whitelist) = data.get_data::<InherentType>(&INHERENT_IDENTIFIER)
 			.expect("Gets and decodes anyupgrade inherent data")?;
 
 		let current_num = UniqueSaturatedInto::<u64>::unique_saturated_into(
@@ -177,16 +180,20 @@ impl<T: Trait> ProvideInherent for Module<T> {
 	}
 
 	fn check_inherent(call: &Self::Call, data: &InherentData) -> result::Result<(), Self::Error> {
-		let whitelist = match data.get_data::<InherentType>(&INHERENT_IDENTIFIER)
+		let (check_from, whitelist) = match data.get_data::<InherentType>(&INHERENT_IDENTIFIER)
 			.map_err(|_| InherentError::Other(RuntimeString::from("Invalid anyupgrade inherent data encoding.")))?
 		{
-			Some(whitelist) => whitelist,
+			Some((check_from, whitelist)) => (check_from, whitelist),
 			None => return Ok(()),
 		};
 
 		let current_num = UniqueSaturatedInto::<u64>::unique_saturated_into(
 			system::Module::<T>::block_number()
 		);
+		if current_num < check_from {
+			return Ok(())
+		}
+
 		let ccall = call.encode();
 		for (num, call) in whitelist {
 			if num == current_num && call == ccall {

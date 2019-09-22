@@ -59,7 +59,7 @@ pub fn kulupu_inherent_data_providers(author: Option<&str>) -> Result<inherents:
 		).encode());
 
 		inherent_data_providers
-			.register_provider(srml_anyupgrade::InherentDataProvider(upgrades))
+			.register_provider(srml_anyupgrade::InherentDataProvider((0, upgrades)))
 			.map_err(Into::into)
 			.map_err(consensus_common::Error::InherentData)?;
 	}
