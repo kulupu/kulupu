@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::cell::RefCell;
 use primitives::{U256, H256};
 use sr_primitives::generic::BlockId;
 use sr_primitives::traits::{
@@ -9,6 +10,7 @@ use codec::{Encode, Decode};
 use consensus_pow::PowAlgorithm;
 use consensus_pow_primitives::{Seal as RawSeal, DifficultyApi};
 use kulupu_primitives::{Difficulty, DAY_HEIGHT, HOUR_HEIGHT};
+use lru_cache::LruCache;
 use log::*;
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode)]
@@ -24,19 +26,27 @@ pub struct Compute {
 	pub nonce: H256,
 }
 
+thread_local!(static MACHINES: RefCell<LruCache<H256, randomx::VM>> = RefCell::new(LruCache::new(3)));
+
 impl Compute {
 	pub fn compute(self) -> Seal {
-		let mut vm = randomx::VM::new(&self.key_hash[..]);
-		self.compute_with(&mut vm)
-	}
+		MACHINES.with(|m| {
+			let mut ms = m.borrow_mut();
 
-	pub fn compute_with(self, vm: &mut randomx::VM) -> Seal {
-		let work = vm.calculate(&(self.pre_hash, self.nonce).encode()[..]);
+			let work = if let Some(vm) = ms.get_mut(&self.key_hash) {
+				vm.calculate(&(self.pre_hash, self.nonce).encode()[..])
+			} else {
+				let mut vm = randomx::VM::new(&self.key_hash[..]);
+				let work = vm.calculate(&(self.pre_hash, self.nonce).encode()[..]);
+				ms.insert(self.key_hash, vm);
+				work
+			};
 
-		Seal {
-			nonce: self.nonce,
-			work: H256::from(work),
-		}
+			Seal {
+				nonce: self.nonce,
+				work: H256::from(work),
+			}
+		})
 	}
 }
 
@@ -138,7 +148,6 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		round: u32,
 	) -> Result<Option<RawSeal>, String> {
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
-		let mut vm = randomx::VM::new(&key_hash[..]);
 
 		for i in 0..round {
 			let nonce = {
@@ -153,7 +162,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				nonce,
 			};
 
-			let seal = compute.compute_with(&mut vm);
+			let seal = compute.compute();
 
 			if is_valid_hash(&seal.work, difficulty) {
 				return Ok(Some(seal.encode()))
