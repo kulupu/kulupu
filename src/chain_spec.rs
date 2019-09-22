@@ -103,7 +103,7 @@ fn testnet_genesis(
 fn mainnet_genesis() -> GenesisConfig {
 	GenesisConfig {
 		system: Some(SystemConfig {
-			code: include_bytes!("../res/genesis/kulupu_runtime.compact.wasm").to_vec(),
+			code: include_bytes!("../res/0-genesis/kulupu_runtime.compact.wasm").to_vec(),
 			changes_trie_config: Default::default(),
 		}),
 		indices: Some(IndicesConfig {
