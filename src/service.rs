@@ -50,6 +50,13 @@ pub fn kulupu_inherent_data_providers(author: Option<&str>) -> Result<inherents:
 				).into()
 			)
 		).encode());
+		upgrades.insert(5011, srml_anyupgrade::Call::<kulupu_runtime::Runtime>::any(
+			Box::new(
+				srml_system::Call::set_code(
+					include_bytes!("../res/2-barcelona/kulupu_runtime.compact.wasm").to_vec()
+				).into()
+			)
+		).encode());
 
 		inherent_data_providers
 			.register_provider(srml_anyupgrade::InherentDataProvider(upgrades))
