@@ -95,7 +95,7 @@ fn testnet_genesis(
 			vesting: vec![],
 		}),
 		difficulty: Some(DifficultyConfig {
-			initial_difficulty: Difficulty(U256::from(10000)),
+			initial_difficulty: Difficulty(U256::from(200)),
 		}),
 	}
 }
@@ -114,7 +114,7 @@ fn mainnet_genesis() -> GenesisConfig {
 			vesting: vec![],
 		}),
 		difficulty: Some(DifficultyConfig {
-			initial_difficulty: Difficulty(U256::from(50000)),
+			initial_difficulty: Difficulty(U256::from(220000)),
 		}),
 	}
 }
