@@ -102,7 +102,7 @@ macro_rules! new_full_start {
 }
 
 /// Builds a new service for a full client.
-pub fn new_full<C: Send + Default + 'static>(config: Configuration<C, GenesisConfig>, author: Option<&str>, threads: usize)
+pub fn new_full<C: Send + Default + 'static>(config: Configuration<C, GenesisConfig>, author: Option<&str>, threads: usize, round: u32)
 	-> Result<impl AbstractService, ServiceError>
 {
 	let is_authority = config.roles.is_authority();
@@ -129,7 +129,7 @@ pub fn new_full<C: Send + Default + 'static>(config: Configuration<C, GenesisCon
 				kulupu_pow::RandomXAlgorithm::new(service.client()),
 				proposer,
 				None,
-				5000,
+				round,
 				service.network(),
 				std::time::Duration::new(2, 0),
 				inherent_data_providers.clone(),

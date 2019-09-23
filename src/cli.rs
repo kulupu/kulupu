@@ -15,6 +15,8 @@ pub struct CustomArgs {
 	author: Option<String>,
 	#[structopt(long)]
 	threads: Option<usize>,
+	#[structopt(long)]
+	round: Option<u32>,
 }
 
 impl_augment_clap!(CustomArgs);
@@ -48,6 +50,7 @@ pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()>
 						config,
 						custom_args.author.as_ref().map(|s| s.as_str()),
 						custom_args.threads.unwrap_or(1),
+						custom_args.round.unwrap_or(5000),
 					).map_err(|e| format!("{:?}", e))?,
 					exit
 				),
