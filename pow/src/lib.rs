@@ -15,8 +15,16 @@ use log::*;
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode)]
 pub struct Seal {
-	pub nonce: H256,
+	pub difficulty: Difficulty,
 	pub work: H256,
+	pub nonce: H256,
+}
+
+#[derive(Clone, PartialEq, Eq, Encode, Decode)]
+pub struct Calculation {
+	pub difficulty: Difficulty,
+	pub pre_hash: H256,
+	pub nonce: H256,
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -33,18 +41,24 @@ impl Compute {
 	pub fn compute(self) -> Seal {
 		MACHINES.with(|m| {
 			let mut ms = m.borrow_mut();
+			let calculation = Calculation {
+				difficulty: self.difficulty,
+				pre_hash: self.pre_hash,
+				nonce: self.nonce,
+			};
 
 			let work = if let Some(vm) = ms.get_mut(&self.key_hash) {
-				vm.calculate(&(self.pre_hash, self.difficulty, self.nonce).encode()[..])
+				vm.calculate(&calculation.encode()[..])
 			} else {
 				let mut vm = randomx::FullVM::new(&self.key_hash[..]);
-				let work = vm.calculate(&(self.pre_hash, self.difficulty, self.nonce).encode()[..]);
+				let work = vm.calculate(&calculation.encode()[..]);
 				ms.insert(self.key_hash, vm);
 				work
 			};
 
 			Seal {
 				nonce: self.nonce,
+				difficulty: self.difficulty,
 				work: H256::from(work),
 			}
 		})
