@@ -35,7 +35,7 @@ impl Compute {
 			let mut ms = m.borrow_mut();
 
 			let work = if let Some(vm) = ms.get_mut(&self.key_hash) {
-				vm.calculate(&(self.pre_hash, self.nonce).encode()[..])
+				vm.calculate(&(self.pre_hash, self.difficulty, self.nonce).encode()[..])
 			} else {
 				let mut vm = randomx::FullVM::new(&self.key_hash[..]);
 				let work = vm.calculate(&(self.pre_hash, self.difficulty, self.nonce).encode()[..]);
