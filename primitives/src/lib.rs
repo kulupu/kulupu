@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Encode, Decode};
+use substrate_client::decl_runtime_apis;
 
 pub use substrate_primitives::U256;
 
@@ -45,3 +46,11 @@ pub const DIFFICULTY_DAMP_FACTOR: u128 = 3;
 pub const MIN_DIFFICULTY: u128 = DIFFICULTY_DAMP_FACTOR;
 /// Maximum difficulty.
 pub const MAX_DIFFICULTY: u128 = u128::max_value();
+
+pub const ALGORITHM_IDENTIFIER: [u8; 8] = *b"randomx0";
+
+decl_runtime_apis! {
+	pub trait AlgorithmApi {
+		fn identifier() -> [u8; 8];
+	}
+}

@@ -9,7 +9,7 @@ use client::{blockchain::HeaderBackend, backend::AuxStore};
 use codec::{Encode, Decode};
 use consensus_pow::PowAlgorithm;
 use consensus_pow_primitives::{Seal as RawSeal, DifficultyApi};
-use kulupu_primitives::{Difficulty, DAY_HEIGHT, HOUR_HEIGHT};
+use kulupu_primitives::{Difficulty, AlgorithmApi, DAY_HEIGHT, HOUR_HEIGHT};
 use lru_cache::LruCache;
 use log::*;
 
@@ -23,6 +23,7 @@ pub struct Seal {
 pub struct Compute {
 	pub key_hash: H256,
 	pub pre_hash: H256,
+	pub difficulty: Difficulty,
 	pub nonce: H256,
 }
 
@@ -37,7 +38,7 @@ impl Compute {
 				vm.calculate(&(self.pre_hash, self.nonce).encode()[..])
 			} else {
 				let mut vm = randomx::VM::new(&self.key_hash[..]);
-				let work = vm.calculate(&(self.pre_hash, self.nonce).encode()[..]);
+				let work = vm.calculate(&(self.pre_hash, self.difficulty, self.nonce).encode()[..]);
 				ms.insert(self.key_hash, vm);
 				work
 			};
@@ -64,14 +65,17 @@ fn key_hash<B, C>(
 	B: BlockT<Hash=H256>,
 	C: HeaderBackend<B>,
 {
+	const PERIOD: u64 = 2 * DAY_HEIGHT;
+	const OFFSET: u64 = 2 * HOUR_HEIGHT;
+
 	let parent_header = client.header(parent.clone())
 		.map_err(|e| format!("Client execution error: {:?}", e))?
 		.ok_or("Parent header not found")?;
 	let parent_number = UniqueSaturatedInto::<u64>::unique_saturated_into(*parent_header.number());
 
-	let mut key_number = parent_number.saturating_sub(parent_number % DAY_HEIGHT);
-	if parent_number.saturating_sub(key_number) < 2 * HOUR_HEIGHT {
-		key_number = key_number.saturating_sub(DAY_HEIGHT);
+	let mut key_number = parent_number.saturating_sub(parent_number % PERIOD);
+	if parent_number.saturating_sub(key_number) < OFFSET {
+		key_number = key_number.saturating_sub(PERIOD);
 	}
 
 	let mut current = parent_header;
@@ -96,7 +100,7 @@ impl<C> RandomXAlgorithm<C> {
 
 impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi,
-	C::Api: DifficultyApi<B, Difficulty>,
+	C::Api: DifficultyApi<B, Difficulty> + AlgorithmApi<B>,
 {
 	type Difficulty = Difficulty;
 
@@ -115,6 +119,10 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		seal: &RawSeal,
 		difficulty: Difficulty,
 	) -> Result<bool, String> {
+		assert_eq!(self.client.runtime_api().identifier(parent)
+				   .map_err(|e| format!("Fetching identifier from runtime failed: {:?}", e))?,
+				   kulupu_primitives::ALGORITHM_IDENTIFIER);
+
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
 
 		let seal = match Seal::decode(&mut &seal[..]) {
@@ -128,6 +136,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 
 		let compute = Compute {
 			key_hash,
+			difficulty,
 			pre_hash: *pre_hash,
 			nonce: seal.nonce,
 		};
@@ -158,6 +167,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 
 			let compute = Compute {
 				key_hash,
+				difficulty,
 				pre_hash: *pre_hash,
 				nonce,
 			};

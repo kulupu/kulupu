@@ -377,4 +377,10 @@ impl_runtime_apis! {
 			difficulty::Module::<Runtime>::difficulty()
 		}
 	}
+
+	impl kulupu_primitives::AlgorithmApi<Block> for Runtime {
+		fn identifier() -> [u8; 8] {
+			kulupu_primitives::ALGORITHM_IDENTIFIER
+		}
+	}
 }
