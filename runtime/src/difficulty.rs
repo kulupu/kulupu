@@ -32,6 +32,10 @@ decl_storage! {
 		PastDifficultiesAndTimestamps:
 		[Option<DifficultyAndTimestamp<T::Moment>>; 60]
 			= [None; DIFFICULTY_ADJUST_WINDOW as usize];
+		/// Current difficulty.
+		pub CurrentDifficulty get(difficulty) build(|config: &GenesisConfig| {
+			config.initial_difficulty
+		}): Difficulty;
 		/// Initial difficulty.
 		pub InitialDifficulty config(initial_difficulty): Difficulty;
 	}
@@ -51,57 +55,49 @@ decl_module! {
 				difficulty: Self::difficulty(),
 			});
 
+			let mut ts_delta = 0;
+			for i in 1..(DIFFICULTY_ADJUST_WINDOW as usize) {
+				let prev: Option<u128> = data[i - 1].map(|d| d.timestamp.unique_saturated_into());
+				let cur: Option<u128> = data[i].map(|d| d.timestamp.unique_saturated_into());
+
+				let delta = match (prev, cur) {
+					(Some(prev), Some(cur)) => cur.saturating_sub(prev),
+					_ => BLOCK_TIME_MSEC.into(),
+				};
+				ts_delta += delta;
+			}
+
+			if ts_delta == 0 {
+				ts_delta = 1;
+			}
+
+			let mut diff_sum = U256::zero();
+			for i in 0..(DIFFICULTY_ADJUST_WINDOW as usize) {
+				let diff = match data[i].map(|d| d.difficulty) {
+					Some(diff) => diff,
+					None => InitialDifficulty::get(),
+				};
+				diff_sum += diff.0;
+			}
+
+			if diff_sum < U256::from(MIN_DIFFICULTY) {
+				diff_sum = U256::from(MIN_DIFFICULTY);
+			}
+
+			// adjust time delta toward goal subject to dampening and clamping
+			let adj_ts = clamp(
+				damp(ts_delta, BLOCK_TIME_WINDOW_MSEC as u128, DIFFICULTY_DAMP_FACTOR),
+				BLOCK_TIME_WINDOW_MSEC as u128,
+				CLAMP_FACTOR,
+			);
+
+			// minimum difficulty avoids getting stuck due to dampening
+			let difficulty = min(U256::from(MAX_DIFFICULTY),
+								 max(U256::from(MIN_DIFFICULTY),
+									 diff_sum * U256::from(BLOCK_TIME_MSEC) / U256::from(adj_ts)));
+
 			<PastDifficultiesAndTimestamps<T>>::put(data);
+			<CurrentDifficulty>::put(Difficulty(difficulty));
 		}
-	}
-}
-
-impl<T: Trait> Module<T> {
-	/// Get target difficulty for the next block.
-	pub fn difficulty() -> Difficulty {
-		let data = PastDifficultiesAndTimestamps::<T>::get();
-
-		let mut ts_delta = 0;
-		for i in 1..(DIFFICULTY_ADJUST_WINDOW as usize) {
-			let prev: Option<u128> = data[i - 1].map(|d| d.timestamp.unique_saturated_into());
-			let cur: Option<u128> = data[i].map(|d| d.timestamp.unique_saturated_into());
-
-			let delta = match (prev, cur) {
-				(Some(prev), Some(cur)) => cur.saturating_sub(prev),
-				_ => BLOCK_TIME_MSEC.into(),
-			};
-			ts_delta += delta;
-		}
-
-		if ts_delta == 0 {
-			ts_delta = 1;
-		}
-
-		let mut diff_sum = U256::zero();
-		for i in 0..(DIFFICULTY_ADJUST_WINDOW as usize) {
-			let diff = match data[i].map(|d| d.difficulty) {
-				Some(diff) => diff,
-				None => InitialDifficulty::get(),
-			};
-			diff_sum += diff.0;
-		}
-
-		if diff_sum < U256::from(MIN_DIFFICULTY) {
-			diff_sum = U256::from(MIN_DIFFICULTY);
-		}
-
-		// adjust time delta toward goal subject to dampening and clamping
-		let adj_ts = clamp(
-			damp(ts_delta, BLOCK_TIME_WINDOW_MSEC as u128, DIFFICULTY_DAMP_FACTOR),
-			BLOCK_TIME_WINDOW_MSEC as u128,
-			CLAMP_FACTOR,
-		);
-
-		// minimum difficulty avoids getting stuck due to dampening
-		let difficulty = min(U256::from(MAX_DIFFICULTY),
-							 max(U256::from(MIN_DIFFICULTY),
-								 diff_sum * U256::from(BLOCK_TIME_MSEC) / U256::from(adj_ts)));
-
-		Difficulty(difficulty)
 	}
 }

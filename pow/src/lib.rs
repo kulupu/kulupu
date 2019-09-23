@@ -27,7 +27,7 @@ pub struct Compute {
 	pub nonce: H256,
 }
 
-thread_local!(static MACHINES: RefCell<LruCache<H256, randomx::VM>> = RefCell::new(LruCache::new(3)));
+thread_local!(static MACHINES: RefCell<LruCache<H256, randomx::FullVM>> = RefCell::new(LruCache::new(3)));
 
 impl Compute {
 	pub fn compute(self) -> Seal {
@@ -37,7 +37,7 @@ impl Compute {
 			let work = if let Some(vm) = ms.get_mut(&self.key_hash) {
 				vm.calculate(&(self.pre_hash, self.nonce).encode()[..])
 			} else {
-				let mut vm = randomx::VM::new(&self.key_hash[..]);
+				let mut vm = randomx::FullVM::new(&self.key_hash[..]);
 				let work = vm.calculate(&(self.pre_hash, self.difficulty, self.nonce).encode()[..]);
 				ms.insert(self.key_hash, vm);
 				work
