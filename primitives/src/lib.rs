@@ -2,7 +2,7 @@
 
 use substrate_client::decl_runtime_apis;
 
-pub use substrate_primitives::U256;
+pub use substrate_primitives::{H256, U256};
 
 pub type Difficulty = U256;
 

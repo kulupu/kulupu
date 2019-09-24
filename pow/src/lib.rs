@@ -197,8 +197,25 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 
 #[cfg(test)]
 mod tests {
+	use super::*;
+	use kulupu_primitives::{H256, U256};
+
 	#[test]
 	fn randomx_len() {
 		assert_eq!(randomx::HASH_SIZE, 32);
+	}
+
+	#[test]
+	fn randomx_collision() {
+		let mut compute = Compute {
+			key_hash: H256::from([210, 164, 216, 149, 3, 68, 116, 1, 239, 110, 111, 48, 180, 102, 53, 180, 91, 84, 242, 90, 101, 12, 71, 70, 75, 83, 17, 249, 214, 253, 71, 89]),
+			pre_hash: H256::default(),
+			difficulty: U256::default(),
+			nonce: H256::default(),
+		};
+		let hash1 = compute.clone().compute();
+		U256::one().to_big_endian(&mut compute.nonce[..]);
+		let hash2 = compute.compute();
+		assert!(hash1 != hash2);
 	}
 }
