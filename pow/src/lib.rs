@@ -11,6 +11,7 @@ use consensus_pow::PowAlgorithm;
 use consensus_pow_primitives::{Seal as RawSeal, DifficultyApi};
 use kulupu_primitives::{Difficulty, AlgorithmApi, DAY_HEIGHT, HOUR_HEIGHT};
 use lru_cache::LruCache;
+use rand::{SeedableRng, thread_rng, rngs::SmallRng};
 use log::*;
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
@@ -170,10 +171,12 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		difficulty: Difficulty,
 		round: u32,
 	) -> Result<Option<RawSeal>, String> {
+		let mut rng = SmallRng::from_rng(&mut thread_rng())
+			.map_err(|e| format!("Initialize RNG failed for mining: {:?}", e))?;
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
 
 		for i in 0..round {
-			let nonce = H256::random();
+			let nonce = H256::random_using(&mut rng);
 
 			let compute = Compute {
 				key_hash,

@@ -18,3 +18,4 @@ kulupu-runtime = { path = "../runtime" }
 consensus-common = { package = "substrate-consensus-common", path = "../vendor/substrate/core/consensus/common" }
 inherents = { package = "substrate-inherents", path = "../vendor/substrate/core/inherents" }
 lru-cache = "0.1"
+rand = "0.5"
