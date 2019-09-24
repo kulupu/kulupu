@@ -13,14 +13,14 @@ use kulupu_primitives::{Difficulty, AlgorithmApi, DAY_HEIGHT, HOUR_HEIGHT};
 use lru_cache::LruCache;
 use log::*;
 
-#[derive(Clone, PartialEq, Eq, Encode, Decode)]
+#[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
 pub struct Seal {
 	pub difficulty: Difficulty,
 	pub work: H256,
 	pub nonce: H256,
 }
 
-#[derive(Clone, PartialEq, Eq, Encode, Decode)]
+#[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
 pub struct Calculation {
 	pub difficulty: Difficulty,
 	pub pre_hash: H256,
@@ -173,11 +173,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
 
 		for i in 0..round {
-			let nonce = {
-				let mut ret = H256::default();
-				(U256::from(&seed[..]) + U256::from(i)).to_big_endian(&mut ret[..]);
-				ret
-			};
+			let nonce = H256::random();
 
 			let compute = Compute {
 				key_hash,
