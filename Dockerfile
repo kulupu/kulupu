@@ -14,9 +14,6 @@ RUN apt-get update && \
 	apt-get upgrade -y && \
 	apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev
 
-# CHECKOUT GIT SUBMODULES
-RUN cd /rustbuilder/kulupu && git submodule update --init --recursive
-
 # UPDATE RUST DEPENDENCIES
 ENV RUSTUP_HOME "/rustbuilder/.rustup"
 ENV CARGO_HOME "/rustbuilder/.cargo"
