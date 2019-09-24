@@ -77,7 +77,7 @@ decl_module! {
 					Some(diff) => diff,
 					None => InitialDifficulty::get(),
 				};
-				diff_sum += diff.0;
+				diff_sum += diff;
 			}
 
 			if diff_sum < U256::from(MIN_DIFFICULTY) {
@@ -97,7 +97,7 @@ decl_module! {
 									 diff_sum * U256::from(BLOCK_TIME_MSEC) / U256::from(adj_ts)));
 
 			<PastDifficultiesAndTimestamps<T>>::put(data);
-			<CurrentDifficulty>::put(Difficulty(difficulty));
+			<CurrentDifficulty>::put(difficulty);
 		}
 	}
 }

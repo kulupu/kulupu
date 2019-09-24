@@ -68,7 +68,7 @@ impl Compute {
 
 fn is_valid_hash(hash: &H256, difficulty: Difficulty) -> bool {
 	let num_hash = U256::from(&hash[..]);
-	let (_, overflowed) = num_hash.overflowing_mul(difficulty.0);
+	let (_, overflowed) = num_hash.overflowing_mul(difficulty);
 
 	!overflowed
 }

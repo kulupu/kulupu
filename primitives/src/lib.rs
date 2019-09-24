@@ -1,20 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Encode, Decode};
 use substrate_client::decl_runtime_apis;
 
 pub use substrate_primitives::U256;
 
-#[derive(Default, Encode, Decode, PartialOrd, Ord, PartialEq, Eq, Clone, Copy, Debug)]
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-pub struct Difficulty(pub U256);
-
-impl pow_primitives::TotalDifficulty for Difficulty {
-	fn add(&mut self, other: Self) {
-		let ret = self.0.saturating_add(other.0);
-		*self = Difficulty(ret);
-	}
-}
+pub type Difficulty = U256;
 
 /// Block interval, in seconds, the network will tune its next_target for.
 pub const BLOCK_TIME_SEC: u64 = 60;
