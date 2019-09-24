@@ -167,7 +167,6 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		&self,
 		parent: &BlockId<B>,
 		pre_hash: &H256,
-		seed: &H256,
 		difficulty: Difficulty,
 		round: u32,
 	) -> Result<Option<RawSeal>, String> {
@@ -175,7 +174,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 			.map_err(|e| format!("Initialize RNG failed for mining: {:?}", e))?;
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
 
-		for i in 0..round {
+		for _ in 0..round {
 			let nonce = H256::random_using(&mut rng);
 
 			let compute = Compute {
