@@ -86,34 +86,6 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	apis: RUNTIME_API_VERSIONS,
 };
 
-/// Constants for Babe.
-
-/// Since BABE is probabilistic this is the average expected block time that
-/// we are targetting. Blocks will be produced at a minimum duration defined
-/// by `SLOT_DURATION`, but some slots will not be allocated to any
-/// authority and hence no block will be produced. We expect to have this
-/// block time on average following the defined slot duration and the value
-/// of `c` configured for BABE (where `1 - c` represents the probability of
-/// a slot being empty).
-/// This value is only used indirectly to define the unit constants below
-/// that are expressed in blocks. The rest of the code should use
-/// `SLOT_DURATION` instead (like the timestamp module for calculating the
-/// minimum period).
-/// <https://research.web3.foundation/en/latest/polkadot/BABE/Babe/#6-practical-results>
-pub const MILLISECS_PER_BLOCK: u64 = 6000;
-
-pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-
-pub const EPOCH_DURATION_IN_BLOCKS: u32 = 10 * MINUTES;
-
-// These time units are defined in number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = MINUTES * 60;
-pub const DAYS: BlockNumber = HOURS * 24;
-
-// 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
-pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
-
 /// The version infromation used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
 pub fn native_version() -> NativeVersion {
@@ -166,11 +138,6 @@ impl system::Trait for Runtime {
 	type Version = Version;
 }
 
-parameter_types! {
-	pub const EpochDuration: u64 = EPOCH_DURATION_IN_BLOCKS as u64;
-	pub const ExpectedBlockTime: u64 = MILLISECS_PER_BLOCK;
-}
-
 impl indices::Trait for Runtime {
 	/// The type for recording indexing into the account enumeration. If this ever overflows, there
 	/// will be problems!
@@ -184,7 +151,7 @@ impl indices::Trait for Runtime {
 }
 
 parameter_types! {
-	pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
+	pub const MinimumPeriod: u64 = 3000;
 }
 
 impl timestamp::Trait for Runtime {
