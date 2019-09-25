@@ -27,7 +27,7 @@ pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()>
 	T: Into<std::ffi::OsString> + Clone,
 	E: IntoExit,
 {
-	match parse_and_prepare::<NoCustom, CustomArgs, _>(&version, "substrate-node", args) {
+	match parse_and_prepare::<NoCustom, CustomArgs, _>(&version, "kulupu-substrate", args) {
 		ParseAndPrepare::Run(cmd) => cmd.run::<(), _, _, _, _>(load_spec, exit,
 		|exit, _cli_args, custom_args, config| {
 			info!("{}", version.name);
