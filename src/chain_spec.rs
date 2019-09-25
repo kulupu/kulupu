@@ -4,6 +4,7 @@ use kulupu_runtime::{
 };
 use kulupu_primitives::U256;
 use substrate_service;
+use serde_json::json;
 
 // Note this is the URL for the telemetry server
 //const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -64,7 +65,11 @@ impl Alternative {
 				None,
 				Some("kul"),
 				None,
-				None
+				Some(json!({
+					"ss58Format": 16,
+					"tokenDecimals": 12,
+					"tokenSymbol": "KULU"
+				}).as_object().expect("Created an object").clone())
 			),
 		})
 	}
