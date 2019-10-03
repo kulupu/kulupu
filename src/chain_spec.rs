@@ -64,12 +64,12 @@ impl Alternative {
 				],
 				None,
 				Some("kul"),
-				None,
 				Some(json!({
 					"ss58Format": 16,
 					"tokenDecimals": 12,
 					"tokenSymbol": "KULU"
-				}).as_object().expect("Created an object").clone())
+				}).as_object().expect("Created an object").clone()),
+				None,
 			),
 		})
 	}

@@ -28,7 +28,7 @@ pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()>
 	E: IntoExit,
 {
 	match parse_and_prepare::<NoCustom, CustomArgs, _>(&version, "kulupu-substrate", args) {
-		ParseAndPrepare::Run(cmd) => cmd.run::<(), _, _, _, _>(load_spec, exit,
+		ParseAndPrepare::Run(cmd) => cmd.run::<(), _, _, _, _, _>(load_spec, exit,
 		|exit, _cli_args, custom_args, config| {
 			info!("{}", version.name);
 			info!("  version {}", config.full_version());
@@ -57,12 +57,12 @@ pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()>
 			}.map_err(|e| format!("{:?}", e))
 		}),
 		ParseAndPrepare::BuildSpec(cmd) => cmd.run(load_spec),
-		ParseAndPrepare::ExportBlocks(cmd) => cmd.run_with_builder::<(), _, _, _, _, _>(|config|
+		ParseAndPrepare::ExportBlocks(cmd) => cmd.run_with_builder::<(), _, _, _, _, _, _>(|config|
 			Ok(new_full_start!(config, None).0), load_spec, exit),
-		ParseAndPrepare::ImportBlocks(cmd) => cmd.run_with_builder::<(), _, _, _, _, _>(|config|
+		ParseAndPrepare::ImportBlocks(cmd) => cmd.run_with_builder::<(), _, _, _, _, _, _>(|config|
 			Ok(new_full_start!(config, None).0), load_spec, exit),
 		ParseAndPrepare::PurgeChain(cmd) => cmd.run(load_spec),
-		ParseAndPrepare::RevertChain(cmd) => cmd.run_with_builder::<(), _, _, _, _>(|config|
+		ParseAndPrepare::RevertChain(cmd) => cmd.run_with_builder::<(), _, _, _, _, _>(|config|
 			Ok(new_full_start!(config, None).0), load_spec),
 		ParseAndPrepare::CustomCommand(_) => Ok(())
 	}?;
