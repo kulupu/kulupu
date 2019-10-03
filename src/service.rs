@@ -85,12 +85,13 @@ macro_rules! new_full_start {
 			.with_transaction_pool(|config, client|
 				Ok(transaction_pool::txpool::Pool::new(config, transaction_pool::ChainApi::new(client)))
 			)?
-			.with_import_queue(|_config, client, _select_chain, _transaction_pool| {
+			.with_import_queue(|_config, client, select_chain, _transaction_pool| {
 				let import_queue = consensus_pow::import_queue(
 					Box::new(client.clone()),
 					client.clone(),
 					kulupu_pow::RandomXAlgorithm::new(client.clone()),
 					0,
+					select_chain,
 					inherent_data_providers.clone(),
 				)?;
 
@@ -132,6 +133,7 @@ pub fn new_full<C: Send + Default + 'static>(config: Configuration<C, GenesisCon
 				round,
 				service.network(),
 				std::time::Duration::new(2, 0),
+				service.select_chain().map(|v| v.clone()),
 				inherent_data_providers.clone(),
 			);
 		}
@@ -153,13 +155,14 @@ pub fn new_light<C: Send + Default + 'static>(config: Configuration<C, GenesisCo
 		.with_transaction_pool(|config, client|
 			Ok(TransactionPool::new(config, transaction_pool::ChainApi::new(client)))
 		)?
-		.with_import_queue_and_fprb(|_config, client, _backend, _fetcher, _select_chain, _transaction_pool| {
+		.with_import_queue_and_fprb(|_config, client, _backend, _fetcher, select_chain, _transaction_pool| {
 			let fprb = Box::new(DummyFinalityProofRequestBuilder::default()) as Box<_>;
 			let import_queue = consensus_pow::import_queue(
 				Box::new(client.clone()),
 				client.clone(),
 				kulupu_pow::RandomXAlgorithm::new(client.clone()),
 				0,
+				select_chain,
 				inherent_data_providers.clone(),
 			)?;
 
