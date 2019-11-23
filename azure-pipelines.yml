@@ -9,7 +9,9 @@ jobs:
   steps:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
-  - script: ./scripts/ci-init.sh
+  - script: |
+      ./scripts/ci-init.sh
+      source ~/.cargo/env
     displayName: 'Rust setup'
   - script: cargo test --release --all
     displayName: 'Run tests'
@@ -23,7 +25,9 @@ jobs:
   steps:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
-  - script: ./scripts/ci-init.sh
+  - script: |
+      ./scripts/ci-init.sh
+      source ~/.cargo/env
     displayName: 'Rust setup'
   - script: cargo test --release --all
     displayName: 'Run tests'
