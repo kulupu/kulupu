@@ -1,0 +1,15 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: ./scripts/ci-ubuntu-init.sh
+  displayName: 'Init rust environment for ubuntu'
+
+- script: cargo test --release --all
+  displayName: 'Run tests'
+
+- script: cargo build --release
+  displayName: 'Build artifacts'
