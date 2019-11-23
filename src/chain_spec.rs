@@ -60,7 +60,8 @@ impl Alternative {
 				"kulupu",
 				|| mainnet_genesis(),
 				vec![
-					"/dns4/node.kulupu.network/tcp/30333/p2p/QmRpJhTrFUjPGKvvP9HDWC81ByK3WN2vvVPVKbn71BnMiB".to_string(),
+					"/dns4/sorpaas.nodes.kulupu.network/tcp/30333/p2p/QmRpJhTrFUjPGKvvP9HDWC81ByK3WN2vvVPVKbn71BnMiB".to_string(),
+					"/dns4/legend.nodes.kulupu.network/tcp/30333/p2p/QmYeDXU7bEDSKjAXAd2P4qHfAJiLr4gzLUd6jD8ud9Xx92".to_string(),
 				],
 				None,
 				Some("kul"),
