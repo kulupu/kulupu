@@ -1,0 +1,7 @@
+sudo: true
+language: minimal
+
+cache: cargo
+
+script:
+  - ./ci/script.sh
