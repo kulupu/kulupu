@@ -17,3 +17,4 @@ cargo --version
 source ${__dir}/init.sh
 
 cargo test --release --all
+cargo build --release
