@@ -1,7 +1,8 @@
+trigger:
+- master
+
 jobs:
 - job: Linux
-  trigger:
-  - master
 
   pool:
     vmImage: 'ubuntu-latest'
