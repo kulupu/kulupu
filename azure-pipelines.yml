@@ -1,15 +1,22 @@
-trigger:
-- master
+jobs:
+- job: Linux
+  trigger:
+  - master
 
-pool:
-  vmImage: 'ubuntu-latest'
+  pool:
+    vmImage: 'ubuntu-latest'
 
-steps:
-- script: ./scripts/ci-ubuntu-init.sh
-  displayName: 'Rust setup'
+  timeoutInMinutes: 0
 
-- script: cargo test --release --all
-  displayName: 'Run tests'
+  steps:
+  - script: git submodule update --init --recursive
+    displayName: 'Submodules'
 
-- script: cargo build --release
-  displayName: 'Build artifacts'
+  - script: ./scripts/ci-ubuntu-init.sh
+    displayName: 'Rust setup'
+
+  - script: cargo test --release --all
+    displayName: 'Run tests'
+
+  - script: cargo build --release
+    displayName: 'Build artifacts'
