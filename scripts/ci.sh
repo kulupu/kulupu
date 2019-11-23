@@ -16,5 +16,8 @@ cargo --version
 
 source ${__dir}/init.sh
 
+echo "*** Running tests"
 cargo test --release --all
+
+echo "*** Building artifacts"
 cargo build --release
