@@ -1,0 +1,26 @@
+image: Visual Studio 2017
+
+install:
+  # Install rustup
+  - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+  - rustup-init.exe -y --default-host=x86_64-pc-windows-msvc --profile=minimal
+  - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
+  - del rustup-init.exe
+
+  # Update targets
+  - rustup update nightly
+  - rustup update stable
+  - rustup target add wasm32-unknown-unknown --toolchain nightly
+  - cargo +nightly install --git https://github.com/alexcrichton/wasm-gc --force
+
+  # Print environment information
+  - where rustc cargo
+  - rustc -vV
+  - cargo -V
+
+build_script:
+  - cargo test --release --all
+  - cargo build --release
+
+cache:
+  - '%USERPROFILE%\.cargo\'
