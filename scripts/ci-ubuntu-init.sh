@@ -15,6 +15,3 @@ rustup --version
 cargo --version
 
 source ${__dir}/init.sh
-
-echo "*** Building artifacts"
-cargo build --release
