@@ -3,12 +3,11 @@
 use rstd::{result, prelude::*, collections::btree_map::BTreeMap};
 use sr_primitives::{
 	traits::{StaticLookup, Dispatchable, UniqueSaturatedInto},
-	weights::SimpleDispatchInfo, DispatchError,
+	DispatchError, RuntimeString,
 };
-use support::{Parameter, decl_module, decl_event};
+use support::{Parameter, weights::SimpleDispatchInfo, decl_module, decl_event};
 use system::ensure_none;
-use inherents::{InherentIdentifier, InherentData, ProvideInherent,
-				RuntimeString, IsFatalError};
+use inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
 #[cfg(feature = "std")]
 use inherents::ProvideInherentData;
 use codec::{Encode, Decode};
@@ -147,7 +146,7 @@ impl ProvideInherentData for InherentDataProvider {
 		&INHERENT_IDENTIFIER
 	}
 
-	fn provide_inherent_data(&self, inherent_data: &mut InherentData) -> Result<(), RuntimeString> {
+	fn provide_inherent_data(&self, inherent_data: &mut InherentData) -> Result<(), inherents::Error> {
 		inherent_data.put_data(INHERENT_IDENTIFIER, &self.0)
 	}
 

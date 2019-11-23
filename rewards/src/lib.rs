@@ -1,16 +1,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use rstd::{result, prelude::*, collections::btree_map::BTreeMap};
-use sr_primitives::{
-	traits::{StaticLookup, Dispatchable, UniqueSaturatedInto},
-	weights::SimpleDispatchInfo, DispatchError,
+use rstd::{result, prelude::*};
+use sr_primitives::RuntimeString;
+use support::{
+	decl_module, decl_storage,
+	traits::{Get, Currency},
+	weights::SimpleDispatchInfo,
 };
-use support::{Parameter, decl_module, decl_event, decl_storage,
-			  traits::{Get, Currency},
-			  storage::StorageValue};
 use system::ensure_none;
-use inherents::{InherentIdentifier, InherentData, ProvideInherent,
-				RuntimeString, IsFatalError};
+use inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
 #[cfg(feature = "std")]
 use inherents::ProvideInherentData;
 use codec::{Encode, Decode};
@@ -39,7 +37,7 @@ decl_module! {
 
 		fn on_finalize() {
 			if let Some(author) = <Self as Store>::Author::get() {
-				balances::Module::<T>::deposit_creating(&author, T::Reward::get());
+				drop(balances::Module::<T>::deposit_creating(&author, T::Reward::get()));
 			}
 
 			<Self as Store>::Author::kill();
@@ -86,7 +84,7 @@ impl ProvideInherentData for InherentDataProvider {
 		&INHERENT_IDENTIFIER
 	}
 
-	fn provide_inherent_data(&self, inherent_data: &mut InherentData) -> Result<(), RuntimeString> {
+	fn provide_inherent_data(&self, inherent_data: &mut InherentData) -> Result<(), inherents::Error> {
 		inherent_data.put_data(INHERENT_IDENTIFIER, &self.0)
 	}
 
@@ -110,7 +108,7 @@ impl<T: Trait> ProvideInherent for Module<T> {
 		Some(Call::set_author(author))
 	}
 
-	fn check_inherent(call: &Self::Call, data: &InherentData) -> result::Result<(), Self::Error> {
+	fn check_inherent(_call: &Self::Call, _data: &InherentData) -> result::Result<(), Self::Error> {
 		Ok(())
 	}
 }

@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use substrate_client::decl_runtime_apis;
+use sr_api::decl_runtime_apis;
 
 pub use substrate_primitives::{H256, U256};
 

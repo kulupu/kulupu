@@ -8,33 +8,37 @@ edition = "2018"
 serde = { version = "1.0", optional = true, features = ["derive"] }
 safe-mix = { version = "1.0", default-features = false }
 codec = { package = "parity-scale-codec", version = "1.0.0", default-features = false, features = ["derive"] }
-rstd = { package = "sr-std", path = "../vendor/substrate/core/sr-std", default_features = false }
-runtime-io = { package = "sr-io", path = "../vendor/substrate/core/sr-io", default_features = false }
-version = { package = "sr-version", path = "../vendor/substrate/core/sr-version", default_features = false }
-support = { package = "srml-support", path = "../vendor/substrate/srml/support", default_features = false }
-primitives = { package = "substrate-primitives", path = "../vendor/substrate/core/primitives", default_features = false }
-balances = { package = "srml-balances", path = "../vendor/substrate/srml/balances", default_features = false }
-executive = { package = "srml-executive", path = "../vendor/substrate/srml/executive", default_features = false }
-indices = { package = "srml-indices", path = "../vendor/substrate/srml/indices", default_features = false }
-system = { package = "srml-system", path = "../vendor/substrate/srml/system", default_features = false }
-timestamp = { package = "srml-timestamp", path = "../vendor/substrate/srml/timestamp", default_features = false }
-sr-primitives = { path = "../vendor/substrate/core/sr-primitives", default_features = false }
-client = { package = "substrate-client", path = "../vendor/substrate/core/client", default_features = false }
-offchain-primitives = { package = "substrate-offchain-primitives", path = "../vendor/substrate/core/offchain/primitives", default-features = false }
-pow-primitives = { package = "substrate-consensus-pow-primitives", path = "../vendor/substrate/core/consensus/pow/primitives", default-features = false }
+rstd = { package = "sr-std", path = "../vendor/substrate/primitives/sr-std", default-features = false }
+runtime-io = { package = "sr-io", path = "../vendor/substrate/primitives/sr-io", default-features = false }
+version = { package = "sr-version", path = "../vendor/substrate/primitives/sr-version", default-features = false }
+primitives = { package = "substrate-primitives", path = "../vendor/substrate/primitives/core", default-features = false }
+sr-primitives = { path = "../vendor/substrate/primitives/sr-primitives", default-features = false }
+offchain-primitives = { package = "substrate-offchain-primitives", path = "../vendor/substrate/primitives/offchain", default-features = false }
+pow-primitives = { package = "substrate-consensus-pow-primitives", path = "../vendor/substrate/primitives/consensus/pow", default-features = false }
 kulupu-primitives = { path = "../primitives", default-features = false }
-substrate-session = { path = "../vendor/substrate/core/session", default-features = false }
-anyupgrade = { package = "srml-anyupgrade", path = "../anyupgrade", default-features = false }
-rewards = { package = "srml-rewards", path = "../rewards", default-features = false }
+substrate-session = { path = "../vendor/substrate/primitives/session", default-features = false }
+support = { package = "frame-support", path = "../vendor/substrate/frame/support", default-features = false }
+balances = { package = "pallet-balances", path = "../vendor/substrate/frame/balances", default-features = false }
+executive = { package = "frame-executive", path = "../vendor/substrate/frame/executive", default-features = false }
+indices = { package = "pallet-indices", path = "../vendor/substrate/frame/indices", default-features = false }
+system = { package = "frame-system", path = "../vendor/substrate/frame/system", default-features = false }
+timestamp = { package = "pallet-timestamp", path = "../vendor/substrate/frame/timestamp", default-features = false }
+transaction-payment = { package = "pallet-transaction-payment", path = "../vendor/substrate/frame/transaction-payment", default-features = false }
+randomness-collective-flip = { package = "pallet-randomness-collective-flip", path = "../vendor/substrate/frame/randomness-collective-flip", default-features = false }
+anyupgrade = { package = "pallet-anyupgrade", path = "../anyupgrade", default-features = false }
+rewards = { package = "pallet-rewards", path = "../rewards", default-features = false }
+
+sr-api = { path = "../vendor/substrate/primitives/sr-api", default-features = false }
+block-builder-api = { package = "substrate-block-builder-runtime-api", path = "../vendor/substrate/primitives/block-builder/runtime-api", default-features = false }
+tx-pool-api = { package = "substrate-transaction-pool-runtime-api", path = "../vendor/substrate/primitives/transaction-pool/runtime-api", default-features = false }
 
 [build-dependencies]
-wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.2" }
+wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.4" }
 
 [features]
 default = ["std"]
 std = [
 	"codec/std",
-	"client/std",
 	"rstd/std",
 	"runtime-io/std",
 	"support/std",
@@ -54,4 +58,9 @@ std = [
 	"kulupu-primitives/std",
 	"anyupgrade/std",
 	"rewards/std",
+	"sr-api/std",
+	"block-builder-api/std",
+	"tx-pool-api/std",
+	"transaction-payment/std",
+	"randomness-collective-flip/std",
 ]

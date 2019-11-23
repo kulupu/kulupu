@@ -1,6 +1,6 @@
 use core::cmp::{min, max};
 use sr_primitives::traits::UniqueSaturatedInto;
-use support::{decl_storage, decl_module, storage::StorageValue};
+use support::{decl_storage, decl_module};
 use codec::{Encode, Decode};
 use kulupu_primitives::{
 	DIFFICULTY_ADJUST_WINDOW, BLOCK_TIME_MSEC, BLOCK_TIME_WINDOW_MSEC,

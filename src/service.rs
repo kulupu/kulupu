@@ -28,14 +28,14 @@ construct_simple_protocol! {
 pub fn kulupu_inherent_data_providers(author: Option<&str>) -> Result<inherents::InherentDataProviders, ServiceError> {
 	let inherent_data_providers = inherents::InherentDataProviders::new();
 
-	if !inherent_data_providers.has_provider(&srml_timestamp::INHERENT_IDENTIFIER) {
+	if !inherent_data_providers.has_provider(&timestamp_primitives::INHERENT_IDENTIFIER) {
 		inherent_data_providers
-			.register_provider(srml_timestamp::InherentDataProvider)
+			.register_provider(timestamp_primitives::InherentDataProvider)
 			.map_err(Into::into)
 			.map_err(consensus_common::Error::InherentData)?;
 	}
 
-	if !inherent_data_providers.has_provider(&srml_anyupgrade::INHERENT_IDENTIFIER) {
+	if !inherent_data_providers.has_provider(&pallet_anyupgrade::INHERENT_IDENTIFIER) {
 		let upgrades = BTreeMap::default();
 		// To plan a new hard fork, insert an item such as:
 		// ```
@@ -45,15 +45,15 @@ pub fn kulupu_inherent_data_providers(author: Option<&str>) -> Result<inherents:
 		// ```
 
 		inherent_data_providers
-			.register_provider(srml_anyupgrade::InherentDataProvider((0, upgrades)))
+			.register_provider(pallet_anyupgrade::InherentDataProvider((0, upgrades)))
 			.map_err(Into::into)
 			.map_err(consensus_common::Error::InherentData)?;
 	}
 
 	if let Some(author) = author {
-		if !inherent_data_providers.has_provider(&srml_rewards::INHERENT_IDENTIFIER) {
+		if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER) {
 			inherent_data_providers
-				.register_provider(srml_rewards::InherentDataProvider(
+				.register_provider(pallet_rewards::InherentDataProvider(
 					AccountId::from_h256(H256::from_str(if author.starts_with("0x") {
 						&author[2..]
 					} else {
