@@ -4,4 +4,4 @@ language: minimal
 cache: cargo
 
 script:
-  - ./script/ci.sh
+  - ./scripts/ci.sh
