@@ -22,7 +22,6 @@ install:
   - cargo -V
 
 build_script:
-  - cargo test --release --all
   - cargo build --release
 
 cache:
