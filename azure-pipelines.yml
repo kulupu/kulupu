@@ -6,7 +6,7 @@ pool:
 
 steps:
 - script: ./scripts/ci-ubuntu-init.sh
-  displayName: 'Init rust environment for ubuntu'
+  displayName: 'Rust setup'
 
 - script: cargo test --release --all
   displayName: 'Run tests'
