@@ -17,12 +17,14 @@ jobs:
     displayName: 'Build artifacts'
   - script: |
       cp target/release/kulupu target/release/kulupu-linux
+      shasum -a 256 target/release/kulupu-linux > target/release/kulupu-linux.sha256
     displayName: 'Finalize artifacts'
   - task: CopyFiles@2
     inputs:
       sourceFolder: 'target/release'
-      contents: 'kulupu-linux'
+      contents: 'kulupu-linux*'
       targetFolder: $(Build.ArtifactStagingDirectory)
+  - task: PublishBuildArtifacts@1
 
 - job: MacOS
   pool:
@@ -43,9 +45,11 @@ jobs:
     displayName: 'Build artifacts'
   - script: |
       cp target/release/kulupu target/release/kulupu-macos
+      shasum -a 256 target/release/kulupu-macos > target/release/kulupu-macos.sha256
     displayName: 'Finalize artifacts'
   - task: CopyFiles@2
     inputs:
       sourceFolder: 'target/release'
-      contents: 'kulupu-macos'
+      contents: 'kulupu-macos*'
       targetFolder: $(Build.ArtifactStagingDirectory)
+  - task: PublishBuildArtifacts@1
