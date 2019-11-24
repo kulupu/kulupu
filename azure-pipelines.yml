@@ -15,6 +15,14 @@ jobs:
     displayName: 'Run tests'
   - script: cargo build --release
     displayName: 'Build artifacts'
+  - script: |
+      cp target/release/kulupu target/release/kulupu-linux
+    displayName: 'Finalize artifacts'
+  - task: CopyFiles@2
+    inputs:
+      sourceFolder: 'target/release'
+      contents: 'kulupu-linux'
+      targetFolder: $(Build.ArtifactStagingDirectory)
 
 - job: MacOS
   pool:
@@ -33,3 +41,11 @@ jobs:
       source ~/.cargo/env
       cargo build --release
     displayName: 'Build artifacts'
+  - script: |
+      cp target/release/kulupu target/release/kulupu-macos
+    displayName: 'Finalize artifacts'
+  - task: CopyFiles@2
+    inputs:
+      sourceFolder: 'target/release'
+      contents: 'kulupu-macos'
+      targetFolder: $(Build.ArtifactStagingDirectory)
