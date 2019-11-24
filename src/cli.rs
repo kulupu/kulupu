@@ -1,6 +1,9 @@
 use crate::service;
 use futures::{future::{select, Map}, FutureExt, TryFutureExt, channel::oneshot, compat::Future01CompatExt};
 use std::cell::RefCell;
+use std::path::PathBuf;
+use std::fs::File;
+use std::io::Write;
 use tokio::runtime::Runtime;
 pub use substrate_cli::{VersionInfo, IntoExit, error};
 use substrate_cli::{display_role, informant, parse_and_prepare, impl_augment_clap, ParseAndPrepare, NoCustom};
@@ -21,6 +24,22 @@ pub struct CustomArgs {
 
 impl_augment_clap!(CustomArgs);
 
+#[derive(Debug, StructOpt, Clone)]
+pub enum CustomCommands {
+	#[structopt(name = "export-builtin-wasm", setting = structopt::clap::AppSettings::Hidden)]
+	ExportBuiltinWasm(ExportBuiltinWasmCommand),
+}
+
+impl substrate_cli::GetLogFilter for CustomCommands {
+	fn get_log_filter(&self) -> Option<String> { None }
+}
+
+#[derive(Debug, StructOpt, Clone)]
+pub struct ExportBuiltinWasmCommand {
+	#[structopt()]
+	folder: String,
+}
+
 /// Parse command line arguments into service configuration.
 pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()> where
 	I: IntoIterator<Item = T>,
@@ -28,7 +47,7 @@ pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()>
 	E: IntoExit,
 {
 	type Config<T> = Configuration<(), T>;
-	match parse_and_prepare::<NoCustom, CustomArgs, _>(&version, "kulupu-substrate", args) {
+	match parse_and_prepare::<CustomCommands, CustomArgs, _>(&version, "kulupu-substrate", args) {
 		ParseAndPrepare::Run(cmd) => cmd.run(load_spec, exit,
 		|exit, _cli_args, custom_args, config: Config<_>| {
 			info!("{}", version.name);
@@ -68,7 +87,28 @@ pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()>
 		ParseAndPrepare::PurgeChain(cmd) => cmd.run(load_spec),
 		ParseAndPrepare::RevertChain(cmd) => cmd.run_with_builder(|config: Config<_>|
 			Ok(new_full_start!(config, None).0), load_spec),
-		ParseAndPrepare::CustomCommand(_) => Ok(())
+		ParseAndPrepare::CustomCommand(CustomCommands::ExportBuiltinWasm(cmd)) => {
+			info!("Exporting builtin wasm binary to folder: {}", cmd.folder);
+			let folder = PathBuf::from(cmd.folder);
+
+			{
+				let mut path = folder.clone();
+				path.push("kulupu_runtime.compact.wasm");
+				let mut file = File::create(path)?;
+				file.write_all(&kulupu_runtime::WASM_BINARY)?;
+				file.flush()?;
+			}
+
+			{
+				let mut path = folder.clone();
+				path.push("kulupu_runtime.wasm");
+				let mut file = File::create(path)?;
+				file.write_all(&kulupu_runtime::WASM_BINARY_BLOATY)?;
+				file.flush()?;
+			}
+
+			Ok(())
+		},
 	}?;
 
 	Ok(())
