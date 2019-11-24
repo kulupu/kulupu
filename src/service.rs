@@ -36,13 +36,23 @@ pub fn kulupu_inherent_data_providers(author: Option<&str>) -> Result<inherents:
 	}
 
 	if !inherent_data_providers.has_provider(&pallet_anyupgrade::INHERENT_IDENTIFIER) {
-		let upgrades = BTreeMap::default();
+		let mut upgrades = BTreeMap::default();
 		// To plan a new hard fork, insert an item such as:
 		// ```
 		// 	srml_anyupgrade::Call::<kulupu_runtime::Runtime>::any(
 		//		Box::new(srml_system::Call::set_code(<wasm>).into())
 		//	).encode()
 		// ```
+
+		/// Slag Ravine hard fork at block 100,000.
+		upgrades.insert(
+			100000,
+			pallet_anyupgrade::Call::<kulupu_runtime::Runtime>::any(
+				Box::new(frame_system::Call::set_code(
+					include_bytes!("../res/1-slag-ravine/kulupu_runtime.compact.wasm").to_vec()
+				).into())
+			).encode()
+		);
 
 		inherent_data_providers
 			.register_provider(pallet_anyupgrade::InherentDataProvider((0, upgrades)))
