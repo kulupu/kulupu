@@ -44,7 +44,7 @@ pub fn kulupu_inherent_data_providers(author: Option<&str>) -> Result<inherents:
 		//	).encode()
 		// ```
 
-		/// Slag Ravine hard fork at block 100,000.
+		// Slag Ravine hard fork at block 100,000.
 		upgrades.insert(
 			100000,
 			pallet_anyupgrade::Call::<kulupu_runtime::Runtime>::any(
