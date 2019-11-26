@@ -208,7 +208,7 @@ construct_runtime!(
 	{
 		System: system::{Module, Call, Storage, Config, Event},
 		Timestamp: timestamp::{Module, Call, Storage, Inherent},
-		Indices: indices::{default, Config<T>},
+		Indices: indices::{default},
 		Balances: balances::{default, Error},
 		TransactionPayment: transaction_payment::{Module, Storage},
 		Difficulty: difficulty::{Module, Call, Storage, Config},
