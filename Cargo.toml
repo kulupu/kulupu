@@ -20,19 +20,19 @@ exit-future = "0.1"
 parking_lot = "0.9.0"
 codec = { package = "parity-scale-codec", version = "1.0.0" }
 trie-root = "0.15.2"
-sr-io = { path = "vendor/substrate/primitives/sr-io" }
-substrate-cli = { path = "vendor/substrate/client/cli" }
-primitives = { package = "substrate-primitives", path = "vendor/substrate/primitives/core" }
-substrate-executor = { path = "vendor/substrate/client/executor" }
-substrate-service = { path = "vendor/substrate/client/service" }
-inherents = { package = "substrate-inherents", path = "vendor/substrate/primitives/inherents" }
-transaction-pool = { package = "substrate-transaction-pool", path = "vendor/substrate/client/transaction-pool" }
-network = { package = "substrate-network", path = "vendor/substrate/client/network" }
-substrate-client = { path = "vendor/substrate/client" }
-basic-authorship = { package = "substrate-basic-authorship", path = "vendor/substrate/client/basic-authorship" }
+sr-io = { package = "sp-io", path = "vendor/substrate/primitives/sr-io" }
+substrate-cli = { package = "sc-cli", path = "vendor/substrate/client/cli" }
+primitives = { package = "sp-core", path = "vendor/substrate/primitives/core" }
+substrate-executor = { package = "sc-executor", path = "vendor/substrate/client/executor" }
+substrate-service = { package = "sc-service", path = "vendor/substrate/client/service" }
+inherents = { package = "sp-inherents", path = "vendor/substrate/primitives/inherents" }
+transaction-pool = { package = "sc-transaction-pool", path = "vendor/substrate/client/transaction-pool" }
+network = { package = "sc-network", path = "vendor/substrate/client/network" }
+substrate-client = { package = "sc-client", path = "vendor/substrate/client" }
+basic-authorship = { package = "sc-basic-authority", path = "vendor/substrate/client/basic-authorship" }
 kulupu-runtime = { path = "runtime" }
 kulupu-primitives = { path = "primitives" }
-consensus-pow = { package = "substrate-consensus-pow", path = "vendor/substrate/client/consensus/pow" }
+consensus-pow = { package = "sc-consensus-pow", path = "vendor/substrate/client/consensus/pow" }
 kulupu-pow = { path = "pow" }
 pallet-timestamp = { path = "vendor/substrate/frame/timestamp" }
 timestamp-primitives = { package = "sp-timestamp", path = "vendor/substrate/primitives/timestamp" }
@@ -40,7 +40,7 @@ frame-system = { path = "vendor/substrate/frame/system" }
 pallet-anyupgrade = { path = "anyupgrade" }
 pallet-rewards = { path = "rewards" }
 structopt = "0.3"
-consensus-common = { package = "substrate-consensus-common", path = "vendor/substrate/primitives/consensus/common" }
+consensus-common = { package = "sp-consensus", path = "vendor/substrate/primitives/consensus/common" }
 serde_json = "1.0"
 
 [build-dependencies]

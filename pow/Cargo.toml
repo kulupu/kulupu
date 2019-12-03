@@ -5,17 +5,17 @@ authors = ["Wei Tang <hi@that.world>"]
 edition = "2018"
 
 [dependencies]
-consensus-pow = { package = "substrate-consensus-pow", path = "../vendor/substrate/client/consensus/pow" }
-consensus-pow-primitives = { package = "substrate-consensus-pow-primitives", path = "../vendor/substrate/primitives/consensus/pow" }
-sr-primitives = { path = "../vendor/substrate/primitives/sr-primitives" }
-primitives = { package = "substrate-primitives", path = "../vendor/substrate/primitives/core" }
-client-api = { package = "substrate-client-api", path = "../vendor/substrate/client/api" }
+consensus-pow = { package = "sc-consensus-pow", path = "../vendor/substrate/client/consensus/pow" }
+consensus-pow-primitives = { package = "sp-consensus-pow", path = "../vendor/substrate/primitives/consensus/pow" }
+sr-primitives = { package = "sp-runtime", path = "../vendor/substrate/primitives/sr-primitives" }
+primitives = { package = "sp-core", path = "../vendor/substrate/primitives/core" }
+client-api = { package = "sc-client-api", path = "../vendor/substrate/client/api" }
 randomx = { path = "../vendor/randomx" }
 codec = { package = "parity-scale-codec", version = "1.0.0" }
 log = "0.4"
 kulupu-primitives = { path = "../primitives" }
 kulupu-runtime = { path = "../runtime" }
-consensus-common = { package = "substrate-consensus-common", path = "../vendor/substrate/primitives/consensus/common" }
-inherents = { package = "substrate-inherents", path = "../vendor/substrate/primitives/inherents" }
+consensus-common = { package = "sp-consensus", path = "../vendor/substrate/primitives/consensus/common" }
+inherents = { package = "sp-inherents", path = "../vendor/substrate/primitives/inherents" }
 lru-cache = "0.1"
 rand = { version = "0.7", features = ["small_rng"] }

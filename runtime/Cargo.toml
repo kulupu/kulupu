@@ -8,15 +8,15 @@ edition = "2018"
 serde = { version = "1.0", optional = true, features = ["derive"] }
 safe-mix = { version = "1.0", default-features = false }
 codec = { package = "parity-scale-codec", version = "1.0.0", default-features = false, features = ["derive"] }
-rstd = { package = "sr-std", path = "../vendor/substrate/primitives/sr-std", default-features = false }
-runtime-io = { package = "sr-io", path = "../vendor/substrate/primitives/sr-io", default-features = false }
-version = { package = "sr-version", path = "../vendor/substrate/primitives/sr-version", default-features = false }
-primitives = { package = "substrate-primitives", path = "../vendor/substrate/primitives/core", default-features = false }
-sr-primitives = { path = "../vendor/substrate/primitives/sr-primitives", default-features = false }
-offchain-primitives = { package = "substrate-offchain-primitives", path = "../vendor/substrate/primitives/offchain", default-features = false }
-pow-primitives = { package = "substrate-consensus-pow-primitives", path = "../vendor/substrate/primitives/consensus/pow", default-features = false }
+rstd = { package = "sp-std", path = "../vendor/substrate/primitives/sr-std", default-features = false }
+runtime-io = { package = "sp-io", path = "../vendor/substrate/primitives/sr-io", default-features = false }
+version = { package = "sp-version", path = "../vendor/substrate/primitives/sr-version", default-features = false }
+primitives = { package = "sp-core", path = "../vendor/substrate/primitives/core", default-features = false }
+sr-primitives = { package = "sp-runtime", path = "../vendor/substrate/primitives/sr-primitives", default-features = false }
+offchain-primitives = { package = "sp-offchain", path = "../vendor/substrate/primitives/offchain", default-features = false }
+pow-primitives = { package = "sp-consensus-pow", path = "../vendor/substrate/primitives/consensus/pow", default-features = false }
 kulupu-primitives = { path = "../primitives", default-features = false }
-substrate-session = { path = "../vendor/substrate/primitives/session", default-features = false }
+substrate-session = { package = "sp-session", path = "../vendor/substrate/primitives/session", default-features = false }
 support = { package = "frame-support", path = "../vendor/substrate/frame/support", default-features = false }
 balances = { package = "pallet-balances", path = "../vendor/substrate/frame/balances", default-features = false }
 executive = { package = "frame-executive", path = "../vendor/substrate/frame/executive", default-features = false }
@@ -28,9 +28,9 @@ randomness-collective-flip = { package = "pallet-randomness-collective-flip", pa
 anyupgrade = { package = "pallet-anyupgrade", path = "../anyupgrade", default-features = false }
 rewards = { package = "pallet-rewards", path = "../rewards", default-features = false }
 
-sr-api = { path = "../vendor/substrate/primitives/sr-api", default-features = false }
-block-builder-api = { package = "substrate-block-builder-runtime-api", path = "../vendor/substrate/primitives/block-builder/runtime-api", default-features = false }
-tx-pool-api = { package = "substrate-transaction-pool-runtime-api", path = "../vendor/substrate/primitives/transaction-pool/runtime-api", default-features = false }
+sr-api = { package = "sp-api", path = "../vendor/substrate/primitives/sr-api", default-features = false }
+block-builder-api = { package = "sp-block-builder", path = "../vendor/substrate/primitives/block-builder/runtime-api", default-features = false }
+tx-pool-api = { package = "sp-transaction-pool-runtime-api", path = "../vendor/substrate/primitives/transaction-pool/runtime-api", default-features = false }
 
 [build-dependencies]
 wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.4" }
