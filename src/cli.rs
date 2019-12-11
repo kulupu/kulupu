@@ -87,6 +87,8 @@ pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()>
 		ParseAndPrepare::PurgeChain(cmd) => cmd.run(load_spec),
 		ParseAndPrepare::RevertChain(cmd) => cmd.run_with_builder(|config: Config<_>|
 			Ok(new_full_start!(config, None).0), load_spec),
+		ParseAndPrepare::CheckBlock(cmd) => cmd.run_with_builder(|config: Config<_>|
+			Ok(new_full_start!(config, None).0), load_spec, exit),
 		ParseAndPrepare::CustomCommand(CustomCommands::ExportBuiltinWasm(cmd)) => {
 			info!("Exporting builtin wasm binary to folder: {}", cmd.folder);
 			let folder = PathBuf::from(cmd.folder);

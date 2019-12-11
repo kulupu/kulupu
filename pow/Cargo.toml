@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 consensus-pow = { package = "sc-consensus-pow", path = "../vendor/substrate/client/consensus/pow" }
 consensus-pow-primitives = { package = "sp-consensus-pow", path = "../vendor/substrate/primitives/consensus/pow" }
-sr-primitives = { package = "sp-runtime", path = "../vendor/substrate/primitives/sr-primitives" }
+sr-primitives = { package = "sp-runtime", path = "../vendor/substrate/primitives/runtime" }
 primitives = { package = "sp-core", path = "../vendor/substrate/primitives/core" }
 client-api = { package = "sc-client-api", path = "../vendor/substrate/client/api" }
 randomx = { path = "../vendor/randomx" }

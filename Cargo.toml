@@ -20,13 +20,14 @@ exit-future = "0.1"
 parking_lot = "0.9.0"
 codec = { package = "parity-scale-codec", version = "1.0.0" }
 trie-root = "0.15.2"
-sr-io = { package = "sp-io", path = "vendor/substrate/primitives/sr-io" }
+sr-io = { package = "sp-io", path = "vendor/substrate/primitives/io" }
 substrate-cli = { package = "sc-cli", path = "vendor/substrate/client/cli" }
 primitives = { package = "sp-core", path = "vendor/substrate/primitives/core" }
 substrate-executor = { package = "sc-executor", path = "vendor/substrate/client/executor" }
 substrate-service = { package = "sc-service", path = "vendor/substrate/client/service" }
 inherents = { package = "sp-inherents", path = "vendor/substrate/primitives/inherents" }
-transaction-pool = { package = "sc-transaction-pool", path = "vendor/substrate/client/transaction-pool" }
+txpool = { package = "sc-transaction-pool", path = "vendor/substrate/client/transaction-pool" }
+txpool-api = { package = "sp-transaction-pool", path = "vendor/substrate/primitives/transaction-pool" }
 network = { package = "sc-network", path = "vendor/substrate/client/network" }
 substrate-client = { package = "sc-client", path = "vendor/substrate/client" }
 basic-authorship = { package = "sc-basic-authority", path = "vendor/substrate/client/basic-authorship" }
