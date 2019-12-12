@@ -4,7 +4,6 @@ use kulupu_runtime::{
 };
 use kulupu_primitives::U256;
 use substrate_service;
-use serde_json::json;
 
 // Note this is the URL for the telemetry server
 //const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -55,8 +54,9 @@ impl Alternative {
 				None,
 				None
 			),
-			Alternative::Kulupu => ChainSpec::from_json_bytes(include_bytes!("../res/genesis.json"))
-				.expect("Embedded json genesis config is valid"),
+			Alternative::Kulupu => ChainSpec::from_json_bytes(
+				include_bytes!("../res/genesis.json").to_vec()
+			).expect("Embedded json genesis config is valid"),
 		})
 	}
 
