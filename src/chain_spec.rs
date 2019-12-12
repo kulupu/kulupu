@@ -55,7 +55,7 @@ impl Alternative {
 				None,
 				None
 			),
-			Alternative::Kulupu => ChainSpec::from_embedded(include_bytes!("../res/genesis.json"))
+			Alternative::Kulupu => ChainSpec::from_json_bytes(include_bytes!("../res/genesis.json"))
 				.expect("Embedded json genesis config is valid"),
 		})
 	}
