@@ -55,23 +55,8 @@ impl Alternative {
 				None,
 				None
 			),
-			Alternative::Kulupu => ChainSpec::from_genesis(
-				"Kulupu",
-				"kulupu",
-				|| mainnet_genesis(),
-				vec![
-					"/dns4/hat.nodes.kulupu.network/tcp/30333/p2p/QmUn9WGHir2CrqeyY3Y7GfMe6UYPZYw8ix5pYZLoZJaKRm".to_string(),
-					"/dns4/legend.nodes.kulupu.network/tcp/30333/p2p/QmYeDXU7bEDSKjAXAd2P4qHfAJiLr4gzLUd6jD8ud9Xx92".to_string(),
-				],
-				None,
-				Some("kul"),
-				Some(json!({
-					"ss58Format": 16,
-					"tokenDecimals": 12,
-					"tokenSymbol": "KULU"
-				}).as_object().expect("Created an object").clone()),
-				None,
-			),
+			Alternative::Kulupu => ChainSpec::from_embedded(include_bytes!("../res/genesis.json"))
+				.expect("Embedded json genesis config is valid"),
 		})
 	}
 
@@ -102,25 +87,6 @@ fn testnet_genesis(
 		}),
 		difficulty: Some(DifficultyConfig {
 			initial_difficulty: U256::from(200),
-		}),
-	}
-}
-
-fn mainnet_genesis() -> GenesisConfig {
-	GenesisConfig {
-		system: Some(SystemConfig {
-			code: include_bytes!("../res/0-genesis/kulupu_runtime.compact.wasm").to_vec(),
-			changes_trie_config: Default::default(),
-		}),
-		indices: Some(IndicesConfig {
-			ids: vec![],
-		}),
-		balances: Some(BalancesConfig {
-			balances: vec![],
-			vesting: vec![],
-		}),
-		difficulty: Some(DifficultyConfig {
-			initial_difficulty: U256::from(10000),
 		}),
 	}
 }
