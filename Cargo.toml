@@ -48,6 +48,7 @@ serde_json = "1.0"
 vergen = "3"
 
 [features]
+default = ["wasmtime"]
 wasmtime = [
 	"substrate-executor/wasmtime",
 	"substrate-cli/wasmtime",
