@@ -3,7 +3,7 @@
 use rstd::{result, prelude::*};
 use sr_primitives::RuntimeString;
 use support::{
-	decl_module, decl_storage,
+	decl_module, decl_storage, decl_error, ensure,
 	traits::{Get, Currency},
 	weights::SimpleDispatchInfo,
 };
@@ -17,6 +17,13 @@ pub trait Trait: balances::Trait {
 	type Reward: Get<Self::Balance>;
 }
 
+decl_error! {
+	pub enum Error for Module<T: Trait> {
+		/// Author already set in block.
+		AuthorAlreadySet,
+	}
+}
+
 decl_storage! {
 	trait Store for Module<T: Trait> as Rewards {
 		Author: Option<T::AccountId>;
@@ -25,13 +32,13 @@ decl_storage! {
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+		type Error = Error<T>;
+
 		#[weight = SimpleDispatchInfo::FixedOperational(10_000)]
 		fn set_author(origin, author: T::AccountId) {
 			ensure_none(origin)?;
+			ensure!(<Self as Store>::Author::get().is_some(), Error::<T>::AuthorAlreadySet);
 
-			if <Self as Store>::Author::get().is_some() {
-				return Err("Author already set in block.")
-			}
 			<Self as Store>::Author::put(author);
 		}
 
