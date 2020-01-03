@@ -72,9 +72,12 @@ impl Compute {
 			}
 
 			let work = ms.as_mut()
-				.expect("Local MACHINES always set to Some above; qed")
-				.1
-				.calculate(&calculation.encode()[..]);
+				.map(|(mkey_hash, vm)| {
+					assert_eq!(mkey_hash, &self.key_hash,
+							   "Condition failed checking cached key_hash. This is a bug");
+					vm.calculate(&calculation.encode()[..])
+				})
+				.expect("Local MACHINES always set to Some above; qed");
 
 			Seal {
 				nonce: self.nonce,
