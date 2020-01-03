@@ -19,3 +19,4 @@ consensus-common = { package = "sp-consensus", path = "../vendor/substrate/primi
 inherents = { package = "sp-inherents", path = "../vendor/substrate/primitives/inherents" }
 lru-cache = "0.1"
 rand = { version = "0.7", features = ["small_rng"] }
+lazy_static = "1.4"

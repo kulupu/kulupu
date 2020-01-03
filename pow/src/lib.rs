@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
 use primitives::{U256, H256};
 use sr_primitives::generic::BlockId;
@@ -12,6 +12,7 @@ use consensus_pow_primitives::{Seal as RawSeal, DifficultyApi};
 use kulupu_primitives::{Difficulty, AlgorithmApi, DAY_HEIGHT, HOUR_HEIGHT};
 use lru_cache::LruCache;
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
+use lazy_static::lazy_static;
 use log::*;
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
@@ -36,7 +37,11 @@ pub struct Compute {
 	pub nonce: H256,
 }
 
-thread_local!(static MACHINES: RefCell<LruCache<H256, randomx::FullVM>> = RefCell::new(LruCache::new(3)));
+lazy_static! {
+	static ref SHARED_MACHINES: Arc<Mutex<LruCache<H256, Arc<randomx::FullVM>>>> =
+		Arc::new(Mutex::new(LruCache::new(2)));
+}
+thread_local!(static MACHINES: RefCell<Option<(H256, Arc<randomx::FullVM>)>> = RefCell::new(None));
 
 impl Compute {
 	pub fn compute(self) -> Seal {
@@ -48,14 +53,26 @@ impl Compute {
 				nonce: self.nonce,
 			};
 
-			let work = if let Some(vm) = ms.get_mut(&self.key_hash) {
-				vm.calculate(&calculation.encode()[..])
-			} else {
-				let mut vm = randomx::FullVM::new(&self.key_hash[..]);
-				let work = vm.calculate(&calculation.encode()[..]);
-				ms.insert(self.key_hash, vm);
-				work
-			};
+			let need_new_vm = ms.as_ref().map(|(mkey_hash, _)| {
+				mkey_hash == &self.key_hash
+			}).unwrap_or(true);
+
+			if need_new_vm {
+				let mut shared_machines = SHARED_MACHINES.lock().expect("Mutex poisioned");
+
+				if let Some(vm) = shared_machines.get_mut(&self.key_hash) {
+					*ms = Some((self.key_hash, vm.clone()));
+				} else {
+					let vm = Arc::new(randomx::FullVM::new(&self.key_hash[..]));
+					shared_machines.insert(self.key_hash, vm.clone());
+					*ms = Some((self.key_hash, vm));
+				}
+			}
+
+			let work = ms.as_ref()
+				.expect("Local MACHINES always set to Some above; qed")
+				.1
+				.calculate(&calculation.encode()[..]);
 
 			Seal {
 				nonce: self.nonce,
