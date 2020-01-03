@@ -38,10 +38,10 @@ pub struct Compute {
 }
 
 lazy_static! {
-	static ref SHARED_MACHINES: Arc<Mutex<LruCache<H256, Arc<randomx::FullVM>>>> =
+	static ref SHARED_CACHES: Arc<Mutex<LruCache<H256, Arc<randomx::FullCache>>>> =
 		Arc::new(Mutex::new(LruCache::new(2)));
 }
-thread_local!(static MACHINES: RefCell<Option<(H256, Arc<randomx::FullVM>)>> = RefCell::new(None));
+thread_local!(static MACHINES: RefCell<Option<(H256, randomx::FullVM)>> = RefCell::new(None));
 
 impl Compute {
 	pub fn compute(self) -> Seal {
@@ -58,18 +58,18 @@ impl Compute {
 			}).unwrap_or(true);
 
 			if need_new_vm {
-				let mut shared_machines = SHARED_MACHINES.lock().expect("Mutex poisioned");
+				let mut shared_caches = SHARED_CACHES.lock().expect("Mutex poisioned");
 
-				if let Some(vm) = shared_machines.get_mut(&self.key_hash) {
-					*ms = Some((self.key_hash, vm.clone()));
+				if let Some(cache) = shared_caches.get_mut(&self.key_hash) {
+					*ms = Some((self.key_hash, randomx::FullVM::new(cache.clone())));
 				} else {
-					let vm = Arc::new(randomx::FullVM::new(&self.key_hash[..]));
-					shared_machines.insert(self.key_hash, vm.clone());
-					*ms = Some((self.key_hash, vm));
+					let cache = Arc::new(randomx::FullCache::new(&self.key_hash[..]));
+					shared_caches.insert(self.key_hash, cache.clone());
+					*ms = Some((self.key_hash, randomx::FullVM::new(cache)));
 				}
 			}
 
-			let work = ms.as_ref()
+			let work = ms.as_mut()
 				.expect("Local MACHINES always set to Some above; qed")
 				.1
 				.calculate(&calculation.encode()[..]);
