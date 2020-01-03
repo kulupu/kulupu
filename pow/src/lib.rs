@@ -63,6 +63,8 @@ impl Compute {
 				if let Some(cache) = shared_caches.get_mut(&self.key_hash) {
 					*ms = Some((self.key_hash, randomx::FullVM::new(cache.clone())));
 				} else {
+					info!("At block boundary, generating new RandomX cache with key hash {} ...",
+						  self.key_hash);
 					let cache = Arc::new(randomx::FullCache::new(&self.key_hash[..]));
 					shared_caches.insert(self.key_hash, cache.clone());
 					*ms = Some((self.key_hash, randomx::FullVM::new(cache)));
@@ -150,7 +152,6 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				format!("Fetching difficulty from runtime failed: {:?}", e)
 			));
 
-		info!("Next block's difficulty: {:?}", difficulty);
 		difficulty
 	}
 
