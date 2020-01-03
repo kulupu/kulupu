@@ -54,7 +54,7 @@ impl Compute {
 			};
 
 			let need_new_vm = ms.as_ref().map(|(mkey_hash, _)| {
-				mkey_hash == &self.key_hash
+				mkey_hash != &self.key_hash
 			}).unwrap_or(true);
 
 			if need_new_vm {
