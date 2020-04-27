@@ -19,8 +19,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Encode, Decode};
+#[cfg(feature = "std")]
+use serde::{Serialize, Deserialize};
+use sp_std::prelude::*;
 use frame_support::{decl_storage, decl_module};
 
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Encode, Decode)]
 pub struct Era<H> {
 	/// Genesis block hash of the era.

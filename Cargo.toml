@@ -30,7 +30,7 @@ txpool = { package = "sc-transaction-pool", path = "vendor/substrate/client/tran
 txpool-api = { package = "sp-transaction-pool", path = "vendor/substrate/primitives/transaction-pool" }
 network = { package = "sc-network", path = "vendor/substrate/client/network" }
 substrate-client = { package = "sc-client", path = "vendor/substrate/client" }
-basic-authorship = { package = "sc-basic-authority", path = "vendor/substrate/client/basic-authorship" }
+basic-authorship = { package = "sc-basic-authorship", path = "vendor/substrate/client/basic-authorship" }
 kulupu-runtime = { path = "runtime" }
 kulupu-primitives = { path = "primitives" }
 consensus-pow = { package = "sc-consensus-pow", path = "vendor/substrate/client/consensus/pow" }
@@ -38,8 +38,8 @@ kulupu-pow = { path = "pow" }
 pallet-timestamp = { path = "vendor/substrate/frame/timestamp" }
 timestamp-primitives = { package = "sp-timestamp", path = "vendor/substrate/primitives/timestamp" }
 frame-system = { path = "vendor/substrate/frame/system" }
-pallet-anyupgrade = { path = "anyupgrade" }
-pallet-rewards = { path = "rewards" }
+pallet-anyupgrade = { path = "frame/anyupgrade" }
+pallet-rewards = { path = "frame/rewards" }
 structopt = "0.3"
 consensus-common = { package = "sp-consensus", path = "vendor/substrate/primitives/consensus/common" }
 serde_json = "1.0"
@@ -59,7 +59,8 @@ wasmtime = [
 members = [
 	"runtime",
 	"pow",
-	"anyupgrade",
-	"rewards",
+	"frame/anyupgrade",
+	"frame/rewards",
+	"frame/eras",
 ]
 exclude = ["vendor"]

@@ -53,6 +53,11 @@ pub const MIN_DIFFICULTY: u128 = DIFFICULTY_DAMP_FACTOR;
 /// Maximum difficulty.
 pub const MAX_DIFFICULTY: u128 = u128::max_value();
 
+/// Value of 1 KULU.
+pub const KULU: u128 = 1_000_000_000_000;
+/// Value of cents relative to KULU.
+pub const CENTS: u128 = KULU / 100;
+
 pub const ALGORITHM_IDENTIFIER: [u8; 8] = *b"randomx0";
 
 decl_runtime_apis! {

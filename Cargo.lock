@@ -2116,9 +2116,7 @@ name = "kulupu-primitives"
 version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
- "serde",
  "sp-api",
- "sp-consensus-pow",
  "sp-core",
 ]
 
@@ -2130,7 +2128,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "kulupu-primitives",
- "pallet-anyupgrade",
  "pallet-balances",
  "pallet-difficulty",
  "pallet-eras",
@@ -2139,13 +2136,14 @@ dependencies = [
  "pallet-rewards",
  "pallet-timestamp",
  "pallet-transaction-payment",
+ "pallet-utility",
  "parity-scale-codec",
- "safe-mix",
  "serde",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-pow",
  "sp-core",
+ "sp-inherents",
  "sp-io",
  "sp-offchain",
  "sp-runtime",
@@ -3089,10 +3087,27 @@ dependencies = [
 [[package]]
 name = "pallet-difficulty"
 version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "kulupu-primitives",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
 
 [[package]]
 name = "pallet-eras"
 version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-std",
+]
 
 [[package]]
 name = "pallet-indices"
@@ -3129,6 +3144,7 @@ dependencies = [
  "frame-system",
  "pallet-balances",
  "parity-scale-codec",
+ "serde",
  "sp-inherents",
  "sp-runtime",
  "sp-std",
@@ -3170,6 +3186,20 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-api",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-utility"
+version = "2.0.0-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -5694,8 +5724,6 @@ dependencies = [
 [[package]]
 name = "substrate-wasm-builder-runner"
 version = "1.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e30c70de7e7d5fd404fe26db1e7a4d6b553e2760b1ac490f249c04a960c483b8"
 
 [[package]]
 name = "substrate-wasmtime"
