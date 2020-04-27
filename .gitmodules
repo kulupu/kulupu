@@ -1,6 +1,6 @@
 [submodule "vendor/randomx"]
 	path = vendor/randomx
-	url = https://github.com/sorpaas/randomx-rs
+	url = https://github.com/rust-blockchain/randomx
 [submodule "vendor/substrate"]
 	path = vendor/substrate
-	url = https://github.com/kulupu/substrate
+	url = https://github.com/paritytech/substrate
