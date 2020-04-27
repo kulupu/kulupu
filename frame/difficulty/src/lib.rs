@@ -1,11 +1,32 @@
-use core::cmp::{min, max};
-use sr_primitives::traits::UniqueSaturatedInto;
-use support::{decl_storage, decl_module};
+// Copyright 2019-2020 Wei Tang.
+// This file is part of Kulupu.
+
+// Kulupu is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Kulupu is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Kulupu.  If not, see <http://www.gnu.org/licenses/>.
+
+//! Difficulty adjustment module.
+
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use codec::{Encode, Decode};
+use sp_std::cmp::{min, max};
+use sp_core::U256;
+use sp_runtime::traits::UniqueSaturatedInto;
+use frame_support::{decl_storage, decl_module};
 use kulupu_primitives::{
 	DIFFICULTY_ADJUST_WINDOW, BLOCK_TIME_MSEC, BLOCK_TIME_WINDOW_MSEC,
 	DIFFICULTY_DAMP_FACTOR, CLAMP_FACTOR, MIN_DIFFICULTY, MAX_DIFFICULTY,
-	Difficulty, U256,
+	Difficulty,
 };
 
 #[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, Debug)]
@@ -24,7 +45,7 @@ pub fn clamp(actual: u128, goal: u128, clamp_factor: u128) -> u128 {
 	max(goal / clamp_factor, min(actual, goal * clamp_factor))
 }
 
-pub trait Trait: timestamp::Trait { }
+pub trait Trait: pallet_timestamp::Trait { }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Difficulty {
@@ -33,7 +54,7 @@ decl_storage! {
 		[Option<DifficultyAndTimestamp<T::Moment>>; 60]
 			= [None; DIFFICULTY_ADJUST_WINDOW as usize];
 		/// Current difficulty.
-		pub CurrentDifficulty get(difficulty) build(|config: &GenesisConfig| {
+		pub CurrentDifficulty get(fn difficulty) build(|config: &GenesisConfig| {
 			config.initial_difficulty
 		}): Difficulty;
 		/// Initial difficulty.
@@ -51,7 +72,7 @@ decl_module! {
 			}
 
 			data[data.len() - 1] = Some(DifficultyAndTimestamp {
-				timestamp: <timestamp::Module<T>>::get(),
+				timestamp: <pallet_timestamp::Module<T>>::get(),
 				difficulty: Self::difficulty(),
 			});
 
