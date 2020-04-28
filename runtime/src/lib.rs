@@ -31,7 +31,8 @@ use sp_runtime::{
 	transaction_validity::{TransactionValidity, TransactionSource},
 };
 use sp_runtime::traits::{
-	BlakeTwo256, Block as BlockT, IdentityLookup, Verify, ConvertInto, IdentifyAccount, Convert
+	BlakeTwo256, Block as BlockT, StaticLookup,
+	Verify, ConvertInto, IdentifyAccount, Convert
 };
 use sp_api::impl_runtime_apis;
 use sp_version::RuntimeVersion;
