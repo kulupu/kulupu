@@ -1,6 +1,6 @@
 [package]
 name = "kulupu"
-version = "0.2.3"
+version = "0.3.0"
 authors = ["Wei Tang <hi@that.world>"]
 build = "build.rs"
 edition = "2018"
@@ -26,9 +26,9 @@ sp-transaction-pool = { path = "vendor/substrate/primitives/transaction-pool" }
 sc-network = { path = "vendor/substrate/client/network" }
 sc-consensus-pow = { path = "vendor/substrate/client/consensus/pow" }
 sp-consensus = { path = "vendor/substrate/primitives/consensus/common" }
+sc-consensus = { path = "vendor/substrate/client/consensus/common" }
 sc-finality-grandpa = { path = "vendor/substrate/client/finality-grandpa" }
 sp-finality-grandpa = { path = "vendor/substrate/primitives/finality-grandpa" }
-sc-client = { path = "vendor/substrate/client/" }
 sc-client-api = { path = "vendor/substrate/client/api" }
 sp-runtime = { path = "vendor/substrate/primitives/runtime" }
 sc-basic-authorship = { path = "vendor/substrate/client/basic-authorship" }

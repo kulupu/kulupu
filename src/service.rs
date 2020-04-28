@@ -20,7 +20,7 @@ use std::sync::Arc;
 use std::str::FromStr;
 use codec::Encode;
 use sp_core::{H256, crypto::UncheckedFrom};
-use sc_client::LongestChain;
+use sc_consensus::LongestChain;
 use sc_service::{error::{Error as ServiceError}, AbstractService, Configuration, ServiceBuilder};
 use sc_executor::native_executor_instance;
 use sc_network::config::DummyFinalityProofRequestBuilder;
@@ -79,7 +79,7 @@ macro_rules! new_full_start {
 			kulupu_runtime::opaque::Block, kulupu_runtime::RuntimeApi, crate::service::Executor
 		>($config)?
 			.with_select_chain(|_config, backend| {
-				Ok(sc_client::LongestChain::new(backend.clone()))
+				Ok(sc_consensus::LongestChain::new(backend.clone()))
 			})?
 			.with_transaction_pool(|config, client, _fetcher, prometheus_registry| {
 				let pool_api = sc_transaction_pool::FullChainApi::new(client.clone());

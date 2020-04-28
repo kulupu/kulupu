@@ -54,7 +54,7 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
-		#[weight = (1000, DispatchClass::Operational)]
+		#[weight = (0, DispatchClass::Mandatory)]
 		fn set_author(origin, author: T::AccountId) {
 			ensure_none(origin)?;
 			ensure!(<Self as Store>::Author::get().is_none(), Error::<T>::AuthorAlreadySet);

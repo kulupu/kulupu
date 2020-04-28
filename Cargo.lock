@@ -2058,7 +2058,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "futures 0.3.4",
  "kulupu-pow",
@@ -2069,8 +2069,8 @@ dependencies = [
  "parity-scale-codec",
  "sc-basic-authorship",
  "sc-cli",
- "sc-client",
  "sc-client-api",
+ "sc-consensus",
  "sc-consensus-pow",
  "sc-executor",
  "sc-finality-grandpa",
@@ -4356,42 +4356,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sc-client"
-version = "0.8.0-dev"
-dependencies = [
- "derive_more",
- "fnv",
- "futures 0.3.4",
- "hash-db",
- "hex-literal",
- "kvdb",
- "log",
- "parity-scale-codec",
- "parking_lot 0.10.2",
- "rand 0.7.3",
- "sc-block-builder",
- "sc-client-api",
- "sc-executor",
- "sc-telemetry",
- "sp-api",
- "sp-blockchain",
- "sp-consensus",
- "sp-core",
- "sp-database",
- "sp-externalities",
- "sp-inherents",
- "sp-keyring",
- "sp-runtime",
- "sp-state-machine",
- "sp-std",
- "sp-trie",
- "sp-utils",
- "sp-version",
- "substrate-prometheus-endpoint",
- "tracing",
-]
-
-[[package]]
 name = "sc-client-api"
 version = "2.0.0-dev"
 dependencies = [
@@ -4411,6 +4375,7 @@ dependencies = [
  "sp-blockchain",
  "sp-consensus",
  "sp-core",
+ "sp-database",
  "sp-externalities",
  "sp-inherents",
  "sp-keyring",
@@ -4440,7 +4405,6 @@ dependencies = [
  "parity-scale-codec",
  "parity-util-mem",
  "parking_lot 0.10.2",
- "sc-client",
  "sc-client-api",
  "sc-executor",
  "sc-state-db",
@@ -4452,6 +4416,16 @@ dependencies = [
  "sp-state-machine",
  "sp-trie",
  "substrate-prometheus-endpoint",
+]
+
+[[package]]
+name = "sc-consensus"
+version = "0.8.0-dev"
+dependencies = [
+ "sc-client-api",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -4566,8 +4540,8 @@ dependencies = [
  "pin-project",
  "rand 0.7.3",
  "sc-block-builder",
- "sc-client",
  "sc-client-api",
+ "sc-consensus",
  "sc-keystore",
  "sc-network",
  "sc-network-gossip",
@@ -4645,7 +4619,6 @@ dependencies = [
  "prost-build",
  "rand 0.7.3",
  "sc-block-builder",
- "sc-client",
  "sc-client-api",
  "sc-peerset",
  "serde",
@@ -4733,7 +4706,6 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.10.2",
  "sc-block-builder",
- "sc-client",
  "sc-client-api",
  "sc-executor",
  "sc-keystore",
@@ -4799,6 +4771,7 @@ dependencies = [
  "futures 0.1.29",
  "futures 0.3.4",
  "futures-timer 3.0.2",
+ "hash-db",
  "lazy_static",
  "log",
  "netstat2",
@@ -4808,8 +4781,9 @@ dependencies = [
  "parking_lot 0.10.2",
  "pin-project",
  "procfs",
+ "rand 0.7.3",
+ "sc-block-builder",
  "sc-chain-spec",
- "sc-client",
  "sc-client-api",
  "sc-client-db",
  "sc-executor",
@@ -4826,14 +4800,19 @@ dependencies = [
  "slog",
  "sp-api",
  "sp-application-crypto",
+ "sp-block-builder",
  "sp-blockchain",
  "sp-consensus",
  "sp-core",
+ "sp-externalities",
  "sp-io",
  "sp-runtime",
  "sp-session",
+ "sp-state-machine",
  "sp-transaction-pool",
+ "sp-trie",
  "sp-utils",
+ "sp-version",
  "substrate-prometheus-endpoint",
  "sysinfo",
  "tracing",
@@ -5553,8 +5532,8 @@ version = "2.0.0-dev"
 dependencies = [
  "parity-scale-codec",
  "serde",
+ "sp-arithmetic",
  "sp-phragmen-compact",
- "sp-runtime",
  "sp-std",
 ]
 
