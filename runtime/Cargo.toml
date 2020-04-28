@@ -21,24 +21,25 @@ sp-transaction-pool = { path = "../vendor/substrate/primitives/transaction-pool"
 sp-inherents = { path = "../vendor/substrate/primitives/inherents", default-features = false }
 frame-support = { path = "../vendor/substrate/frame/support", default-features = false }
 frame-executive = { path = "../vendor/substrate/frame/executive", default-features = false }
-frame-system = { path = "../vendor/substrate/frame/system", default-features = false }
-pallet-balances = { path = "../vendor/substrate/frame/balances", default-features = false }
-pallet-utility = { path = "../vendor/substrate/frame/utility", default-features = false }
-pallet-indices = { path = "../vendor/substrate/frame/indices", default-features = false }
-pallet-timestamp = { path = "../vendor/substrate/frame/timestamp", default-features = false }
-pallet-transaction-payment = { path = "../vendor/substrate/frame/transaction-payment", default-features = false }
-pallet-randomness-collective-flip = { path = "../vendor/substrate/frame/randomness-collective-flip", default-features = false }
-pallet-democracy = { path = "../vendor/substrate/frame/democracy", default-features = false }
-pallet-collective = { path = "../vendor/substrate/frame/collective", default-features = false }
-pallet-elections-phragmen = { path = "../vendor/substrate/frame/elections-phragmen", default-features = false }
-pallet-membership = { path = "../vendor/substrate/frame/membership", default-features = false }
-pallet-treasury = { path = "../vendor/substrate/frame/treasury", default-features = false }
-pallet-scheduler = { path = "../vendor/substrate/frame/scheduler", default-features = false }
-pallet-identity = { path = "../vendor/substrate/frame/identity", default-features = false }
-pallet-rewards = { path = "../frame/rewards", default-features = false }
-pallet-eras = { path = "../frame/eras", default-features = false }
-pallet-difficulty = { path = "../frame/difficulty", default-features = false }
 kulupu-primitives = { path = "../primitives", default-features = false }
+
+system = { package = "frame-system", path = "../vendor/substrate/frame/system", default-features = false }
+balances = { package = "pallet-balances", path = "../vendor/substrate/frame/balances", default-features = false }
+utility = { package = "pallet-utility", path = "../vendor/substrate/frame/utility", default-features = false }
+indices = { package = "pallet-indices", path = "../vendor/substrate/frame/indices", default-features = false }
+timestamp = { package = "pallet-timestamp", path = "../vendor/substrate/frame/timestamp", default-features = false }
+transaction-payment = { package = "pallet-transaction-payment", path = "../vendor/substrate/frame/transaction-payment", default-features = false }
+randomness-collective-flip = { package = "pallet-randomness-collective-flip", path = "../vendor/substrate/frame/randomness-collective-flip", default-features = false }
+democracy = { package = "pallet-democracy", path = "../vendor/substrate/frame/democracy", default-features = false }
+collective = { package = "pallet-collective", path = "../vendor/substrate/frame/collective", default-features = false }
+elections-phragmen = { package = "pallet-elections-phragmen", path = "../vendor/substrate/frame/elections-phragmen", default-features = false }
+membership = { package = "pallet-membership", path = "../vendor/substrate/frame/membership", default-features = false }
+treasury = { package = "pallet-treasury", path = "../vendor/substrate/frame/treasury", default-features = false }
+scheduler = { package = "pallet-scheduler", path = "../vendor/substrate/frame/scheduler", default-features = false }
+identity = { package = "pallet-identity", path = "../vendor/substrate/frame/identity", default-features = false }
+rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
+eras = { package = "pallet-eras", path = "../frame/eras", default-features = false }
+difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", default-features = false }
 
 [build-dependencies]
 wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.5", path = "../vendor/substrate/utils/wasm-builder-runner" }
@@ -62,22 +63,23 @@ std = [
 	"sp-inherents/std",
 	"frame-support/std",
 	"frame-executive/std",
-	"frame-system/std",
-	"pallet-balances/std",
-	"pallet-utility/std",
-	"pallet-indices/std",
-	"pallet-timestamp/std",
-	"pallet-transaction-payment/std",
-	"pallet-randomness-collective-flip/std",
-	"pallet-democracy/std",
-	"pallet-collective/std",
-	"pallet-elections-phragmen/std",
-	"pallet-membership/std",
-	"pallet-treasury/std",
-	"pallet-scheduler/std",
-	"pallet-identity/std",
-	"pallet-rewards/std",
-	"pallet-eras/std",
-	"pallet-difficulty/std",
 	"kulupu-primitives/std",
+
+	"system/std",
+	"balances/std",
+	"utility/std",
+	"indices/std",
+	"timestamp/std",
+	"transaction-payment/std",
+	"randomness-collective-flip/std",
+	"democracy/std",
+	"collective/std",
+	"elections-phragmen/std",
+	"membership/std",
+	"treasury/std",
+	"scheduler/std",
+	"identity/std",
+	"rewards/std",
+	"eras/std",
+	"difficulty/std",
 ]

@@ -161,6 +161,12 @@ impl<C> RandomXAlgorithm<C> {
 	}
 }
 
+impl<C> Clone for RandomXAlgorithm<C> {
+	fn clone(&self) -> Self {
+		Self { client: self.client.clone() }
+	}
+}
+
 impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi<B>,
 	C::Api: DifficultyApi<B, Difficulty> + AlgorithmApi<B>,

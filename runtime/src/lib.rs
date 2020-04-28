@@ -48,8 +48,8 @@ pub use frame_support::{
 	traits::{Randomness, LockIdentifier},
 	weights::{Weight, RuntimeDbWeight},
 };
-pub use pallet_timestamp::Call as TimestampCall;
-pub use pallet_balances::Call as BalancesCall;
+pub use timestamp::Call as TimestampCall;
+pub use balances::Call as BalancesCall;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -128,7 +128,7 @@ parameter_types! {
 	};
 }
 
-impl frame_system::Trait for Runtime {
+impl system::Trait for Runtime {
 	/// The identifier used to distinguish between accounts.
 	type AccountId = AccountId;
 	/// The aggregated dispatch type that is available for extrinsics.
@@ -176,10 +176,10 @@ impl frame_system::Trait for Runtime {
 	/// What to do if an account is fully reaped from the system.
 	type OnKilledAccount = ();
 	/// The data to be stored in an account.
-	type AccountData = pallet_balances::AccountData<Balance>;
+	type AccountData = balances::AccountData<Balance>;
 }
 
-impl pallet_scheduler::Trait for Runtime {
+impl scheduler::Trait for Runtime {
 	type Event = Event;
 	type Origin = Origin;
 	type Call = Call;
@@ -194,7 +194,7 @@ parameter_types! {
 	pub const MaxSignatories: u16 = 100;
 }
 
-impl pallet_utility::Trait for Runtime {
+impl utility::Trait for Runtime {
 	type Event = Event;
 	type Call = Call;
 	type Currency = Balances;
@@ -207,7 +207,7 @@ parameter_types! {
 	pub const IndexDeposit: Balance = 1 * KULU;
 }
 
-impl pallet_indices::Trait for Runtime {
+impl indices::Trait for Runtime {
 	/// The type for recording indexing into the account enumeration.
 	type AccountIndex = AccountIndex;
 	/// Index deposit.
@@ -222,7 +222,7 @@ parameter_types! {
 	pub const MinimumPeriod: u64 = 3000;
 }
 
-impl pallet_timestamp::Trait for Runtime {
+impl timestamp::Trait for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
 	type OnTimestampSet = ();
@@ -233,7 +233,7 @@ parameter_types! {
 	pub const ExistentialDeposit: u128 = 1 * MILLICENTS;
 }
 
-impl pallet_balances::Trait for Runtime {
+impl balances::Trait for Runtime {
 	/// The type for recording an account's balance.
 	type Balance = Balance;
 	/// The ubiquitous event type.
@@ -247,23 +247,23 @@ parameter_types! {
 	pub const TransactionByteFee: Balance = 10 * MILLICENTS;
 }
 
-impl pallet_transaction_payment::Trait for Runtime {
-	type Currency = pallet_balances::Module<Runtime>;
+impl transaction_payment::Trait for Runtime {
+	type Currency = balances::Module<Runtime>;
 	type OnTransactionPayment = ();
 	type TransactionByteFee = TransactionByteFee;
 	type WeightToFee = ConvertInto;
 	type FeeMultiplierUpdate = ();
 }
 
-impl pallet_difficulty::Trait for Runtime { }
+impl difficulty::Trait for Runtime { }
 
-impl pallet_eras::Trait for Runtime { }
+impl eras::Trait for Runtime { }
 
 parameter_types! {
 	pub const Reward: Balance = 60 * KULU;
 }
 
-impl pallet_rewards::Trait for Runtime {
+impl rewards::Trait for Runtime {
 	type Reward = Reward;
 }
 
@@ -279,7 +279,7 @@ parameter_types! {
 	pub const InstantAllowed: bool = false;
 }
 
-impl pallet_democracy::Trait for Runtime {
+impl democracy::Trait for Runtime {
 	type Proposal = Call;
 	type Event = Event;
 	type Currency = Balances;
@@ -288,27 +288,27 @@ impl pallet_democracy::Trait for Runtime {
 	type VotingPeriod = VotingPeriod;
 	type MinimumDeposit = MinimumDeposit;
 	/// A straight majority of the council can decide what their next motion is.
-	type ExternalOrigin = pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>;
+	type ExternalOrigin = collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>;
 	/// A super-majority can have the next scheduled referendum be a straight
 	/// majority-carries vote.
-	type ExternalMajorityOrigin = pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>;
+	type ExternalMajorityOrigin = collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>;
 	/// A unanimous council can have the next scheduled referendum be a straight
 	/// default-carries (NTB) vote.
-	type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
+	type ExternalDefaultOrigin = collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
 	/// Full of the technical committee can have an
 	/// ExternalMajority/ExternalDefault vote be tabled immediately and with a
 	/// shorter voting/enactment period.
-	type FastTrackOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>;
-	type InstantOrigin = frame_system::EnsureNever<AccountId>;
+	type FastTrackOrigin = collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>;
+	type InstantOrigin = system::EnsureNever<AccountId>;
 	type InstantAllowed = InstantAllowed;
 	type FastTrackVotingPeriod = FastTrackVotingPeriod;
 	/// To cancel a proposal which has been passed, 2/3 of the council must agree
 	/// to it.
-	type CancellationOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
+	type CancellationOrigin = collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
 	/// Any single technical committee member may veto a coming council
 	/// proposal, however they can only do it once and it lasts only for the
 	/// cooloff period.
-	type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
+	type VetoOrigin = collective::EnsureMember<AccountId, TechnicalCollective>;
 	type CooloffPeriod = CooloffPeriod;
 	type PreimageByteDeposit = PreimageByteDeposit;
 	type Slash = Treasury;
@@ -319,8 +319,8 @@ parameter_types! {
 	pub const CouncilMotionDuration: BlockNumber = 3 * DAYS;
 }
 
-type CouncilCollective = pallet_collective::Instance1;
-impl pallet_collective::Trait<CouncilCollective> for Runtime {
+type CouncilCollective = collective::Instance1;
+impl collective::Trait<CouncilCollective> for Runtime {
 	type Origin = Origin;
 	type Proposal = Call;
 	type Event = Event;
@@ -332,18 +332,18 @@ pub struct CurrencyToVoteHandler<R>(sp_std::marker::PhantomData<R>);
 
 impl<R> CurrencyToVoteHandler<R>
 where
-	R: pallet_balances::Trait,
+	R: balances::Trait,
 	R::Balance: Into<u128>,
 {
 	fn factor() -> u128 {
-		let issuance: u128 = <pallet_balances::Module<R>>::total_issuance().into();
+		let issuance: u128 = <balances::Module<R>>::total_issuance().into();
 		(issuance / u64::max_value() as u128).max(1)
 	}
 }
 
 impl<R> Convert<u128, u64> for CurrencyToVoteHandler<R>
 where
-	R: pallet_balances::Trait,
+	R: balances::Trait,
 	R::Balance: Into<u128>,
 {
 	fn convert(x: u128) -> u64 { (x / Self::factor()) as u64 }
@@ -351,7 +351,7 @@ where
 
 impl<R> Convert<u128, u128> for CurrencyToVoteHandler<R>
 where
-	R: pallet_balances::Trait,
+	R: balances::Trait,
 	R::Balance: Into<u128>,
 {
 	fn convert(x: u128) -> u128 { x * Self::factor() }
@@ -367,7 +367,7 @@ parameter_types! {
 	pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
 }
 
-impl pallet_elections_phragmen::Trait for Runtime {
+impl elections_phragmen::Trait for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type ChangeMembers = Council;
@@ -388,21 +388,21 @@ parameter_types! {
 	pub const TechnicalMotionDuration: BlockNumber = 3 * DAYS;
 }
 
-type TechnicalCollective = pallet_collective::Instance2;
-impl pallet_collective::Trait<TechnicalCollective> for Runtime {
+type TechnicalCollective = collective::Instance2;
+impl collective::Trait<TechnicalCollective> for Runtime {
 	type Origin = Origin;
 	type Proposal = Call;
 	type Event = Event;
 	type MotionDuration = TechnicalMotionDuration;
 }
 
-impl pallet_membership::Trait<pallet_membership::Instance1> for Runtime {
+impl membership::Trait<membership::Instance1> for Runtime {
 	type Event = Event;
-	type AddOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type RemoveOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type SwapOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type ResetOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type PrimeOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type AddOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type RemoveOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type SwapOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type ResetOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type PrimeOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 	type MembershipInitialized = TechnicalCommittee;
 	type MembershipChanged = TechnicalCommittee;
 }
@@ -420,10 +420,10 @@ parameter_types! {
 	pub const TipReportDepositPerByte: Balance = 10 * MILLICENTS;
 }
 
-impl pallet_treasury::Trait for Runtime {
+impl treasury::Trait for Runtime {
 	type Currency = Balances;
-	type ApproveOrigin = pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, CouncilCollective>;
-	type RejectOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type ApproveOrigin = collective::EnsureProportionAtLeast<_3, _5, AccountId, CouncilCollective>;
+	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 	type Tippers = ElectionsPhragmen;
 	type TipCountdown = TipCountdown;
 	type TipFindersFee = TipFindersFee;
@@ -448,7 +448,7 @@ parameter_types! {
 	pub const MaxRegistrars: u32 = 20;
 }
 
-impl pallet_identity::Trait for Runtime {
+impl identity::Trait for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type Slashed = Treasury;
@@ -458,8 +458,8 @@ impl pallet_identity::Trait for Runtime {
 	type MaxSubAccounts = MaxSubAccounts;
 	type MaxAdditionalFields = MaxAdditionalFields;
 	type MaxRegistrars = MaxRegistrars;
-	type RegistrarOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type ForceOrigin = frame_system::EnsureNever<AccountId>;
+	type RegistrarOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type ForceOrigin = system::EnsureNever<AccountId>;
 }
 
 construct_runtime!(
@@ -469,32 +469,32 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		// Basic stuff.
-		System: frame_system::{Module, Call, Storage, Config, Event<T>},
-		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
-		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
-		Indices: pallet_indices::{Module, Call, Storage, Config<T>, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		TransactionPayment: pallet_transaction_payment::{Module, Storage},
+		System: system::{Module, Call, Storage, Config, Event<T>},
+		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
+		Timestamp: timestamp::{Module, Call, Storage, Inherent, Config},
+		Indices: indices::{Module, Call, Storage, Config<T>, Event<T>},
+		Balances: balances::{Module, Call, Storage, Config<T>, Event<T>},
+		TransactionPayment: transaction_payment::{Module, Storage},
 
 		// PoW consensus and era support.
-		Difficulty: pallet_difficulty::{Module, Call, Storage, Config},
-		Eras: pallet_eras::{Module, Call, Storage, Config<T>},
-		Rewards: pallet_rewards::{Module, Call, Inherent, Storage},
+		Difficulty: difficulty::{Module, Call, Storage, Config},
+		Eras: eras::{Module, Call, Storage, Config<T>},
+		Rewards: rewards::{Module, Call, Inherent, Storage},
 
 		// Governance.
-		Democracy: pallet_democracy::{Module, Call, Storage, Config, Event<T>},
-		Council: pallet_collective::<Instance1>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>},
-		TechnicalCommittee: pallet_collective::<Instance2>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>},
-		ElectionsPhragmen: pallet_elections_phragmen::{Module, Call, Storage, Event<T>, Config<T>},
-		TechnicalMembership: pallet_membership::<Instance1>::{Module, Call, Storage, Event<T>, Config<T>},
-		Treasury: pallet_treasury::{Module, Call, Storage, Event<T>},
+		Democracy: democracy::{Module, Call, Storage, Config, Event<T>},
+		Council: collective::<Instance1>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>},
+		TechnicalCommittee: collective::<Instance2>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>},
+		ElectionsPhragmen: elections_phragmen::{Module, Call, Storage, Event<T>, Config<T>},
+		TechnicalMembership: membership::<Instance1>::{Module, Call, Storage, Event<T>, Config<T>},
+		Treasury: treasury::{Module, Call, Storage, Event<T>, Config},
 
 		// Identity.
-		Identity: pallet_identity::{Module, Call, Storage, Event<T>},
+		Identity: identity::{Module, Call, Storage, Event<T>},
 
 		// Utility module.
-		Utility: pallet_utility::{Module, Call, Storage, Event<T>},
-		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>},
+		Utility: utility::{Module, Call, Storage, Event<T>},
+		Scheduler: scheduler::{Module, Call, Storage, Event<T>},
 	}
 );
 
@@ -510,12 +510,12 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 pub type BlockId = generic::BlockId<Block>;
 /// The SignedExtension to the basic transaction logic.
 pub type SignedExtra = (
-	frame_system::CheckVersion<Runtime>,
-	frame_system::CheckGenesis<Runtime>,
-	frame_system::CheckEra<Runtime>,
-	frame_system::CheckNonce<Runtime>,
-	frame_system::CheckWeight<Runtime>,
-	pallet_transaction_payment::ChargeTransactionPayment<Runtime>
+	system::CheckVersion<Runtime>,
+	system::CheckGenesis<Runtime>,
+	system::CheckEra<Runtime>,
+	system::CheckNonce<Runtime>,
+	system::CheckWeight<Runtime>,
+	transaction_payment::ChargeTransactionPayment<Runtime>
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
@@ -524,7 +524,7 @@ pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
-pub type Executive = frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllModules>;
+pub type Executive = frame_executive::Executive<Runtime, Block, system::ChainContext<Runtime>, Runtime, AllModules>;
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
@@ -601,13 +601,13 @@ impl_runtime_apis! {
 
 	impl sp_consensus_pow::TimestampApi<Block, u64> for Runtime {
 		fn timestamp() -> u64 {
-			pallet_timestamp::Module::<Runtime>::get()
+			timestamp::Module::<Runtime>::get()
 		}
 	}
 
 	impl sp_consensus_pow::DifficultyApi<Block, kulupu_primitives::Difficulty> for Runtime {
 		fn difficulty() -> kulupu_primitives::Difficulty {
-			pallet_difficulty::Module::<Runtime>::difficulty()
+			difficulty::Module::<Runtime>::difficulty()
 		}
 	}
 

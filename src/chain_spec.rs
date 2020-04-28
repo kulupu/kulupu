@@ -1,92 +1,86 @@
+// Copyright 2019-2020 Wei Tang.
+// This file is part of Kulupu.
+
+// Kulupu is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Kulupu is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Kulupu.  If not, see <http://www.gnu.org/licenses/>.
+
 use kulupu_runtime::{
-	AccountId, BalancesConfig, GenesisConfig,
-	IndicesConfig, SystemConfig, DifficultyConfig, WASM_BINARY,
+	BalancesConfig, GenesisConfig, IndicesConfig, SystemConfig,
+	DifficultyConfig, WASM_BINARY,
 };
-use kulupu_primitives::U256;
-use substrate_service;
+use sp_core::U256;
+use sc_service::ChainType;
 
 // Note this is the URL for the telemetry server
 //const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
-pub type ChainSpec = substrate_service::ChainSpec<GenesisConfig>;
+pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 
-/// The chain specification option. This is expected to come in from the CLI and
-/// is little more than one of a number of alternatives which can easily be converted
-/// from a string (`--chain=...`) into a `ChainSpec`.
-#[derive(Clone, Debug)]
-pub enum Alternative {
-	/// Whatever the current runtime is, with just Alice as an auth.
-	Development,
-	/// Whatever the current runtime is, with simple Alice/Bob auths.
-	LocalTestnet,
-	/// Kulupu
-	Kulupu,
+pub fn development_config() -> ChainSpec {
+	ChainSpec::from_genesis(
+		"Development",
+		"dev",
+		ChainType::Development,
+		|| testnet_genesis(
+			U256::from(200),
+		),
+		vec![],
+		None,
+		None,
+		None,
+		None,
+	)
 }
 
-impl Alternative {
-	/// Get an actual chain config from one of the alternatives.
-	pub(crate) fn load(self) -> Result<ChainSpec, String> {
-		Ok(match self {
-			Alternative::Development => ChainSpec::from_genesis(
-				"Development",
-				"dev",
-				|| testnet_genesis(
-					vec![],
-					true
-				),
-				vec![],
-				None,
-				None,
-				None,
-				None
-			),
-			Alternative::LocalTestnet => ChainSpec::from_genesis(
-				"Local Testnet",
-				"local_testnet",
-				|| testnet_genesis(
-					vec![],
-					true
-				),
-				vec![],
-				None,
-				None,
-				None,
-				None
-			),
-			Alternative::Kulupu => ChainSpec::from_json_bytes(
-				include_bytes!("../res/genesis.json").to_vec()
-			).expect("Embedded json genesis config is valid"),
-		})
-	}
-
-	pub(crate) fn from(s: &str) -> Option<Self> {
-		match s {
-			"dev" => Some(Alternative::Development),
-			"local" => Some(Alternative::LocalTestnet),
-			"" | "kulupu" => Some(Alternative::Kulupu),
-			_ => None,
-		}
-	}
+pub fn local_testnet_config() -> ChainSpec {
+	ChainSpec::from_genesis(
+		"Local Testnet",
+		"local",
+		ChainType::Local,
+		|| testnet_genesis(
+			U256::from(200),
+		),
+		vec![],
+		None,
+		None,
+		None,
+		None,
+	)
 }
 
-fn testnet_genesis(
-	endowed_accounts: Vec<AccountId>,
-	_enable_println: bool) -> GenesisConfig {
+fn testnet_genesis(initial_difficulty: U256) -> GenesisConfig {
 	GenesisConfig {
 		system: Some(SystemConfig {
 			code: WASM_BINARY.to_vec(),
 			changes_trie_config: Default::default(),
 		}),
-		indices: Some(IndicesConfig {
-			ids: endowed_accounts.clone(),
-		}),
 		balances: Some(BalancesConfig {
-			balances: endowed_accounts.iter().cloned().map(|k|(k, 1 << 60)).collect(),
-			vesting: vec![],
+			balances: vec![],
+		}),
+		indices: Some(IndicesConfig {
+			indices: vec![],
 		}),
 		difficulty: Some(DifficultyConfig {
-			initial_difficulty: U256::from(200),
+			initial_difficulty,
 		}),
+		collective_Instance1: Some(Default::default()),
+		collective_Instance2: Some(Default::default()),
+		democracy: Some(Default::default()),
+		treasury: Some(Default::default()),
+		elections_phragmen: Some(Default::default()),
+		eras: Some(Default::default()),
+		membership_Instance1: Some(Default::default()),
+		timestamp: Some(Default::default()),
 	}
 }
