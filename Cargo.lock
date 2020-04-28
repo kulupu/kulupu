@@ -2123,6 +2123,7 @@ dependencies = [
  "randomx",
  "sc-client-api",
  "sc-consensus-pow",
+ "sp-api",
  "sp-consensus",
  "sp-consensus-pow",
  "sp-core",
