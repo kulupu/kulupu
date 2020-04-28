@@ -134,7 +134,7 @@ impl system::Trait for Runtime {
 	/// The aggregated dispatch type that is available for extrinsics.
 	type Call = Call;
 	/// The lookup mechanism to get account ID from whatever is passed in dispatchers.
-	type Lookup = IdentityLookup<AccountId>;
+	type Lookup = Indices;
 	/// The index type for storing how many extrinsics an account has signed.
 	type Index = Index;
 	/// The index type for blocks.
@@ -498,6 +498,8 @@ construct_runtime!(
 	}
 );
 
+/// The address format for describing accounts.
+pub type Address = <Indices as StaticLookup>::Source;
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 /// Block type as expected by this runtime.
@@ -516,7 +518,7 @@ pub type SignedExtra = (
 	transaction_payment::ChargeTransactionPayment<Runtime>
 );
 /// Unchecked extrinsic type as expected by this runtime.
-pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<AccountId, Call, Signature, SignedExtra>;
+pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
 /// The payload being signed in transactions.
 pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
 /// Extrinsic type that has already been checked.
