@@ -438,6 +438,30 @@ impl pallet_treasury::Trait for Runtime {
 	type ModuleId = TreasuryModuleId;
 }
 
+parameter_types! {
+	// Minimum 100 bytes/KSM deposited (1 CENT/byte)
+	pub const BasicDeposit: Balance = 10 * KULU;       // 258 bytes on-chain
+	pub const FieldDeposit: Balance = 250 * CENTS;        // 66 bytes on-chain
+	pub const SubAccountDeposit: Balance = 2 * KULU;   // 53 bytes on-chain
+	pub const MaxSubAccounts: u32 = 100;
+	pub const MaxAdditionalFields: u32 = 100;
+	pub const MaxRegistrars: u32 = 20;
+}
+
+impl pallet_identity::Trait for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type Slashed = Treasury;
+	type BasicDeposit = BasicDeposit;
+	type FieldDeposit = FieldDeposit;
+	type SubAccountDeposit = SubAccountDeposit;
+	type MaxSubAccounts = MaxSubAccounts;
+	type MaxAdditionalFields = MaxAdditionalFields;
+	type MaxRegistrars = MaxRegistrars;
+	type RegistrarOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type ForceOrigin = frame_system::EnsureNever<AccountId>;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -464,6 +488,9 @@ construct_runtime!(
 		ElectionsPhragmen: pallet_elections_phragmen::{Module, Call, Storage, Event<T>, Config<T>},
 		TechnicalMembership: pallet_membership::<Instance1>::{Module, Call, Storage, Event<T>, Config<T>},
 		Treasury: pallet_treasury::{Module, Call, Storage, Event<T>},
+
+		// Identity.
+		Identity: pallet_identity::{Module, Call, Storage, Event<T>},
 
 		// Utility module.
 		Utility: pallet_utility::{Module, Call, Storage, Event<T>},

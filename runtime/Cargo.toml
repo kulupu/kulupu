@@ -34,6 +34,7 @@ pallet-elections-phragmen = { path = "../vendor/substrate/frame/elections-phragm
 pallet-membership = { path = "../vendor/substrate/frame/membership", default-features = false }
 pallet-treasury = { path = "../vendor/substrate/frame/treasury", default-features = false }
 pallet-scheduler = { path = "../vendor/substrate/frame/scheduler", default-features = false }
+pallet-identity = { path = "../vendor/substrate/frame/identity", default-features = false }
 pallet-rewards = { path = "../frame/rewards", default-features = false }
 pallet-eras = { path = "../frame/eras", default-features = false }
 pallet-difficulty = { path = "../frame/difficulty", default-features = false }
@@ -74,6 +75,7 @@ std = [
 	"pallet-membership/std",
 	"pallet-treasury/std",
 	"pallet-scheduler/std",
+	"pallet-identity/std",
 	"pallet-rewards/std",
 	"pallet-eras/std",
 	"pallet-difficulty/std",
