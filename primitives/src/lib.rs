@@ -57,6 +57,13 @@ pub const MAX_DIFFICULTY: u128 = u128::max_value();
 pub const KULU: u128 = 1_000_000_000_000;
 /// Value of cents relative to KULU.
 pub const CENTS: u128 = KULU / 100;
+/// Value of millicents relative to KULU.
+pub const MILLICENTS: u128 = CENTS / 1_000;
+
+/// Block number of one hour.
+pub const HOURS: u32 = 60;
+/// Block number of one day.
+pub const DAYS: u32 = 24 * HOURS;
 
 pub const ALGORITHM_IDENTIFIER: [u8; 8] = *b"randomx0";
 

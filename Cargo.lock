@@ -2064,7 +2064,6 @@ dependencies = [
  "kulupu-primitives",
  "kulupu-runtime",
  "log",
- "pallet-anyupgrade",
  "pallet-rewards",
  "pallet-timestamp",
  "parity-scale-codec",
@@ -2129,13 +2128,19 @@ dependencies = [
  "frame-system",
  "kulupu-primitives",
  "pallet-balances",
+ "pallet-collective",
+ "pallet-democracy",
  "pallet-difficulty",
+ "pallet-elections-phragmen",
  "pallet-eras",
  "pallet-indices",
+ "pallet-membership",
  "pallet-randomness-collective-flip",
  "pallet-rewards",
+ "pallet-scheduler",
  "pallet-timestamp",
  "pallet-transaction-payment",
+ "pallet-treasury",
  "pallet-utility",
  "parity-scale-codec",
  "serde",
@@ -3059,18 +3064,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-anyupgrade"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "sp-inherents",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-balances"
 version = "2.0.0-dev"
 dependencies = [
@@ -3079,6 +3072,32 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-collective"
+version = "2.0.0-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-democracy"
+version = "2.0.0-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -3094,6 +3113,19 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-elections-phragmen"
+version = "2.0.0-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-phragmen",
  "sp-runtime",
  "sp-std",
 ]
@@ -3125,6 +3157,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-membership"
+version = "2.0.0-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-randomness-collective-flip"
 version = "2.0.0-dev"
 dependencies = [
@@ -3146,6 +3191,20 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-inherents",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-scheduler"
+version = "2.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -3186,6 +3245,19 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-api",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-treasury"
+version = "2.0.0-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "serde",
  "sp-runtime",
  "sp-std",
 ]
@@ -5357,6 +5429,7 @@ name = "sp-externalities"
 version = "0.8.0-dev"
 dependencies = [
  "environmental",
+ "parity-scale-codec",
  "sp-std",
  "sp-storage",
 ]
@@ -5416,6 +5489,27 @@ version = "2.0.0-dev"
 dependencies = [
  "backtrace",
  "log",
+]
+
+[[package]]
+name = "sp-phragmen"
+version = "2.0.0-dev"
+dependencies = [
+ "parity-scale-codec",
+ "serde",
+ "sp-phragmen-compact",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "sp-phragmen-compact"
+version = "2.0.0-dev"
+dependencies = [
+ "proc-macro-crate",
+ "proc-macro2 1.0.10",
+ "quote 1.0.3",
+ "syn 1.0.18",
 ]
 
 [[package]]

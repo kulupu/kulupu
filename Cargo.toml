@@ -38,7 +38,6 @@ kulupu-pow = { path = "pow" }
 pallet-timestamp = { path = "vendor/substrate/frame/timestamp" }
 timestamp-primitives = { package = "sp-timestamp", path = "vendor/substrate/primitives/timestamp" }
 frame-system = { path = "vendor/substrate/frame/system" }
-pallet-anyupgrade = { path = "frame/anyupgrade" }
 pallet-rewards = { path = "frame/rewards" }
 structopt = "0.3"
 consensus-common = { package = "sp-consensus", path = "vendor/substrate/primitives/consensus/common" }
@@ -59,7 +58,6 @@ wasmtime = [
 members = [
 	"runtime",
 	"pow",
-	"frame/anyupgrade",
 	"frame/rewards",
 	"frame/eras",
 ]

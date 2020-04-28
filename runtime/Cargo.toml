@@ -28,6 +28,12 @@ pallet-indices = { path = "../vendor/substrate/frame/indices", default-features 
 pallet-timestamp = { path = "../vendor/substrate/frame/timestamp", default-features = false }
 pallet-transaction-payment = { path = "../vendor/substrate/frame/transaction-payment", default-features = false }
 pallet-randomness-collective-flip = { path = "../vendor/substrate/frame/randomness-collective-flip", default-features = false }
+pallet-democracy = { path = "../vendor/substrate/frame/democracy", default-features = false }
+pallet-collective = { path = "../vendor/substrate/frame/collective", default-features = false }
+pallet-elections-phragmen = { path = "../vendor/substrate/frame/elections-phragmen", default-features = false }
+pallet-membership = { path = "../vendor/substrate/frame/membership", default-features = false }
+pallet-treasury = { path = "../vendor/substrate/frame/treasury", default-features = false }
+pallet-scheduler = { path = "../vendor/substrate/frame/scheduler", default-features = false }
 pallet-rewards = { path = "../frame/rewards", default-features = false }
 pallet-eras = { path = "../frame/eras", default-features = false }
 pallet-difficulty = { path = "../frame/difficulty", default-features = false }
@@ -65,5 +71,10 @@ std = [
 	"pallet-rewards/std",
 	"pallet-eras/std",
 	"pallet-difficulty/std",
+	"pallet-collective/std",
+	"pallet-elections-phragmen/std",
+	"pallet-membership/std",
+	"pallet-treasury/std",
+	"pallet-scheduler/std",
 	"kulupu-primitives/std",
 ]
