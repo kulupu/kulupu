@@ -57,7 +57,7 @@ decl_module! {
 		#[weight = (1000, DispatchClass::Operational)]
 		fn set_author(origin, author: T::AccountId) {
 			ensure_none(origin)?;
-			ensure!(<Self as Store>::Author::get().is_some(), Error::<T>::AuthorAlreadySet);
+			ensure!(<Self as Store>::Author::get().is_none(), Error::<T>::AuthorAlreadySet);
 
 			<Self as Store>::Author::put(author);
 		}
