@@ -23,7 +23,7 @@ use crate::service;
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> &'static str {
-		"Kulupu Node"
+		"Kulupu"
 	}
 
 	fn impl_version() -> &'static str {
