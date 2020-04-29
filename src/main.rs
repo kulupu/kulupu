@@ -23,6 +23,7 @@ mod chain_spec;
 mod service;
 mod cli;
 mod command;
+mod eras;
 
 fn main() -> sc_cli::Result<()> {
 	command::run()

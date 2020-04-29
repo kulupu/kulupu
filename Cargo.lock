@@ -2058,13 +2058,14 @@ dependencies = [
 
 [[package]]
 name = "kulupu"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "futures 0.3.4",
  "kulupu-pow",
  "kulupu-primitives",
  "kulupu-runtime",
  "log",
+ "pallet-eras",
  "pallet-rewards",
  "parity-scale-codec",
  "sc-basic-authorship",
@@ -2077,6 +2078,8 @@ dependencies = [
  "sc-network",
  "sc-service",
  "sc-transaction-pool",
+ "serde",
+ "serde_json",
  "sp-consensus",
  "sp-core",
  "sp-finality-grandpa",
@@ -2090,7 +2093,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-pow"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "kulupu-primitives",
  "kulupu-runtime",
@@ -2112,7 +2115,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-primitives"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "parity-scale-codec",
  "sp-api",
@@ -2121,7 +2124,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-runtime"
-version = "4.0.0"
+version = "1.0.0"
 dependencies = [
  "frame-executive",
  "frame-support",
@@ -3098,7 +3101,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-difficulty"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "frame-support",
  "kulupu-primitives",
@@ -3125,7 +3128,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-eras"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -3191,7 +3194,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-rewards"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
