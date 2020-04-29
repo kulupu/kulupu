@@ -53,11 +53,11 @@ pub const MIN_DIFFICULTY: u128 = DIFFICULTY_DAMP_FACTOR;
 /// Maximum difficulty.
 pub const MAX_DIFFICULTY: u128 = u128::max_value();
 
-/// Value of 1 KULU.
-pub const KULU: u128 = 1_000_000_000_000;
-/// Value of cents relative to KULU.
-pub const CENTS: u128 = KULU / 100;
-/// Value of millicents relative to KULU.
+/// Value of 1 KLP.
+pub const KLP: u128 = 1_000_000_000_000;
+/// Value of cents relative to KLP.
+pub const CENTS: u128 = KLP / 100;
+/// Value of millicents relative to KLP.
 pub const MILLICENTS: u128 = CENTS / 1_000;
 
 /// Block number of one hour.

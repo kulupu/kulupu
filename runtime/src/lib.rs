@@ -38,7 +38,7 @@ use sp_api::impl_runtime_apis;
 use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
-use kulupu_primitives::{KULU, CENTS, MILLICENTS, HOURS, DAYS};
+use kulupu_primitives::{KLP, CENTS, MILLICENTS, HOURS, DAYS};
 
 // A few exports that help ease life for downstream crates.
 pub use sp_runtime::{Permill, Perbill};
@@ -205,7 +205,7 @@ impl utility::Trait for Runtime {
 }
 
 parameter_types! {
-	pub const IndexDeposit: Balance = 1 * KULU;
+	pub const IndexDeposit: Balance = 1 * KLP;
 }
 
 impl indices::Trait for Runtime {
@@ -261,7 +261,7 @@ impl difficulty::Trait for Runtime { }
 impl eras::Trait for Runtime { }
 
 parameter_types! {
-	pub const Reward: Balance = 60 * KULU;
+	pub const Reward: Balance = 60 * KLP;
 }
 
 impl rewards::Trait for Runtime {
@@ -272,7 +272,7 @@ parameter_types! {
 	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
 	pub const FastTrackVotingPeriod: BlockNumber = 1 * DAYS;
-	pub const MinimumDeposit: Balance = 100 * KULU;
+	pub const MinimumDeposit: Balance = 100 * KLP;
 	pub const EnactmentPeriod: BlockNumber = 8 * DAYS;
 	pub const CooloffPeriod: BlockNumber = 7 * DAYS;
 	// One cent: $10,000 / MB
@@ -359,7 +359,7 @@ where
 }
 
 parameter_types! {
-	pub const CandidacyBond: Balance = 1 * KULU;
+	pub const CandidacyBond: Balance = 1 * KLP;
 	pub const VotingBond: Balance = 5 * CENTS;
 	/// Daily council elections.
 	pub const TermDuration: BlockNumber = 24 * HOURS;
@@ -410,14 +410,14 @@ impl membership::Trait<membership::Instance1> for Runtime {
 
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
-	pub const ProposalBondMinimum: Balance = 20 * KULU;
+	pub const ProposalBondMinimum: Balance = 20 * KLP;
 	pub const SpendPeriod: BlockNumber = 6 * DAYS;
 	pub const Burn: Permill = Permill::from_percent(0);
 	pub const TreasuryModuleId: ModuleId = ModuleId(*b"py/trsry");
 
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
-	pub const TipReportDepositBase: Balance = 1 * KULU;
+	pub const TipReportDepositBase: Balance = 1 * KLP;
 	pub const TipReportDepositPerByte: Balance = 10 * MILLICENTS;
 }
 
@@ -441,9 +441,9 @@ impl treasury::Trait for Runtime {
 
 parameter_types! {
 	// Minimum 100 bytes/KSM deposited (1 CENT/byte)
-	pub const BasicDeposit: Balance = 10 * KULU;       // 258 bytes on-chain
+	pub const BasicDeposit: Balance = 10 * KLP;       // 258 bytes on-chain
 	pub const FieldDeposit: Balance = 250 * CENTS;        // 66 bytes on-chain
-	pub const SubAccountDeposit: Balance = 2 * KULU;   // 53 bytes on-chain
+	pub const SubAccountDeposit: Balance = 2 * KLP;   // 53 bytes on-chain
 	pub const MaxSubAccounts: u32 = 100;
 	pub const MaxAdditionalFields: u32 = 100;
 	pub const MaxRegistrars: u32 = 20;
