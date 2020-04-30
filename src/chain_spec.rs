@@ -109,6 +109,7 @@ fn mainnet_genesis() -> GenesisConfig {
 
 	GenesisConfig {
 		system: Some(SystemConfig {
+			// FIXME(era1-transition): Update this upon hard fork.
 			code: include_bytes!("../res/eras/1/genesis/kulupu_runtime.compact.wasm").to_vec(),
 			changes_trie_config: Default::default(),
 		}),
