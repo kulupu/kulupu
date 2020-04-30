@@ -38,7 +38,7 @@ use sp_api::impl_runtime_apis;
 use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
-use kulupu_primitives::{KLP, CENTS, MILLICENTS, HOURS, DAYS};
+use kulupu_primitives::{KLP, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS};
 
 // A few exports that help ease life for downstream crates.
 pub use sp_runtime::{Permill, Perbill};
@@ -231,7 +231,7 @@ impl timestamp::Trait for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u128 = 1 * MILLICENTS;
+	pub const ExistentialDeposit: u128 = 10 * MICROCENTS;
 }
 
 impl balances::Trait for Runtime {

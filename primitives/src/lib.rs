@@ -59,6 +59,8 @@ pub const KLP: u128 = 1_000_000_000_000;
 pub const CENTS: u128 = KLP / 100;
 /// Value of millicents relative to KLP.
 pub const MILLICENTS: u128 = CENTS / 1_000;
+/// Value of microcents relative to RLP.
+pub const MICROCENTS: u128 = MILLICENTS / 1_000;
 
 /// Block number of one hour.
 pub const HOURS: u32 = 60;
