@@ -3,35 +3,30 @@
 [![Build Status](https://dev.azure.com/kulupu/kulupu/_apis/build/status/kulupu.kulupu?branchName=master)](https://dev.azure.com/kulupu/kulupu/_build/latest?definitionId=1&branchName=master)
 [![Discord](https://img.shields.io/discord/586902457053872148.svg)](https://discord.gg/DZbg4rZ)
 
-Proof-of-work blockchain built on
-[Substrate](https://github.com/paritytech/substrate).
+Kulupu is a pure (no pre-mine, no gadget) proof-of-work blockchain built on the
+[Substrate](https://github.com/paritytech/substrate) framework, with support of
+on-chain governance and online upgrades. It uses ASIC-resistant mining algorithm
+of RandomX.
 
-## Overview
+## Status
 
-Kulupu is a sister project related to [Solri](https://solri.org). Kulupu's goal
-is to create a working proof-of-work blockchain built using unmodified Substrate
-blockchain framework. Compared with Solri, Kulupu aims to take a more practical
-approach of an on-chain governed self-updating blockchain, while Solri maintains
-the ideal minimalist blockchain design.
+The network was launched in September 2019. The first hard fork, code-named
+**Slag Ravine** happened in December 2019, at block 100,000. The second hard
+fork, code-named **Swamp Bottom** is planned at block 320,000 on 6th May 2019.
 
-The consensus engine for Kulupu is the CPU mining algorithm RandomX. For initial
-launch, the emission rate is fixed at one coin per second. This, however can be
-changed using hard fork or on-chain governance in the future.
+The current code is for the **Swamp Bottom** hard fork. This is a sqaush hard
+fork, meaning we export current block state and re-generate a new genesis block.
+As a result, the release ready for the coming hard fork can only be published
+when we reach the hard fork block. Right now if you plan to run mainnet, please
+use one of the v0.2 releases.
 
-## Network Launch
+The current Kulupu blockchain enabled Substrate's balances and governance pallet
+modules. Smart contract is a planned but not yet enabled feature, due to
+stability concerns.
 
-The network has launched, with the first hard fork, code-named **Slag Ravine**,
-happeneing at block 100,000. Please ensure you have updated your nodes to
-v0.2.0.
+## Run
 
-Substrate contains a variety of features including smart contracts and
-democracy. However, for current version of Kulupu, we only enabled basic balance
-and transfer module. This is to keep the network focused, and reduce risks in
-terms of stability and safety. Also note that initially the democracy module is
-also disabled, meaning we'll be updating runtime via hard fork until that part
-is enabled.
-
-## Prerequisites
+### Prerequisites
 
 Clone this repo and update the submodules:
 
@@ -52,8 +47,6 @@ Install required tools:
 ```bash
 ./scripts/init.sh
 ```
-
-## Run
 
 ### Full Node
 
