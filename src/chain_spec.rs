@@ -38,8 +38,12 @@ pub fn development_config() -> ChainSpec {
 		),
 		vec![],
 		None,
-		None,
-		None,
+		Some("kdv"),
+		Some(json!({
+			"ss58Format": 16,
+			"tokenDecimals": 12,
+			"tokenSymbol": "KLPD"
+		}).as_object().expect("Created an object").clone()),
 		None,
 	)
 }
@@ -54,8 +58,12 @@ pub fn local_testnet_config() -> ChainSpec {
 		),
 		vec![],
 		None,
-		None,
-		None,
+		Some("kdv"),
+		Some(json!({
+			"ss58Format": 16,
+			"tokenDecimals": 12,
+			"tokenSymbol": "KLPD"
+		}).as_object().expect("Created an object").clone()),
 		None,
 	)
 }
