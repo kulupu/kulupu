@@ -46,7 +46,7 @@ decl_error! {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Rewards {
-		Author: Option<T::AccountId>;
+		Author get(fn author): Option<T::AccountId>;
 	}
 }
 

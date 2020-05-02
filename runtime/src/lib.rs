@@ -20,6 +20,8 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit="256"]
 
+mod fee;
+
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -28,17 +30,18 @@ use sp_std::prelude::*;
 use sp_core::{OpaqueMetadata, u32_trait::{_1, _2, _3, _4, _5}};
 use sp_runtime::{
 	ApplyExtrinsicResult, Percent, ModuleId, generic, create_runtime_str, MultiSignature,
-	transaction_validity::{TransactionValidity, TransactionSource},
+	Perquintill, transaction_validity::{TransactionValidity, TransactionSource},
 };
 use sp_runtime::traits::{
 	BlakeTwo256, Block as BlockT, StaticLookup,
-	Verify, ConvertInto, IdentifyAccount, Convert
+	Verify, IdentifyAccount, Convert
 };
 use sp_api::impl_runtime_apis;
 use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use kulupu_primitives::{KLP, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS};
+use crate::fee::{WeightToFee, TargetedFeeAdjustment};
 
 // A few exports that help ease life for downstream crates.
 pub use sp_runtime::{Permill, Perbill};
@@ -46,7 +49,7 @@ pub use sp_runtime::{Permill, Perbill};
 pub use sp_runtime::BuildStorage;
 pub use frame_support::{
 	StorageValue, construct_runtime, parameter_types,
-	traits::{Randomness, LockIdentifier},
+	traits::{Currency, Randomness, LockIdentifier, OnUnbalanced},
 	weights::{Weight, RuntimeDbWeight},
 };
 pub use timestamp::Call as TimestampCall;
@@ -244,16 +247,20 @@ impl balances::Trait for Runtime {
 	type AccountStore = System;
 }
 
+type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
+
 parameter_types! {
 	pub const TransactionByteFee: Balance = 10 * MILLICENTS;
+	// for a sane configuration, this should always be less than `AvailableBlockRatio`.
+	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
 }
 
 impl transaction_payment::Trait for Runtime {
 	type Currency = balances::Module<Runtime>;
-	type OnTransactionPayment = ();
+	type OnTransactionPayment = Author;
 	type TransactionByteFee = TransactionByteFee;
-	type WeightToFee = ConvertInto;
-	type FeeMultiplierUpdate = ();
+	type WeightToFee = WeightToFee;
+	type FeeMultiplierUpdate = TargetedFeeAdjustment<TargetBlockFullness, Self>;
 }
 
 impl difficulty::Trait for Runtime { }
@@ -266,6 +273,17 @@ parameter_types! {
 
 impl rewards::Trait for Runtime {
 	type Reward = Reward;
+}
+
+pub struct Author;
+impl OnUnbalanced<NegativeImbalance> for Author {
+	fn on_nonzero_unbalanced(amount: NegativeImbalance) {
+		if let Some(author) = Rewards::author() {
+			Balances::resolve_creating(&author, amount);
+		} else {
+			drop(amount);
+		}
+	}
 }
 
 parameter_types! {
