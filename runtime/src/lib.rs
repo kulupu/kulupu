@@ -120,7 +120,8 @@ pub fn native_version() -> NativeVersion {
 parameter_types! {
 	pub const BlockHashCount: BlockNumber = 250;
 	pub const MaximumBlockWeight: Weight = 2_000_000_000_000;
-	pub const ExtrinsicBaseWeight: Weight = 10_000_000;
+	pub const ExtrinsicBaseWeight: Weight = 100_000_000;
+	pub const BlockExecutionWeight: Weight = 1_000_000_000;
 	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
 	pub const MaximumBlockLength: u32 = 5 * 1024 * 1024;
 	pub const Version: RuntimeVersion = VERSION;
@@ -161,7 +162,7 @@ impl system::Trait for Runtime {
 	type DbWeight = DbWeight;
 	/// The weight of the overhead invoked on the block import process, independent of the
 	/// extrinsics included in that block.
-	type BlockExecutionWeight = ();
+	type BlockExecutionWeight = BlockExecutionWeight;
 	/// The base weight of any extrinsic processed by the runtime, independent of the
 	/// logic of that extrinsic. (Signature verification, nonce increment, fee, etc...)
 	type ExtrinsicBaseWeight = ExtrinsicBaseWeight;
