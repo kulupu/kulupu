@@ -229,7 +229,7 @@ parameter_types! {
 impl timestamp::Trait for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
-	type OnTimestampSet = ();
+	type OnTimestampSet = Difficulty;
 	type MinimumPeriod = MinimumPeriod;
 }
 
