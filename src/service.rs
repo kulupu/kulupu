@@ -85,7 +85,7 @@ macro_rules! new_full_start {
 				let pool_api = sc_transaction_pool::FullChainApi::new(client.clone());
 				Ok(sc_transaction_pool::BasicPool::new(config, std::sync::Arc::new(pool_api), prometheus_registry))
 			})?
-			.with_import_queue(|_config, client, select_chain, _transaction_pool| {
+			.with_import_queue(|_config, client, select_chain, _transaction_pool, spawn_task_handle| {
 				let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
 
 				let pow_block_import = sc_consensus_pow::PowBlockImport::new(
@@ -97,12 +97,15 @@ macro_rules! new_full_start {
 					inherent_data_providers.clone(),
 				);
 
+				let spawner = |future| spawn_task_handle.spawn_blocking("import-queue-worker", future);
+
 				let import_queue = sc_consensus_pow::import_queue(
 					Box::new(pow_block_import.clone()),
 					None,
 					None,
 					algorithm.clone(),
 					inherent_data_providers.clone(),
+					spawner,
 				)?;
 
 				import_setup = Some((pow_block_import, algorithm));
@@ -180,7 +183,7 @@ pub fn new_light(
 			);
 			Ok(pool)
 		})?
-		.with_import_queue_and_fprb(|_config, client, _backend, _fetcher, select_chain, _transaction_pool| {
+		.with_import_queue_and_fprb(|_config, client, _backend, _fetcher, select_chain, _transaction_pool, spawn_task_handle| {
 			let fprb = Box::new(DummyFinalityProofRequestBuilder::default()) as Box<_>;
 
 			let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
@@ -194,12 +197,15 @@ pub fn new_light(
 				inherent_data_providers.clone(),
 			);
 
+			let spawner = |future| spawn_task_handle.spawn_blocking("import-queue-worker", future);
+
 			let import_queue = sc_consensus_pow::import_queue(
 				Box::new(pow_block_import.clone()),
 				None,
 				None,
 				algorithm.clone(),
 				inherent_data_providers.clone(),
+				spawner,
 			)?;
 
 			Ok((import_queue, fprb))
