@@ -38,7 +38,7 @@ pub fn development_config() -> ChainSpec {
 		),
 		vec![],
 		None,
-		Some("kdv"),
+		Some("kulupudev"),
 		Some(json!({
 			"ss58Format": 16,
 			"tokenDecimals": 12,
@@ -58,7 +58,7 @@ pub fn local_testnet_config() -> ChainSpec {
 		),
 		vec![],
 		None,
-		Some("kdv"),
+		Some("kulupulocal"),
 		Some(json!({
 			"ss58Format": 16,
 			"tokenDecimals": 12,
@@ -76,7 +76,7 @@ pub fn mainnet_config() -> ChainSpec {
 		|| mainnet_genesis(),
 		vec![], // FIXME(era1-transition): Replace this with new bootnodes.
 		None,
-		Some("klp"),
+		Some("kulupu"),
 		Some(json!({
 			"ss58Format": 16,
 			"tokenDecimals": 12,
