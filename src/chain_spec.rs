@@ -76,7 +76,7 @@ pub fn mainnet_config() -> ChainSpec {
 		|| mainnet_genesis(),
 		vec![], // FIXME(era1-transition): Replace this with new bootnodes.
 		None,
-		Some("kul"),
+		Some("klp"),
 		Some(json!({
 			"ss58Format": 16,
 			"tokenDecimals": 12,
