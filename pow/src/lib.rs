@@ -259,7 +259,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use kulupu_primitives::{H256, U256};
+	use sp_core::{H256, U256};
 
 	#[test]
 	fn randomx_len() {
