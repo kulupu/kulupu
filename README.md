@@ -54,6 +54,15 @@ Install required tools:
 cargo run --release
 ```
 
+### Transition from Era 0
+
+If you previously run Era 0 full node, please purge the current block storage
+before continue.
+
+```bash
+cargo run --release -- purge-chain
+```
+
 ### Mining
 
 Install `subkey`:
