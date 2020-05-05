@@ -40,7 +40,7 @@ use sp_api::impl_runtime_apis;
 use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
-use kulupu_primitives::{KLP, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS};
+use kulupu_primitives::{DOLLARS, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS};
 use crate::fee::{WeightToFee, TargetedFeeAdjustment};
 
 // A few exports that help ease life for downstream crates.
@@ -50,7 +50,12 @@ pub use sp_runtime::BuildStorage;
 pub use frame_support::{
 	StorageValue, construct_runtime, parameter_types,
 	traits::{Currency, Randomness, LockIdentifier, OnUnbalanced},
-	weights::{Weight, RuntimeDbWeight},
+	weights::{
+		Weight, RuntimeDbWeight,
+		constants::{
+			WEIGHT_PER_SECOND, BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight
+		},
+	},
 };
 pub use timestamp::Call as TimestampCall;
 pub use balances::Call as BalancesCall;
@@ -119,18 +124,11 @@ pub fn native_version() -> NativeVersion {
 
 parameter_types! {
 	pub const BlockHashCount: BlockNumber = 250;
-	pub const MaximumBlockWeight: Weight = 2_000_000_000_000;
-	pub const ExtrinsicBaseWeight: Weight = 100_000_000;
-	pub const BlockExecutionWeight: Weight = 1_000_000_000;
+	pub const MaximumBlockWeight: Weight = 2 * WEIGHT_PER_SECOND;
 	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
 	pub const MaximumBlockLength: u32 = 5 * 1024 * 1024;
 	pub const Version: RuntimeVersion = VERSION;
-	/// This probably should not be changed unless you have specific
-	/// disk i/o conditions for the node.
-	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight {
-		read: 60_000_000, // ~0.06 ms = ~60 µs
-		write: 200_000_000, // ~0.2 ms = 200 µs
-	};
+	pub const DbWeight: RuntimeDbWeight = frame_support::weights::constants::RocksDbWeight::get();
 }
 
 impl system::Trait for Runtime {
@@ -209,7 +207,7 @@ impl utility::Trait for Runtime {
 }
 
 parameter_types! {
-	pub const IndexDeposit: Balance = 1 * KLP;
+	pub const IndexDeposit: Balance = 1 * DOLLARS;
 }
 
 impl indices::Trait for Runtime {
@@ -269,7 +267,7 @@ impl difficulty::Trait for Runtime { }
 impl eras::Trait for Runtime { }
 
 parameter_types! {
-	pub const Reward: Balance = 60 * KLP;
+	pub const Reward: Balance = 60 * DOLLARS;
 }
 
 impl rewards::Trait for Runtime {
@@ -291,7 +289,7 @@ parameter_types! {
 	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
 	pub const FastTrackVotingPeriod: BlockNumber = 1 * DAYS;
-	pub const MinimumDeposit: Balance = 100 * KLP;
+	pub const MinimumDeposit: Balance = 100 * DOLLARS;
 	pub const EnactmentPeriod: BlockNumber = 8 * DAYS;
 	pub const CooloffPeriod: BlockNumber = 7 * DAYS;
 	// One cent: $10,000 / MB
@@ -378,7 +376,7 @@ where
 }
 
 parameter_types! {
-	pub const CandidacyBond: Balance = 1 * KLP;
+	pub const CandidacyBond: Balance = 1 * DOLLARS;
 	pub const VotingBond: Balance = 5 * CENTS;
 	/// Daily council elections.
 	pub const TermDuration: BlockNumber = 24 * HOURS;
@@ -429,14 +427,14 @@ impl membership::Trait<membership::Instance1> for Runtime {
 
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
-	pub const ProposalBondMinimum: Balance = 20 * KLP;
+	pub const ProposalBondMinimum: Balance = 20 * DOLLARS;
 	pub const SpendPeriod: BlockNumber = 6 * DAYS;
 	pub const Burn: Permill = Permill::from_percent(0);
 	pub const TreasuryModuleId: ModuleId = ModuleId(*b"py/trsry");
 
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
-	pub const TipReportDepositBase: Balance = 1 * KLP;
+	pub const TipReportDepositBase: Balance = 1 * DOLLARS;
 	pub const TipReportDepositPerByte: Balance = 10 * MILLICENTS;
 }
 
@@ -460,9 +458,9 @@ impl treasury::Trait for Runtime {
 
 parameter_types! {
 	// Minimum 100 bytes/KSM deposited (1 CENT/byte)
-	pub const BasicDeposit: Balance = 10 * KLP;       // 258 bytes on-chain
+	pub const BasicDeposit: Balance = 10 * DOLLARS;       // 258 bytes on-chain
 	pub const FieldDeposit: Balance = 250 * CENTS;        // 66 bytes on-chain
-	pub const SubAccountDeposit: Balance = 2 * KLP;   // 53 bytes on-chain
+	pub const SubAccountDeposit: Balance = 2 * DOLLARS;   // 53 bytes on-chain
 	pub const MaxSubAccounts: u32 = 100;
 	pub const MaxAdditionalFields: u32 = 100;
 	pub const MaxRegistrars: u32 = 20;

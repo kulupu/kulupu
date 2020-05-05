@@ -54,9 +54,9 @@ pub const MIN_DIFFICULTY: u128 = DIFFICULTY_DAMP_FACTOR;
 pub const MAX_DIFFICULTY: u128 = u128::max_value();
 
 /// Value of 1 KLP.
-pub const KLP: u128 = 1_000_000_000_000;
+pub const DOLLARS: u128 = 1_000_000_000_000;
 /// Value of cents relative to KLP.
-pub const CENTS: u128 = KLP / 100;
+pub const CENTS: u128 = DOLLARS / 100;
 /// Value of millicents relative to KLP.
 pub const MILLICENTS: u128 = CENTS / 1_000;
 /// Value of microcents relative to RLP.

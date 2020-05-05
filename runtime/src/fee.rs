@@ -2,13 +2,13 @@ use sp_std::num::NonZeroI128;
 use sp_runtime::{Perquintill, Fixed128, traits::{Convert, Saturating}};
 use frame_support::{traits::Get, weights::Weight};
 use kulupu_primitives::CENTS;
-use crate::{Balance, MaximumBlockWeight};
+use crate::{Balance, MaximumBlockWeight, ExtrinsicBaseWeight};
 
 pub struct WeightToFee;
 impl Convert<Weight, Balance> for WeightToFee {
 	fn convert(x: Weight) -> Balance {
 		// Weight of 10_000_000 (smallest non-zero weight) is mapped to 1/10 CENT:
-		Balance::from(x).saturating_mul(CENTS / (10 * 10_000_000))
+		Balance::from(x).saturating_mul(CENTS / 10) / Balance::from(ExtrinsicBaseWeight::get())
 	}
 }
 
@@ -64,5 +64,26 @@ impl<T: Get<Perquintill>, R: system::Trait> Convert<Fixed128, Fixed128> for Targ
 				// became more busy.
 				.max(Fixed128::from_natural(-1))
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use sp_runtime::traits::Convert;
+	use super::{WeightToFee, MaximumBlockWeight, ExtrinsicBaseWeight};
+	use kulupu_primitives::{CENTS, DOLLARS};
+
+	#[test]
+	// This function tests that the fee for `MaximumBlockWeight` of weight is correct
+	fn full_block_fee_is_correct() {
+		// A full block should cost 16 DOLLARS
+		assert_eq!(WeightToFee::convert(MaximumBlockWeight::get()), 16 * DOLLARS)
+	}
+
+	#[test]
+	// This function tests that the fee for `ExtrinsicBaseWeight` of weight is correct
+	fn extrinsic_base_fee_is_correct() {
+		// `ExtrinsicBaseWeight` should cost 1/10 of a CENT
+		assert_eq!(WeightToFee::convert(ExtrinsicBaseWeight::get()), CENTS / 10)
 	}
 }

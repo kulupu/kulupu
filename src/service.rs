@@ -97,15 +97,13 @@ macro_rules! new_full_start {
 					inherent_data_providers.clone(),
 				);
 
-				let spawner = |future| spawn_task_handle.spawn_blocking("import-queue-worker", future);
-
 				let import_queue = sc_consensus_pow::import_queue(
 					Box::new(pow_block_import.clone()),
 					None,
 					None,
 					algorithm.clone(),
 					inherent_data_providers.clone(),
-					spawner,
+					spawn_task_handle,
 				)?;
 
 				import_setup = Some((pow_block_import, algorithm));
@@ -197,15 +195,13 @@ pub fn new_light(
 				inherent_data_providers.clone(),
 			);
 
-			let spawner = |future| spawn_task_handle.spawn_blocking("import-queue-worker", future);
-
 			let import_queue = sc_consensus_pow::import_queue(
 				Box::new(pow_block_import.clone()),
 				None,
 				None,
 				algorithm.clone(),
 				inherent_data_providers.clone(),
-				spawner,
+				spawn_task_handle,
 			)?;
 
 			Ok((import_queue, fprb))
