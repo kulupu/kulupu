@@ -2209,7 +2209,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-randomx"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "criterion",
  "kulupu-randomx-sys",
@@ -2217,7 +2217,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-randomx-sys"
-version = "0.1.1"
+version = "1.0.0"
 dependencies = [
  "bindgen 0.49.4",
  "cmake",
