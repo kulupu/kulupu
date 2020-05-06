@@ -74,7 +74,7 @@ cargo install --force --git https://github.com/paritytech/substrate subkey
 Generate an account to use as the target for mining:
 
 ```bash
-subkey --sr25519 --network=16 generate
+subkey --sr25519 --network=kulupu generate
 ```
 
 Remember the public key, and pass it to node for mining. For example:
