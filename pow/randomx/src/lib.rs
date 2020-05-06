@@ -158,14 +158,15 @@ mod tests {
 	fn should_create_vm() {
 		let mut vm = VM::new(&b"RandomX example key"[..]);
 		let hash = vm.calculate(&b"RandomX example input"[..]);
-		assert_eq!(hash, [210, 164, 216, 149, 3, 68, 116, 1, 239, 110, 111, 48, 180, 102, 53, 180, 91, 84, 242, 90, 101, 12, 71, 70, 75, 83, 17, 249, 214, 253, 71, 89]);
+		assert_eq!(hash, [69, 167, 169, 170, 66, 104, 77, 15, 73, 13, 233, 6, 227, 92, 143, 244, 95, 153, 4, 251, 223, 169, 78, 126, 236, 216, 174, 147, 1, 213, 223, 59]);
 	}
 
 	#[test]
 	fn should_work_with_full_vm() {
 		let mut vm = VM::new(&b"RandomX example key"[..]);
 		let hash = vm.calculate(&b"RandomX example input"[..]);
-		let mut full_vm = FullVM::new(&b"RandomX example key"[..]);
+		let cache = Arc::new(FullCache::new(&b"RandomX example key"[..]));
+		let mut full_vm = FullVM::new(cache);
 		let full_hash = full_vm.calculate(&b"RandomX example input"[..]);
 		assert_eq!(hash, full_hash);
 	}
