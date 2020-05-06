@@ -35,14 +35,13 @@ use log::*;
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
 pub struct Seal {
 	pub difficulty: Difficulty,
-	pub work: H256,
 	pub nonce: H256,
 }
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
 pub struct Calculation {
-	pub difficulty: Difficulty,
 	pub pre_hash: H256,
+	pub difficulty: Difficulty,
 	pub nonce: H256,
 }
 
@@ -61,7 +60,7 @@ lazy_static! {
 thread_local!(static MACHINES: RefCell<Option<(H256, randomx::FullVM)>> = RefCell::new(None));
 
 impl Compute {
-	pub fn compute(self) -> Seal {
+	pub fn compute(self) -> (Seal, H256) {
 		MACHINES.with(|m| {
 			let mut ms = m.borrow_mut();
 			let calculation = Calculation {
@@ -96,11 +95,10 @@ impl Compute {
 				})
 				.expect("Local MACHINES always set to Some above; qed");
 
-			Seal {
+			(Seal {
 				nonce: self.nonce,
 				difficulty: self.difficulty,
-				work: H256::from(work),
-			}
+			}, H256::from(work))
 		})
 	}
 }
@@ -204,10 +202,6 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 			Err(_) => return Ok(false),
 		};
 
-		if !is_valid_hash(&seal.work, difficulty) {
-			return Ok(false)
-		}
-
 		let compute = Compute {
 			key_hash,
 			difficulty,
@@ -215,7 +209,13 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 			nonce: seal.nonce,
 		};
 
-		if compute.compute() != seal {
+		let (computed_seal, computed_work) = compute.compute();
+
+		if computed_seal != seal {
+			return Ok(false)
+		}
+
+		if !is_valid_hash(&computed_work, difficulty) {
 			return Ok(false)
 		}
 
@@ -245,9 +245,9 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				nonce,
 			};
 
-			let seal = compute.compute();
+			let (seal, work) = compute.compute();
 
-			if is_valid_hash(&seal.work, difficulty) {
+			if is_valid_hash(&work, difficulty) {
 				return Ok(Some(seal.encode()))
 			}
 		}
