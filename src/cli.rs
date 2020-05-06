@@ -40,6 +40,8 @@ pub struct Cli {
 	pub threads: Option<usize>,
 	#[structopt(long)]
 	pub round: Option<u32>,
+	#[structopt(long)]
+	pub enable_polkadot_telemetry: bool,
 }
 
 #[derive(Debug, StructOpt, Clone)]

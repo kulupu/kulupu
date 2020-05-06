@@ -21,6 +21,9 @@ use crate::chain_spec;
 use crate::cli::{Cli, Subcommand};
 use crate::service;
 
+/// URL for the telemetry server. Disabled by default.
+pub const POLKADOT_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
+
 impl SubstrateCli for Cli {
 	fn impl_name() -> &'static str {
 		"Kulupu"
@@ -64,7 +67,10 @@ impl SubstrateCli for Cli {
 
 /// Parse and run command line arguments
 pub fn run() -> sc_cli::Result<()> {
-	let cli = Cli::from_args();
+	let mut cli = Cli::from_args();
+	if cli.enable_polkadot_telemetry {
+		cli.run.telemetry_endpoints.push((POLKADOT_TELEMETRY_URL.to_string(), 0));
+	}
 
 	match &cli.subcommand {
 		Some(Subcommand::Base(subcommand)) => {
