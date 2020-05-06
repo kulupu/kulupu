@@ -1,14 +1,14 @@
 {
     "previousEra": {
         "genesisBlockHash": "0x37e1f8125397a98630013a4dff89b54cb758ff8eed894419e65a6dcf27a6fb8a",
-        "finalBlockHash": "0x8daea7c6c223d7e6fbbdca82f2e3a1707ea4df052513cfb69f1b1308a51310e7",
-        "finalStateRoot": "0x818add7a91ebb654bee3dfe6e250ca86821d8196d0b2a365a3f083d5a18c9040"
+        "finalBlockHash": "0x6c1726594e70998a6b4395cb8b66a31dca16f680b69cbdfa2607f60d388c9c5d",
+        "finalStateRoot": "0x3bdb78dabcb534239c6ece3ec47175b32559a10a5c10c780ba16906de9ce6022"
     },
-    "difficulty": "0x000000000000000000000000000000000000000000000000000000000020c3cc",
+    "difficulty": "0x00000000000000000000000000000000000000000000000000000000001562da",
     "balances": [
         {
             "address": "0x7e946b7dd192307b4538d664ead95474062ac3738e04b5f3084998b76bc5122d",
-            "balance": "0x00000000000000000c0ec84a65e92978"
+            "balance": "0x00000000000000000c7e443bfef66978"
         },
         {
             "address": "0x641bf0062d08c0e716c6565d20dabe5b3b65ec6bff686fb9bbafc7f12ab7215b",
@@ -16,7 +16,7 @@
         },
         {
             "address": "0x8a5342e6e3e85ad671aa4c1336b4dc70dcb12ad214d898a627cc4042851aee5f",
-            "balance": "0x0000000000000000083185ac03640000"
+            "balance": "0x00000000000000000909ab545f868000"
         },
         {
             "address": "0xecfe04c56deca171b643e4e0df75ccae55dc04f6be09e7bba654641ddec4d002",
@@ -36,7 +36,7 @@
         },
         {
             "address": "0x8a10a3c2653067e6083bf52f38d50a1fb1819686cc3425c212537a1079cbb346",
-            "balance": "0x00000000000000000f4d4b0c4e3dc000"
+            "balance": "0x00000000000000000fc76f79d59e8000"
         },
         {
             "address": "0x46232ddf2f29627dce434328a2fc1be1bc4ff5b01b2051a0546c86eaa0d86c68",
@@ -48,7 +48,7 @@
         },
         {
             "address": "0x96b2d9e60ac0c663981c6080cf92b08fefd99c88dc9b67587acd8b2882823038",
-            "balance": "0x00000000000000000c7e14f0cde94000"
+            "balance": "0x00000000000000000cdd5d96aac98000"
         },
         {
             "address": "0x4c16f6732096f8c5aa7680cb90cab6f6e073ab32fef8c5929dd420f13134635b",
@@ -128,7 +128,7 @@
         },
         {
             "address": "0x1423bf9c98f0c081e37d45bb49b9a4323ea273e4b3dfd272d70c3beb3e8b6643",
-            "balance": "0x00000000000000000919dea01bb38000"
+            "balance": "0x000000000000000009755104e0384000"
         },
         {
             "address": "0x5cc0f491d5af85d7cd6363d191c422b7fffaa27808372359d0061f1fe7cf5d3d",
@@ -144,7 +144,7 @@
         },
         {
             "address": "0xa81af9ffaba4d39d867c8a8b0d5e64882531b3299db370bceb7e9bf3a4fb8e44",
-            "balance": "0x0000000000000000028685d88839c000"
+            "balance": "0x000000000000000002adbeaad68bc000"
         },
         {
             "address": "0x9cc23bf0ab8c17a9c689785c22aca8d6b23c36e3694610902898293700735408",
@@ -164,7 +164,7 @@
         },
         {
             "address": "0x66fd79b737ff0b1a81b2edb7a81be8fa348ca9face43da08203f4c500489390c",
-            "balance": "0x000000000000000005a6bc6eb56f4000"
+            "balance": "0x000000000000000005d127cc980d8000"
         },
         {
             "address": "0xd8be79d20743dfaead66d7363e95c469b80fdcfecd136de418337044fcc0b643",
@@ -172,7 +172,7 @@
         },
         {
             "address": "0x20fa14f30b06ab69747c2527d7c6d43bee7f49236ffc5d905bf7a3e426046b3c",
-            "balance": "0x000000000000000001605baf3cd2c000"
+            "balance": "0x000000000000000001742eaa3aab8000"
         },
         {
             "address": "0xae69abebf8f95dc2486626a85019d1347b76540415c04fb0d151fb1ebeeef434",
@@ -188,7 +188,7 @@
         },
         {
             "address": "0x5aac5299661decf70e91bd2dd9432fbebc869508146ca6faf178562da2e9875c",
-            "balance": "0x00000000000000000360cd334739c000"
+            "balance": "0x000000000000000003946310395d4000"
         },
         {
             "address": "0x2c7ee1c7174db47de06270d6a61214804dc66a331dfd93b306a7fd99c96e7f6d",
@@ -236,11 +236,11 @@
         },
         {
             "address": "0xda284dd03ebb3a1454c7f246867ab6b6759af0abf0be7fb72b4e6f2df2e1e666",
-            "balance": "0x000000000000000002365fa53617c000"
+            "balance": "0x0000000000000000025b76c5218c4000"
         },
         {
             "address": "0x6c837c49dbc82c3cf237b44a97da532313e4be4da725536cd9e271be917d9853",
-            "balance": "0x000000000000000000e7b53e94404000"
+            "balance": "0x000000000000000000fb51a7bb694000"
         },
         {
             "address": "0xa03a416aaf27528a119d75c6322f9c733e812d46c897b4732b6dc8e181f3e52c",
@@ -272,7 +272,7 @@
         },
         {
             "address": "0xae897d1e02feb8973a70ba6a6717b0dfa7e3f0fe5d3be89f95b43541d1e69408",
-            "balance": "0x000000000000000020662a54aca08000"
+            "balance": "0x0000000000000000217cfb7996998000"
         },
         {
             "address": "0x1844f082127bdfac0bcfadbb0c14bf897ccf3985cca0d6543dbb73e627772f62",
@@ -288,19 +288,19 @@
         },
         {
             "address": "0x4a466e6444d4d687d2bc56a52397499dfa3aeabd289e2d7a95c72b14eae6bf4e",
-            "balance": "0x000000000000000001dcd860fd7474c0"
+            "balance": "0x000000000000000001e713b93e6874c0"
         },
         {
             "address": "0xd0a86d53f7e346bcaebbc019ab339dfc832d47b9679ad82747f3cdf56b435776",
-            "balance": "0x000000000000000001fa0c6ce1ce8000"
+            "balance": "0x000000000000000001fb8a69c09cc000"
         },
         {
             "address": "0x58af8eecc443eebc3b9f9e3d244f0618148b923aa69237b62fd578fbc173c256",
-            "balance": "0x0000000000000000070267957f278000"
+            "balance": "0x000000000000000007569a9bc054c000"
         },
         {
             "address": "0x485764593dfb396c921ba7a02f93e45c1da428a48e3f8cf5931788e691c3a631",
-            "balance": "0x000000000000000013095412834c8000"
+            "balance": "0x00000000000000001385d0c4443a8000"
         },
         {
             "address": "0xda421c1a79c9391335ac0d8dbffef0891e0b91c2fde8e493190a4e3aa6ac005e",
@@ -312,7 +312,7 @@
         },
         {
             "address": "0xbe1d1bf7354f3871038c7c1b2002928ba87457fcb5431f8b6e805e3cd66ecd6f",
-            "balance": "0x00000000000000003831eeb4bc180000"
+            "balance": "0x00000000000000003a0cdbf52dab0000"
         },
         {
             "address": "0xf270923b3a1717d449f73e9d8307af2eb835bd13eb45d3cd9859fdb3bbb1e001",
@@ -332,15 +332,15 @@
         },
         {
             "address": "0x145d7dd6f605b79f1297fbebf75a0cf53d86f34ded07d4a5c446d41af37b6375",
-            "balance": "0x00000000000000000794a262ca1c0000"
+            "balance": "0x00000000000000000825cc56e3a1c000"
         },
         {
             "address": "0x3e10f745ca14120ced7b66dbf0460778115c64164e172ffeaa38f3845a81c832",
-            "balance": "0x00000000000000000054d6bbc53c8000"
+            "balance": "0x00000000000000000055e794f6ab4000"
         },
         {
             "address": "0xde5116694bcc8e1d4390eccbc40fd04ff1fd61af81ca374cd1d7c7b7dc404f30",
-            "balance": "0x00000000000000000078dd027f424000"
+            "balance": "0x0000000000000000008052f2d9498000"
         },
         {
             "address": "0x74bd4626a862f514247d3797ae2772e8d23ae3d483bcc7ff7476ce12b9aa7c2a",
@@ -360,7 +360,7 @@
         },
         {
             "address": "0x8c5711049212cfe95a064a24fc431e976811f4d5c21046ab3b033d5b8eb09622",
-            "balance": "0x000000000000000001cb271862c58000"
+            "balance": "0x0000000000000000021709e6ef2c8000"
         },
         {
             "address": "0xe214b6a134f7ace3c84503c0c136fd488e52cb3257003d290759d7b3902c116a",
@@ -376,15 +376,15 @@
         },
         {
             "address": "0xb858283c2bf358aefbb955fb4f262452bfce77498819cee249583d8b706b0615",
-            "balance": "0x000000000000000001092caf3e090000"
+            "balance": "0x0000000000000000012beb8aeff04000"
         },
         {
             "address": "0x7e75eeaad29ec082de36f3e091e9f3844a2f3c028f3b361a8ca38ac5fc3b5903",
-            "balance": "0x000000000000000000fc9912c387c000"
+            "balance": "0x0000000000000000011cffaa3be1c000"
         },
         {
             "address": "0x3acb02de19bc9e37828d92bd719c6732f853b6353beed011d31f6ed22cb94225",
-            "balance": "0x0000000000000000006b388cd3524000"
+            "balance": "0x0000000000000000007ba26a662f0000"
         },
         {
             "address": "0x0c95293c38604c8304029f956305808ddf952ea656d0fd620bc0dbcbc6e13b2f",
@@ -392,7 +392,7 @@
         },
         {
             "address": "0x4e254695339273f79eaca822590768b41f2e868cd3b9226acc026b973f737f27",
-            "balance": "0x000000000000000004599004f2660000"
+            "balance": "0x000000000000000004e18f79fc668000"
         },
         {
             "address": "0x28e5ce2ac8cd9486587c4f4c44f8d89cc5c9f5df471b72a2411facbcc38f2819",
@@ -400,11 +400,11 @@
         },
         {
             "address": "0x881ea15208b2407c2e47f285d284d21a7087944fe788ef282ee9b665b48fbb5c",
-            "balance": "0x000000000000000000276f642501c000"
+            "balance": "0x0000000000000000005358bee66e4000"
         },
         {
             "address": "0x6a8fb7931b44ccdc0f5eec57b61bb2a48291c5cfffcb553e39aeaa96af4a324b",
-            "balance": "0x00000000000000000023629135f68000"
+            "balance": "0x00000000000000000042b84f7ce1c000"
         },
         {
             "address": "0x6625670bf65fbac4bb7288460cdd56c77c669e0ff2c2585d7f3b54daaa020d0d",
