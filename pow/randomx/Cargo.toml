@@ -15,8 +15,3 @@ criterion = "0.3"
 [[bench]]
 name = "fullvm"
 harness = false
-
-[workspace]
-members = [
-  "sys"
-]
