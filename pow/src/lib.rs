@@ -118,8 +118,8 @@ fn key_hash<B, C>(
 	B: BlockT<Hash=H256>,
 	C: HeaderBackend<B>,
 {
-	const PERIOD: u64 = 2 * DAY_HEIGHT;
-	const OFFSET: u64 = 2 * HOUR_HEIGHT;
+	const PERIOD: u64 = 4096; // ~2.8 days
+	const OFFSET: u64 = 128;  // 2 hours
 
 	let parent_header = client.header(parent.clone())
 		.map_err(|e| sc_consensus_pow::Error::Environment(

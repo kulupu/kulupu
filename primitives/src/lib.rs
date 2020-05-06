@@ -67,7 +67,7 @@ pub const HOURS: u32 = 60;
 /// Block number of one day.
 pub const DAYS: u32 = 24 * HOURS;
 
-pub const ALGORITHM_IDENTIFIER: [u8; 8] = *b"randomx0";
+pub const ALGORITHM_IDENTIFIER: [u8; 8] = *b"randomx1";
 
 decl_runtime_apis! {
 	pub trait AlgorithmApi {
