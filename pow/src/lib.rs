@@ -26,7 +26,7 @@ use sp_runtime::traits::{
 use sp_consensus_pow::{Seal as RawSeal, DifficultyApi};
 use sc_consensus_pow::PowAlgorithm;
 use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore};
-use kulupu_primitives::{Difficulty, AlgorithmApi, DAY_HEIGHT, HOUR_HEIGHT};
+use kulupu_primitives::{Difficulty, AlgorithmApi};
 use lru_cache::LruCache;
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
 use lazy_static::lazy_static;
