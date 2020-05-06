@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::convert::TryInto;
 use serde_json::json;
 use sp_core::{U256, crypto::UncheckedFrom};
 use sc_service::ChainType;
@@ -71,7 +72,9 @@ pub fn mainnet_config() -> ChainSpec {
 		"kulupu",
 		ChainType::Live,
 		|| mainnet_genesis(),
-		vec![], // FIXME(era1-transition): Replace this with new bootnodes.
+		vec![
+			"/dns4/bootnode0.nodes.kulupu.network/tcp/30333/p2p/QmU2WrqoJWWqrhUvk98SBvVbtUCqVcrXhPG7yftecyXnGw".to_string().try_into().expect("Bootnode is valid"),
+		],
 		None,
 		Some("kulupu"),
 		Some(json!({
