@@ -5,7 +5,6 @@ authors = ["Wei Tang <hi@that.world>"]
 edition = "2018"
 
 [dependencies]
-randomx = { path = "../vendor/randomx" }
 codec = { package = "parity-scale-codec", version = "1.0.0" }
 log = "0.4"
 lru-cache = "0.1"
@@ -21,3 +20,4 @@ sc-client-api = { package = "sc-client-api", path = "../vendor/substrate/client/
 sc-consensus-pow = { path = "../vendor/substrate/client/consensus/pow" }
 kulupu-primitives = { path = "../primitives" }
 kulupu-runtime = { path = "../runtime" }
+kulupu-randomx = { path = "randomx" }

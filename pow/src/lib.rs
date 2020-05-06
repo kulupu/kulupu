@@ -30,6 +30,7 @@ use kulupu_primitives::{Difficulty, AlgorithmApi, DAY_HEIGHT, HOUR_HEIGHT};
 use lru_cache::LruCache;
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
 use lazy_static::lazy_static;
+use kulupu_randomx as randomx;
 use log::*;
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]

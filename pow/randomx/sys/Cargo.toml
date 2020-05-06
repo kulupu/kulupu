@@ -1,0 +1,13 @@
+[package]
+name = "kulupu-randomx-sys"
+description = "FFI bindings for RandomX"
+license = "BSD-3-Clause"
+version = "0.1.1"
+authors = ["Wei Tang <hi@that.world>"]
+edition = "2018"
+
+[dependencies]
+
+[build-dependencies]
+bindgen = "0.49"
+cmake = "0.1"

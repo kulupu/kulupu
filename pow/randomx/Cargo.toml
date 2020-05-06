@@ -1,0 +1,22 @@
+[package]
+name = "kulupu-randomx"
+description = "Proof-of-work (PoW) algorithm that is optimized for general-purpose CPUs"
+license = "BSD-3-Clause"
+version = "0.1.0"
+authors = ["Wei Tang <hi@that.world>"]
+edition = "2018"
+
+[dependencies]
+sys = { package = "kulupu-randomx-sys", version = "0.1", path = "sys" }
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "fullvm"
+harness = false
+
+[workspace]
+members = [
+  "sys"
+]
