@@ -45,7 +45,7 @@ kulupu-primitives = { path = "primitives" }
 substrate-build-script-utils = { path = "vendor/substrate/utils/build-script-utils" }
 
 [features]
-default = ["wasmtime"]
+default = []
 wasmtime = [
 	"sc-executor/wasmtime",
 	"sc-cli/wasmtime",
