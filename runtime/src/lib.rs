@@ -252,7 +252,7 @@ pub struct DealWithFees;
 impl OnUnbalanced<NegativeImbalance> for DealWithFees {
 	fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item=NegativeImbalance>) {
 		if let Some(fees) = fees_then_tips.next() {
-			// Burn all base fees.
+			// Burn base fees.
 			drop(fees);
 			if let Some(tips) = fees_then_tips.next() {
 				// Pay tips to miners.
