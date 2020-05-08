@@ -248,6 +248,20 @@ impl balances::Trait for Runtime {
 
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
 
+pub struct DealWithFees;
+impl OnUnbalanced<NegativeImbalance> for DealWithFees {
+	fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item=NegativeImbalance>) {
+		if let Some(fees) = fees_then_tips.next() {
+			// Burn all base fees.
+			drop(fees);
+			if let Some(tips) = fees_then_tips.next() {
+				// Pay tips to miners.
+				Author::on_unbalanced(tips);
+			}
+		}
+	}
+}
+
 parameter_types! {
 	pub const TransactionByteFee: Balance = 10 * MILLICENTS;
 	// for a sane configuration, this should always be less than `AvailableBlockRatio`.
@@ -256,7 +270,7 @@ parameter_types! {
 
 impl transaction_payment::Trait for Runtime {
 	type Currency = balances::Module<Runtime>;
-	type OnTransactionPayment = Author;
+	type OnTransactionPayment = DealWithFees;
 	type TransactionByteFee = TransactionByteFee;
 	type WeightToFee = WeightToFee;
 	type FeeMultiplierUpdate = TargetedFeeAdjustment<TargetBlockFullness, Self>;
