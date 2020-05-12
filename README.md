@@ -36,16 +36,17 @@ cd kulupu
 git submodule update --init --recursive
 ```
 
-Install Rust:
+Install Rust and required tools:
 
 ```bash
 curl https://sh.rustup.rs -sSf | sh
+./scripts/init.sh
 ```
 
-Install required tools:
+Install necessary dependencies. On Ubuntu, run the following:
 
 ```bash
-./scripts/init.sh
+sudo apt install -y cmake pkg-config libssl-dev git gcc build-essential clang libclang-dev
 ```
 
 ### Full Node
