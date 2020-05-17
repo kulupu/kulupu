@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::convert::TryInto;
 use serde_json::json;
 use sp_core::{U256, crypto::UncheckedFrom};
 use sc_service::ChainType;
@@ -67,23 +66,8 @@ pub fn local_testnet_config() -> ChainSpec {
 }
 
 pub fn mainnet_config() -> ChainSpec {
-	ChainSpec::from_genesis(
-		"Kulupu",
-		"kulupu",
-		ChainType::Live,
-		|| mainnet_genesis(),
-		vec![
-			"/dns4/bootnode0.nodes.kulupu.network/tcp/30333/p2p/QmU2WrqoJWWqrhUvk98SBvVbtUCqVcrXhPG7yftecyXnGw".to_string().try_into().expect("Bootnode is valid"),
-		],
-		None,
-		Some("kulupu"),
-		Some(json!({
-			"ss58Format": 16,
-			"tokenDecimals": 12,
-			"tokenSymbol": "KLP"
-		}).as_object().expect("Created an object").clone()),
-		None,
-	)
+	ChainSpec::from_json_bytes(&include_bytes!("../res/eras/1/2-swamp-bottom/config.json")[..])
+		.expect("Mainnet config included is valid")
 }
 
 fn testnet_genesis(initial_difficulty: U256) -> GenesisConfig {
@@ -112,7 +96,9 @@ fn testnet_genesis(initial_difficulty: U256) -> GenesisConfig {
 	}
 }
 
-fn mainnet_genesis() -> GenesisConfig {
+/// Swamp bottom genesis config generation.
+#[allow(unused)]
+pub fn mainnet_genesis() -> GenesisConfig {
 	let era_state = crate::eras::era0_state();
 
 	GenesisConfig {
