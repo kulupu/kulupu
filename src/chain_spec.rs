@@ -117,7 +117,7 @@ fn mainnet_genesis() -> GenesisConfig {
 
 	GenesisConfig {
 		system: Some(SystemConfig {
-			code: include_bytes!("../res/eras/1/genesis/kulupu_runtime.compact.wasm").to_vec(),
+			code: include_bytes!("../res/eras/1/2-swamp-bottom/kulupu_runtime.compact.wasm").to_vec(),
 			changes_trie_config: Default::default(),
 		}),
 		balances: Some(BalancesConfig {
