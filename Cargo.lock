@@ -713,7 +713,7 @@ dependencies = [
  "log",
  "serde",
  "thiserror",
- "wasmparser",
+ "wasmparser 0.51.4",
 ]
 
 [[package]]
@@ -1131,9 +1131,9 @@ dependencies = [
 
 [[package]]
 name = "finality-grandpa"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f4682570188cd105606e621b9992e580f717c15f8cd1b7d106b59f1c6e54680"
+checksum = "8feb87a63249689640ac9c011742c33139204e3c134293d3054022276869133b"
 dependencies = [
  "either",
  "futures 0.3.4",
@@ -1940,12 +1940,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f65877bf7d44897a473350b1046277941cee20b263397e90869c50b6e766088b"
 
 [[package]]
-name = "interleaved-ordered"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "141340095b15ed7491bd3d4ced9d20cebfb826174b6bb03386381f62b01e3d77"
-
-[[package]]
 name = "intervalier"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2275,9 +2269,9 @@ dependencies = [
 
 [[package]]
 name = "kvdb"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cad096c6849b2ef027fabe35c4aed356d0e3d3f586d0a8361e5e17f1e50a7ce5"
+checksum = "e763b2a9b500ba47948061d1e8bc3b5f03a8a1f067dbcf822a4d2c84d2b54a3a"
 dependencies = [
  "parity-util-mem",
  "smallvec 1.4.0",
@@ -2285,9 +2279,9 @@ dependencies = [
 
 [[package]]
 name = "kvdb-memorydb"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4aa954d12cfac958822dfd77aab34f3eec71f103b918c4ab79ab59a36ee594ea"
+checksum = "73027d5e228de6f503b5b7335d530404fc26230a6ae3e09b33ec6e45408509a4"
 dependencies = [
  "kvdb",
  "parity-util-mem",
@@ -2296,12 +2290,11 @@ dependencies = [
 
 [[package]]
 name = "kvdb-rocksdb"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3f14c3a10c8894d26175e57e9e26032e6d6c49c30cbe2468c5bf5f6b64bb0be"
+checksum = "84384eca250c7ff67877eda5336f28a86586aaee24acb945643590671f6bfce1"
 dependencies = [
  "fs-swap",
- "interleaved-ordered",
  "kvdb",
  "log",
  "num_cpus",
@@ -3110,9 +3103,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5666bbb90bc4d1e5bdcb26c0afda1822d25928341e9384ab187a9b37ab69e36"
 dependencies = [
- "flate2",
  "target-lexicon",
- "wasmparser",
 ]
 
 [[package]]
@@ -4270,9 +4261,9 @@ checksum = "cabe4fa914dec5870285fa7f71f602645da47c486e68486d2b4ceb4a343e90ac"
 
 [[package]]
 name = "rocksdb"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12069b106981c6103d3eab7dd1c86751482d0779a520b7c14954c8b586c1e643"
+checksum = "61aa17a99a2413cd71c1106691bf59dad7de0cd5099127f90e9d99c429c40d4a"
 dependencies = [
  "libc",
  "librocksdb-sys",
@@ -4580,6 +4571,7 @@ dependencies = [
  "sp-inherents",
  "sp-runtime",
  "sp-timestamp",
+ "substrate-prometheus-endpoint",
 ]
 
 [[package]]
@@ -5474,6 +5466,7 @@ dependencies = [
  "sp-std",
  "sp-utils",
  "sp-version",
+ "substrate-prometheus-endpoint",
 ]
 
 [[package]]
@@ -5494,6 +5487,7 @@ dependencies = [
  "base58",
  "blake2-rfc",
  "byteorder",
+ "derive_more",
  "ed25519-dalek",
  "futures 0.3.4",
  "hash-db",
@@ -5979,13 +5973,13 @@ dependencies = [
 
 [[package]]
 name = "substrate-wasm-builder-runner"
-version = "1.0.5"
+version = "1.0.6"
 
 [[package]]
 name = "substrate-wasmtime"
-version = "0.16.0-threadsafe.1"
+version = "0.16.0-threadsafe.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b8f9558e3fe7018b9aeac2aba318664dd7b15e307de11b09f58240695688a96"
+checksum = "9b0d8eca5d0186e98c8d13399423853e2356b593e028b53e43b2aa35e9105a82"
 dependencies = [
  "anyhow",
  "backtrace",
@@ -5998,7 +5992,7 @@ dependencies = [
  "substrate-wasmtime-profiling",
  "substrate-wasmtime-runtime",
  "target-lexicon",
- "wasmparser",
+ "wasmparser 0.52.2",
  "wasmtime-environ",
  "wat",
  "winapi 0.3.8",
@@ -6006,9 +6000,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-wasmtime-jit"
-version = "0.16.0-threadsafe.1"
+version = "0.16.0-threadsafe.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6b681b90a8d48b9535e4287c02e5aef6c72228ff45cbb60b4d195a762cc0770"
+checksum = "e95772b1778186e4f5c9ae9148bab9911cddf563805a403dee418780e2ed14b4"
 dependencies = [
  "anyhow",
  "cfg-if",
@@ -6025,7 +6019,7 @@ dependencies = [
  "substrate-wasmtime-runtime",
  "target-lexicon",
  "thiserror",
- "wasmparser",
+ "wasmparser 0.52.2",
  "wasmtime-debug",
  "wasmtime-environ",
  "winapi 0.3.8",
@@ -6033,9 +6027,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-wasmtime-profiling"
-version = "0.16.0-threadsafe.1"
+version = "0.16.0-threadsafe.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7cb99b24e771de6c20b380fdf2d26ffc2c20701892c540830beb83af98bb3b7"
+checksum = "1f8a0bf9ca20bee7d83338470247a3f1823158382ebd51fadefcc986e0a6c3de"
 dependencies = [
  "anyhow",
  "cfg-if",
@@ -6052,9 +6046,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-wasmtime-runtime"
-version = "0.16.0-threadsafe.1"
+version = "0.16.0-threadsafe.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aaccd27cc466bd2904aa14f984f642083037bf5b47e251ccaf1009aed0a2a185"
+checksum = "a559895fe1efab16d1c490199225ae35c153ed432ef87ebc177fb37edbd20c7c"
 dependencies = [
  "backtrace",
  "cc",
@@ -6918,6 +6912,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aeb1956b19469d1c5e63e459d29e7b5aa0f558d9f16fcef09736f8a265e6c10a"
 
 [[package]]
+name = "wasmparser"
+version = "0.52.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "733954023c0b39602439e60a65126fd31b003196d3a1e8e4531b055165a79b31"
+
+[[package]]
 name = "wasmtime-debug"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6929,7 +6929,7 @@ dependencies = [
  "more-asserts",
  "target-lexicon",
  "thiserror",
- "wasmparser",
+ "wasmparser 0.51.4",
  "wasmtime-environ",
 ]
 
@@ -6957,7 +6957,7 @@ dependencies = [
  "sha2",
  "thiserror",
  "toml",
- "wasmparser",
+ "wasmparser 0.51.4",
  "winapi 0.3.8",
  "zstd",
 ]
