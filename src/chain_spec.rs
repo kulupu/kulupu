@@ -66,7 +66,7 @@ pub fn local_testnet_config() -> ChainSpec {
 }
 
 pub fn mainnet_config() -> ChainSpec {
-	ChainSpec::from_json_bytes(&include_bytes!("../res/eras/1/2-swamp-bottom/config.json")[..])
+	ChainSpec::from_json_bytes(&include_bytes!("../res/eras/1/3-swamp-bottom/config.json")[..])
 		.expect("Mainnet config included is valid")
 }
 
