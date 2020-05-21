@@ -11,14 +11,9 @@ of RandomX.
 ## Status
 
 The network was launched in September 2019. The first hard fork, code-named
-**Slag Ravine** happened in December 2019, at block 100,000. The second hard
-fork, code-named **Swamp Bottom** is planned at block 320,000 on 6th May 2019.
-
-The current code is for the **Swamp Bottom** hard fork. This is a sqaush hard
-fork, meaning we export current block state and re-generate a new genesis block.
-As a result, the release ready for the coming hard fork can only be published
-when we reach the hard fork block. Right now if you plan to run mainnet, please
-use one of the v0.2 releases.
+**Slag Ravine** happened in December 2019, at era 0 block 100,000. The second
+hard fork, code-named **Swamp Bottom** happened at era 0 block 320,000 on 6th
+May 2019.
 
 The current Kulupu blockchain enabled Substrate's balances and governance pallet
 modules. Smart contract is a planned but not yet enabled feature, due to
