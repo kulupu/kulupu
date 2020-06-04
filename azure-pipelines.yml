@@ -66,9 +66,5 @@ jobs:
     displayName: 'Rust setup'
   - script: |
       source ~/.cargo/env
-      cargo test --release --all
-    displayName: 'Run tests'
-  - script: |
-      source ~/.cargo/env
       cargo build --release
     displayName: 'Build artifacts'
