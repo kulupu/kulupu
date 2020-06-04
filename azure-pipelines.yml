@@ -63,6 +63,9 @@ jobs:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
   - script: |
+      pacman -S mingw64/mingw-w64-x86_64-clang
+    displayName: 'Mingw64 setup'
+  - script: |
       rustup update nightly
       rustup update stable
       rustup target add wasm32-unknown-unknown --toolchain nightly
