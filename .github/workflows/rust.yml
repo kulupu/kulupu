@@ -1,0 +1,50 @@
+name: Rust
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-linux:
+    name: "Build (Linux)"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Submodules
+      run: git submodule update --init --recursive
+    - name: Init
+      run: |
+        scripts/init.sh
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
+  build-macos:
+    name: "Build (MacOS)"
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Submodules
+      run: git submodule update --init --recursive
+    - name: Init
+      run: |
+        scripts/init.sh
+    - name: Build
+      run: cargo build --verbose
+  build-win:
+    name: "Build (Windows)"
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Submodules
+      run: git submodule update --init --recursive
+    - name: Init
+      run: |
+        scripts/init.sh
+    - name: Build
+      run: cargo build --verbose
