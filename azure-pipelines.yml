@@ -64,7 +64,7 @@ jobs:
     displayName: 'Submodules'
   - script: |
       curl -f -o d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz https://ziglang.org/deps/llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz
-      tar -xvf d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz
+      7z x "d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz" -so | 7z x -aoa -si -ttar -o"d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt"
     displayName: 'Libclang setup'
   - script: |
       rustup update nightly
@@ -73,6 +73,6 @@ jobs:
       cargo +nightly install --git https://github.com/alexcrichton/wasm-gc --force
     displayName: 'Rust setup'
   - script: |
-      export LIBCLANG_PATH=d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt\bin
+      setx LIBCLANG_PATH=d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt\bin /M
       cargo build --release
     displayName: 'Build artifacts'
