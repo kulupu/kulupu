@@ -63,9 +63,6 @@ jobs:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
   - script: |
-      curl -sSf -o rustup-init.exe https://win.rustup.rs
-      rustup-init.exe -y --default-toolchain stable
-      echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
       rustup update nightly
       rustup update stable
       rustup target add wasm32-unknown-unknown --toolchain nightly
