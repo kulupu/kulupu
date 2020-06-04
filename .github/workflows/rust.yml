@@ -45,6 +45,9 @@ jobs:
       run: git submodule update --init --recursive
     - name: Init
       run: |
-        scripts/init.sh
+        rustup update nightly
+        rustup update stable
+        rustup target add wasm32-unknown-unknown --toolchain nightly
+        cargo +nightly install --git https://github.com/alexcrichton/wasm-gc --force
     - name: Build
       run: cargo build --verbose
