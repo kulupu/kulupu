@@ -46,7 +46,7 @@ jobs:
     - name: Clang init
       run: |
         curl -f -o d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz https://ziglang.org/deps/llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz
-        7z x d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz -so | 7z x -aoa -si -ttar -o d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt
+        7z x "d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz" -so | 7z x -aoa -si -ttar -o"d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt"
     - name: Rust init
       run: |
         rustup update nightly
