@@ -72,5 +72,5 @@ jobs:
       cargo +nightly install --git https://github.com/alexcrichton/wasm-gc --force
     displayName: 'Rust setup'
   - script: |
-      cargo build --release
+      c:\msys64\usr\bin\bash.exe -lc "cargo build --release"
     displayName: 'Build artifacts'
