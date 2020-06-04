@@ -63,8 +63,9 @@ jobs:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
   - script: |
-      curl -sSf -o d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz https://ziglang.org/deps/llvm%2bclang%2blld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz
+      curl -sSf -o d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz https://ziglang.org/deps/llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz
       tar xvf d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz -C d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt
+    displayName: 'Libclang setup'
   - script: |
       rustup update nightly
       rustup update stable
