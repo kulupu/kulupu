@@ -63,12 +63,15 @@ jobs:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
   - script: |
-      c:\msys64\usr\bin\bash.exe -lc "pacman --noconfirm -S mingw64/mingw-w64-x86_64-clang"
-    displayName: 'Mingw64 setup'
+      curl -sSf -o d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz https://ziglang.org/deps/llvm%2bclang%2blld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz
+      tar xvf d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz -C d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt
   - script: |
-      c:\msys64\usr\bin\bash.exe -lc "curl https://sh.rustup.rs -sSf | sh -s -- -y"
-      c:\msys64\usr\bin\bash.exe -lc "./scripts/ci-init.sh"
+      rustup update nightly
+      rustup update stable
+      rustup target add wasm32-unknown-unknown --toolchain nightly
+      cargo +nightly install --git https://github.com/alexcrichton/wasm-gc --force
     displayName: 'Rust setup'
   - script: |
-      c:\msys64\usr\bin\bash.exe -lc "cargo build --release"
+      export LIBCLANG_PATH=d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt\bin
+      cargo build --release
     displayName: 'Build artifacts'
