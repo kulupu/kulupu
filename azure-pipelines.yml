@@ -62,7 +62,14 @@ jobs:
   steps:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
-  - script: ./scripts/ci-init.sh
+  - script: |
+      curl -sSf -o rustup-init.exe https://win.rustup.rs
+      rustup-init.exe -y --default-toolchain %RUSTUP_TOOLCHAIN%
+      echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
+      rustup update nightly
+      rustup update stable
+      rustup target add wasm32-unknown-unknown --toolchain nightly
+      cargo +nightly install --git https://github.com/alexcrichton/wasm-gc --force
     displayName: 'Rust setup'
   - script: |
       source ~/.cargo/env
