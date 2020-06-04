@@ -64,7 +64,7 @@ jobs:
     displayName: 'Submodules'
   - script: |
       curl -f -o d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz https://ziglang.org/deps/llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz
-      tar xvf d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz -C d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt
+      tar xvf d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz
     displayName: 'Libclang setup'
   - script: |
       rustup update nightly
