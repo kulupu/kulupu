@@ -73,6 +73,6 @@ jobs:
       cargo +nightly install --git https://github.com/alexcrichton/wasm-gc --force
     displayName: 'Rust setup'
   - script: |
-      setx LIBCLANG_PATH=d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt\bin /M
+      setx LIBCLANG_PATH d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt\bin /M
       cargo build --release
     displayName: 'Build artifacts'
