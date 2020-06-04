@@ -54,3 +54,21 @@ jobs:
       contents: 'kulupu-macos*'
       targetFolder: $(Build.ArtifactStagingDirectory)
   - task: PublishBuildArtifacts@1
+
+- job: Windows
+  pool:
+    vmImage: 'windows-latest'
+  timeoutInMinutes: 0
+  steps:
+  - script: git submodule update --init --recursive
+    displayName: 'Submodules'
+  - script: ./scripts/ci-init.sh
+    displayName: 'Rust setup'
+  - script: |
+      source ~/.cargo/env
+      cargo test --release --all
+    displayName: 'Run tests'
+  - script: |
+      source ~/.cargo/env
+      cargo build --release
+    displayName: 'Build artifacts'
