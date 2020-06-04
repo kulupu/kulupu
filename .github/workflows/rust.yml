@@ -21,9 +21,9 @@ jobs:
       run: |
         scripts/init.sh
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --verbose --release
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test --verbose --release
   build-macos:
     name: "Build (MacOS)"
     runs-on: macos-latest
@@ -35,7 +35,7 @@ jobs:
       run: |
         scripts/init.sh
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --verbose --release
   build-win:
     name: "Build (Windows)"
     runs-on: windows-latest
@@ -50,4 +50,4 @@ jobs:
         rustup target add wasm32-unknown-unknown --toolchain nightly
         cargo +nightly install --git https://github.com/alexcrichton/wasm-gc --force
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --verbose --release
