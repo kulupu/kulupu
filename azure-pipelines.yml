@@ -57,7 +57,7 @@ jobs:
 
 - job: Windows
   pool:
-    vmImage: 'windows-latest'
+    vmImage: 'windows-2019'
   timeoutInMinutes: 0
   steps:
   - script: git submodule update --init --recursive
