@@ -71,7 +71,6 @@ jobs:
       rustup update nightly
       rustup update stable
       rustup target add wasm32-unknown-unknown --toolchain nightly
-      cargo +nightly install --git https://github.com/alexcrichton/wasm-gc --force
     displayName: 'Rust setup'
   - script: |
       set LIBCLANG_PATH=d:\c\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt\bin
