@@ -7,7 +7,7 @@ fn main() {
     let mut config = cmake::Config::new("randomx");
 	config.define("ARCH", "native");
 
-	if target.contains("windows") {
+	if target.contains("pc-windows-msvc") {
 		config.build_target("ALL_BUILD")
 	} else {
 		config.build_target("all")
@@ -15,9 +15,15 @@ fn main() {
 
 	let dst = config.build();
 
-    println!("cargo:rustc-link-search=native={}/build", dst.display());
+    if target.contains("pc-windows-msvc") {
+        println!("cargo:rustc-link-search=native={}/build/Release", dst.display());
+    } else {
+        println!("cargo:rustc-link-search=native={}/build", dst.display());
+    }
     println!("cargo:rustc-link-lib=static=randomx");
-    if target.contains("apple-darwin") {
+    if target.contains("pc-windows-msvc") {
+        // Do not need the c++ library link for Windows MSVC build.
+    } else if target.contains("apple-darwin") {
         println!("cargo:rustc-link-lib=dylib=c++");
     } else {
         println!("cargo:rustc-link-lib=dylib=stdc++");
