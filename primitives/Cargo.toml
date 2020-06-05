@@ -1,6 +1,6 @@
 [package]
 name = "kulupu-primitives"
-version = "1.1.0"
+version = "1.1.1"
 authors = ["Wei Tang <hi@that.world>"]
 edition = "2018"
 
