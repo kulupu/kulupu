@@ -21,6 +21,11 @@ stability concerns.
 
 ## Run
 
+You can use the binary build at Kulupu's
+[releases](https://github.com/kulupu/kulupu/releases) page.
+
+## Build
+
 ### Prerequisites
 
 Clone this repo and update the submodules:
