@@ -15,7 +15,11 @@ fn main() {
 
 	let dst = config.build();
 
-    println!("cargo:rustc-link-search=native={}/build", dst.display());
+    if target.contains("pc-windows-msvc") {
+        println!("cargo:rustc-link-search=native={}/build/Release", dst.display());
+    } else {
+        println!("cargo:rustc-link-search=native={}/build", dst.display());
+    }
     println!("cargo:rustc-link-lib=static=randomx");
     if target.contains("apple-darwin") {
         println!("cargo:rustc-link-lib=dylib=c++");
