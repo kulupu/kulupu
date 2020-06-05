@@ -16,16 +16,18 @@ jobs:
     displayName: 'Run tests'
   - script: cargo build --release
     displayName: 'Build artifacts'
-  - script: |
-      cp target/release/kulupu target/release/kulupu-linux
-      shasum -a 256 target/release/kulupu-linux > target/release/kulupu-linux.sha256
-    displayName: 'Finalize artifacts'
-  - task: CopyFiles@2
+  - task: ArchiveFiles@2
     inputs:
-      sourceFolder: 'target/release'
-      contents: 'kulupu-linux*'
-      targetFolder: $(Build.ArtifactStagingDirectory)
+      rootFolderOrFile: 'target/release/kulupu'
+      includeRootFolder: false
+      archiveType: 'zip'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/kulupu-linux.zip'
+    displayName: 'Archive artifacts'
+  - script: |
+      shasum -a 256 $(Build.ArtifactStagingDirectory)/kulupu-linux.zip > $(Build.ArtifactStagingDirectory)/kulupu-linux.zip.sha256
+    displayName: 'Finalize artifacts'
   - task: PublishBuildArtifacts@1
+    displayName: 'Publish artifacts'
 
 - job: MacOS
   pool:
@@ -44,16 +46,18 @@ jobs:
       source ~/.cargo/env
       cargo build --release
     displayName: 'Build artifacts'
-  - script: |
-      cp target/release/kulupu target/release/kulupu-macos
-      shasum -a 256 target/release/kulupu-macos > target/release/kulupu-macos.sha256
-    displayName: 'Finalize artifacts'
-  - task: CopyFiles@2
+  - task: ArchiveFiles@2
     inputs:
-      sourceFolder: 'target/release'
-      contents: 'kulupu-macos*'
-      targetFolder: $(Build.ArtifactStagingDirectory)
+      rootFolderOrFile: 'target/release/kulupu'
+      includeRootFolder: false
+      archiveType: 'zip'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/kulupu-macos.zip'
+    displayName: 'Archive artifacts'
+  - script: |
+      shasum -a 256 $(Build.ArtifactStagingDirectory)/kulupu-macos.zip > $(Build.ArtifactStagingDirectory)/kulupu-macos.zip.sha256
+    displayName: 'Finalize artifacts'
   - task: PublishBuildArtifacts@1
+    displayName: 'Publish artifacts'
 
 - job: Windows
   pool:
@@ -77,3 +81,15 @@ jobs:
       set LIBCLANG_PATH=d:\c\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt\bin
       cargo build --release
     displayName: 'Build artifacts'
+  - task: ArchiveFiles@2
+    inputs:
+      rootFolderOrFile: 'target/release/kulupu.exe'
+      includeRootFolder: false
+      archiveType: 'zip'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/kulupu-windows.zip'
+    displayName: 'Archive artifacts'
+  - script: |
+      CertUtil -hashfile $(Build.ArtifactStagingDirectory)/kulupu-windows.zip SHA256 > $(Build.ArtifactStagingDirectory)/kulupu-windows.zip.sha256
+    displayName: 'Finalize artifacts'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish artifacts'
