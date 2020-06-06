@@ -38,22 +38,17 @@ jobs:
       run: cargo build --verbose --release
   build-win:
     name: "Build (Windows)"
-    runs-on: windows-latest
+    runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
     - name: Submodules
       run: git submodule update --init --recursive
-    - name: Clang init
-      run: |
-        curl -f -o d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz https://ziglang.org/deps/llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz
-        7z x "d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt.tar.xz" -so | 7z x -aoa -si -ttar -o"d:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt"
     - name: Rust init
       run: |
         rustup update nightly
         rustup update stable
         rustup target add wasm32-unknown-unknown --toolchain nightly
-        cargo +nightly install --git https://github.com/alexcrichton/wasm-gc --force
     - name: Build
       run: |
-        export LIBCLANG_PATH=c:\llvm+clang+lld-10.0.0-x86_64-windows-msvc-release-mt\bin
-        cargo build --verbose --release
+        set LIBCLANG_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\Llvm\x64\bin
+        cargo build --release
