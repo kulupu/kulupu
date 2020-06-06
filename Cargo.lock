@@ -2147,7 +2147,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "futures 0.3.5",
  "kulupu-pow",
@@ -2182,7 +2182,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-pow"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "kulupu-primitives",
  "kulupu-randomx",
@@ -2204,7 +2204,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-primitives"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "parity-scale-codec",
  "sp-api",
@@ -2213,7 +2213,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-randomx"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "criterion",
  "kulupu-randomx-sys",
@@ -2221,7 +2221,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-randomx-sys"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "bindgen 0.49.4",
  "cmake",
@@ -2229,7 +2229,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-runtime"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "frame-executive",
  "frame-support",
@@ -3218,7 +3218,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-difficulty"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "frame-support",
  "kulupu-primitives",
@@ -3246,7 +3246,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-eras"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -3312,7 +3312,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-rewards"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "frame-support",
  "frame-system",
