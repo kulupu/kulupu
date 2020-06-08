@@ -9,7 +9,7 @@
   "protocolId": "kulupu",
   "properties": {
     "ss58Format": 16,
-    "tokenDecimals": 12,
+    "tokenDecimals": 13,
     "tokenSymbol": "KLP"
   },
   "consensusEngine": null,
