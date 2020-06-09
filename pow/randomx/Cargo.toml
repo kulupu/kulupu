@@ -2,8 +2,8 @@
 name = "kulupu-randomx"
 description = "Proof-of-work (PoW) algorithm that is optimized for general-purpose CPUs"
 license = "BSD-3-Clause"
-version = "1.1.1"
-authors = ["Wei Tang <hi@that.world>"]
+version = "1.1.2"
+authors = ["Wei Tang <wei@that.world>"]
 edition = "2018"
 
 [dependencies]
