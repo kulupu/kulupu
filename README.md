@@ -66,6 +66,13 @@ cargo run --release -- purge-chain
 
 ### Mining
 
+#### Generate an address using polkadot.js
+
+Go to [polkadot.js.org](https://polkadot.js.org/apps), select Kulupu in the
+network dropdown, and generate a new address.
+
+#### Generate an address using Subkey
+
 Install `subkey`:
 
 ```bash
@@ -78,7 +85,10 @@ Generate an account to use as the target for mining:
 subkey --sr25519 --network=kulupu generate
 ```
 
-Remember the public key, and pass it to node for mining. For example:
+#### Pass author argument to node for mining
+
+Remember either the public key or the address, and pass it to node for
+mining. For example:
 
 ```
 cargo run --release -- --validator --author 0x7e946b7dd192307b4538d664ead95474062ac3738e04b5f3084998b76bc5122d

@@ -19,7 +19,7 @@
 use std::sync::Arc;
 use std::str::FromStr;
 use codec::Encode;
-use sp_core::{H256, crypto::UncheckedFrom};
+use sp_core::{H256, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
 use sc_consensus::LongestChain;
 use sc_service::{error::{Error as ServiceError}, AbstractService, Configuration, ServiceBuilder};
 use sc_executor::native_executor_instance;
@@ -52,11 +52,16 @@ pub fn kulupu_inherent_data_providers(
 		if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER) {
 			inherent_data_providers
 				.register_provider(pallet_rewards::InherentDataProvider(
-					AccountId::unchecked_from(H256::from_str(if author.starts_with("0x") {
-						&author[2..]
+					if author.starts_with("0x") {
+						AccountId::unchecked_from(
+							H256::from_str(&author[2..]).expect("Invalid author account")
+						)
 					} else {
-						author
-					}).expect("Invalid author account")).encode()
+						let (address, version) = AccountId::from_ss58check_with_version(author)
+							.expect("Invalid author address");
+						assert!(version == Ss58AddressFormat::KulupuAccount, "Invalid author version");
+						address
+					}.encode()
 				))
 				.map_err(Into::into)
 				.map_err(sp_consensus::Error::InherentData)?;
