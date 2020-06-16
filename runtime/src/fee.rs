@@ -1,14 +1,25 @@
-use sp_std::num::NonZeroI128;
-use sp_runtime::{Perquintill, Fixed128, traits::{Convert, Saturating}};
-use frame_support::{traits::Get, weights::Weight};
+use sp_runtime::{FixedPointNumber, Perbill, Perquintill, FixedI128, traits::{Convert, Saturating}};
+use frame_support::{
+	traits::Get,
+	weights::{WeightToFeePolynomial, WeightToFeeCoefficient, WeightToFeeCoefficients},
+};
 use kulupu_primitives::CENTS;
+use smallvec::smallvec;
 use crate::{Balance, MaximumBlockWeight, ExtrinsicBaseWeight};
 
 pub struct WeightToFee;
-impl Convert<Weight, Balance> for WeightToFee {
-	fn convert(x: Weight) -> Balance {
-		// Weight of 10_000_000 (smallest non-zero weight) is mapped to 1/10 CENT:
-		Balance::from(x).saturating_mul(CENTS / 10) / Balance::from(ExtrinsicBaseWeight::get())
+impl WeightToFeePolynomial for WeightToFee {
+	type Balance = Balance;
+	fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+		// in Kulupu, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
+		let p = CENTS;
+		let q = 10 * Balance::from(ExtrinsicBaseWeight::get());
+		smallvec![WeightToFeeCoefficient {
+			degree: 1,
+			negative: false,
+			coeff_frac: Perbill::from_rational_approximation(p % q, q),
+			coeff_integer: p / q,
+		}]
 	}
 }
 
@@ -22,10 +33,10 @@ impl Convert<Weight, Balance> for WeightToFee {
 /// https://research.web3.foundation/en/latest/polkadot/Token%20Economics/#relay-chain-transaction-fees
 pub struct TargetedFeeAdjustment<T, R>(sp_std::marker::PhantomData<(T, R)>);
 
-impl<T: Get<Perquintill>, R: system::Trait> Convert<Fixed128, Fixed128> for TargetedFeeAdjustment<T, R> {
-	fn convert(multiplier: Fixed128) -> Fixed128 {
+impl<T: Get<Perquintill>, R: system::Trait> Convert<FixedI128, FixedI128> for TargetedFeeAdjustment<T, R> {
+	fn convert(multiplier: FixedI128) -> FixedI128 {
 		let max_weight = MaximumBlockWeight::get();
-		let block_weight = <system::Module<R>>::all_extrinsics_weight().total().min(max_weight);
+		let block_weight = <system::Module<R>>::block_weight().total().min(max_weight);
 		let target_weight = (T::get() * max_weight) as u128;
 		let block_weight = block_weight as u128;
 
@@ -33,17 +44,14 @@ impl<T: Get<Perquintill>, R: system::Trait> Convert<Fixed128, Fixed128> for Targ
 		let positive = block_weight >= target_weight;
 		let diff_abs = block_weight.max(target_weight) - block_weight.min(target_weight);
 		// safe, diff_abs cannot exceed u64 and it can always be computed safely even with the lossy
-		// `Fixed128::from_rational`.
-		let diff = Fixed128::from_rational(
-			diff_abs as i128,
-			NonZeroI128::new(max_weight.max(1) as i128).unwrap(),
-		);
+		// `FixedI128::saturating_from_rational`.
+		let diff = FixedI128::saturating_from_rational(diff_abs, max_weight.max(1));
 		let diff_squared = diff.saturating_mul(diff);
 
 		// 0.00004 = 4/100_000 = 40_000/10^9
-		let v = Fixed128::from_rational(4, NonZeroI128::new(100_000).unwrap());
+		let v = FixedI128::saturating_from_rational(4, 100_000);
 		// 0.00004^2 = 16/10^10 Taking the future /2 into account... 8/10^10
-		let v_squared_2 = Fixed128::from_rational(8, NonZeroI128::new(10_000_000_000).unwrap());
+		let v_squared_2 = FixedI128::saturating_from_rational(8, 10_000_000_000u64);
 
 		let first_term = v.saturating_mul(diff);
 		let second_term = v_squared_2.saturating_mul(diff_squared);
@@ -62,7 +70,7 @@ impl<T: Get<Perquintill>, R: system::Trait> Convert<Fixed128, Fixed128> for Targ
 				// multiplier. While at -1, it means that the network is so un-congested that all
 				// transactions have no weight fee. We stop here and only increase if the network
 				// became more busy.
-				.max(Fixed128::from_natural(-1))
+				.max(FixedI128::saturating_from_integer(-1))
 		}
 	}
 }

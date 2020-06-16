@@ -17,7 +17,7 @@
 use sc_cli::RunCmd;
 use structopt::StructOpt;
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, StructOpt)]
 pub enum Subcommand {
 	#[structopt(flatten)]
 	Base(sc_cli::Subcommand),
@@ -44,7 +44,7 @@ pub struct Cli {
 	pub enable_polkadot_telemetry: bool,
 }
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, StructOpt)]
 pub struct ExportBuiltinWasmCommand {
 	#[structopt()]
 	pub folder: String,

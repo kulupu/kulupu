@@ -62,6 +62,10 @@ pub const MILLICENTS: u128 = CENTS / 1_000;
 /// Value of microcents relative to RLP.
 pub const MICROCENTS: u128 = MILLICENTS / 1_000;
 
+pub const fn deposit(items: u32, bytes: u32) -> u128 {
+	items as u128 * 20 * DOLLARS + (bytes as u128) * 100 * MILLICENTS
+}
+
 /// Block number of one hour.
 pub const HOURS: u32 = 60;
 /// Block number of one day.

@@ -22,6 +22,7 @@ sp-inherents = { path = "../vendor/substrate/primitives/inherents", default-feat
 frame-support = { path = "../vendor/substrate/frame/support", default-features = false }
 frame-executive = { path = "../vendor/substrate/frame/executive", default-features = false }
 kulupu-primitives = { path = "../primitives", default-features = false }
+smallvec = "1.4.0"
 
 system = { package = "frame-system", path = "../vendor/substrate/frame/system", default-features = false }
 balances = { package = "pallet-balances", path = "../vendor/substrate/frame/balances", default-features = false }
@@ -37,6 +38,8 @@ membership = { package = "pallet-membership", path = "../vendor/substrate/frame/
 treasury = { package = "pallet-treasury", path = "../vendor/substrate/frame/treasury", default-features = false }
 scheduler = { package = "pallet-scheduler", path = "../vendor/substrate/frame/scheduler", default-features = false }
 identity = { package = "pallet-identity", path = "../vendor/substrate/frame/identity", default-features = false }
+proxy = { package = "pallet-proxy", path = "../vendor/substrate/frame/proxy", default-features = false }
+multisig = { package = "pallet-multisig", path = "../vendor/substrate/frame/multisig", default-features = false }
 rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
 eras = { package = "pallet-eras", path = "../frame/eras", default-features = false }
 difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", default-features = false }
@@ -79,6 +82,8 @@ std = [
 	"treasury/std",
 	"scheduler/std",
 	"identity/std",
+	"proxy/std",
+	"multisig/std",
 	"rewards/std",
 	"eras/std",
 	"difficulty/std",
