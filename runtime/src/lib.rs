@@ -36,7 +36,7 @@ use sp_runtime::{
 };
 use sp_runtime::traits::{
 	BlakeTwo256, Block as BlockT, StaticLookup, Saturating,
-	Verify, IdentifyAccount, Convert
+	Verify, IdentifyAccount, Convert, ConvertInto,
 };
 use sp_api::impl_runtime_apis;
 use sp_version::RuntimeVersion;
@@ -538,21 +538,44 @@ pub enum ProxyType {
 	Any,
 	NonTransfer,
 	Governance,
+	IdentityJudgement,
 }
 impl Default for ProxyType { fn default() -> Self { Self::Any } }
 impl InstanceFilter<Call> for ProxyType {
 	fn filter(&self, c: &Call) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer => !matches!(c,
-				Call::Balances(..) | Call::Indices(indices::Call::transfer(..))
+			ProxyType::NonTransfer => matches!(c,
+				Call::System(..) |
+				Call::Timestamp(..) |
+				Call::Indices(indices::Call::claim(..)) |
+				Call::Indices(indices::Call::free(..)) |
+				Call::Indices(indices::Call::freeze(..)) |
+				// Specifically omitting Indices `transfer`, `force_transfer`
+				// Specifically omitting the entire Balances pallet
+				Call::Democracy(..) |
+				Call::Council(..) |
+				Call::TechnicalCommittee(..) |
+				Call::ElectionsPhragmen(..) |
+				Call::TechnicalMembership(..) |
+				Call::Treasury(..) |
+				Call::Utility(..) |
+				Call::Identity(..) |
+				Call::Vesting(vesting::Call::vest(..)) |
+				Call::Vesting(vesting::Call::vest_other(..)) |
+				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
+				Call::Scheduler(..) |
+				Call::Proxy(..) |
+				Call::Multisig(..)
 			),
 			ProxyType::Governance => matches!(c,
 				Call::Democracy(..) | Call::Council(..) | Call::TechnicalCommittee(..)
-					| Call::ElectionsPhragmen(..) | Call::Treasury(..)
-					| Call::Utility(utility::Call::batch(..))
-					| Call::Utility(utility::Call::as_limited_sub(..))
+					| Call::ElectionsPhragmen(..) | Call::Treasury(..) | Call::Utility(..)
 			),
+			ProxyType::IdentityJudgement => matches!(c,
+				Call::Identity(identity::Call::provide_judgement(..))
+				| Call::Utility(utility::Call::batch(..))
+			)
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
@@ -574,6 +597,17 @@ impl proxy::Trait for Runtime {
 	type ProxyDepositBase = ProxyDepositBase;
 	type ProxyDepositFactor = ProxyDepositFactor;
 	type MaxProxies = MaxProxies;
+}
+
+parameter_types! {
+	pub const MinVestedTransfer: Balance = 10 * DOLLARS;
+}
+
+impl vesting::Trait for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type BlockNumberToBalance = ConvertInto;
+	type MinVestedTransfer = MinVestedTransfer;
 }
 
 construct_runtime!(
@@ -611,6 +645,7 @@ construct_runtime!(
 		Scheduler: scheduler::{Module, Call, Storage, Event<T>},
 		Multisig: multisig::{Module, Call, Storage, Event<T>},
 		Proxy: proxy::{Module, Call, Storage, Event<T>},
+		Vesting: vesting::{Module, Call, Storage, Event<T>, Config<T>},
 	}
 );
 

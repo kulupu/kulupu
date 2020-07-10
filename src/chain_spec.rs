@@ -93,6 +93,7 @@ fn testnet_genesis(initial_difficulty: U256) -> GenesisConfig {
 		eras: Some(Default::default()),
 		membership_Instance1: Some(Default::default()),
 		timestamp: Some(Default::default()),
+		vesting: Some(Default::default()),
 	}
 }
 
@@ -135,5 +136,6 @@ pub fn mainnet_genesis() -> GenesisConfig {
 		elections_phragmen: Some(Default::default()),
 		membership_Instance1: Some(Default::default()),
 		timestamp: Some(Default::default()),
+		vesting: None,
 	}
 }

@@ -39,6 +39,7 @@ treasury = { package = "pallet-treasury", path = "../vendor/substrate/frame/trea
 scheduler = { package = "pallet-scheduler", path = "../vendor/substrate/frame/scheduler", default-features = false }
 identity = { package = "pallet-identity", path = "../vendor/substrate/frame/identity", default-features = false }
 proxy = { package = "pallet-proxy", path = "../vendor/substrate/frame/proxy", default-features = false }
+vesting = { package = "pallet-vesting", path = "../vendor/substrate/frame/vesting", default-features = false }
 multisig = { package = "pallet-multisig", path = "../vendor/substrate/frame/multisig", default-features = false }
 rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
 eras = { package = "pallet-eras", path = "../frame/eras", default-features = false }
@@ -83,6 +84,7 @@ std = [
 	"scheduler/std",
 	"identity/std",
 	"proxy/std",
+	"vesting/std",
 	"multisig/std",
 	"rewards/std",
 	"eras/std",
