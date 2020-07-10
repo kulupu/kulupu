@@ -32,6 +32,7 @@ use sp_core::{OpaqueMetadata, u32_trait::{_1, _2, _4, _5, _9, _10}};
 use sp_runtime::{
 	ApplyExtrinsicResult, Percent, ModuleId, generic, create_runtime_str, MultiSignature,
 	RuntimeDebug, Perquintill, transaction_validity::{TransactionValidity, TransactionSource},
+	FixedPointNumber,
 };
 use sp_runtime::traits::{
 	BlakeTwo256, Block as BlockT, StaticLookup, Saturating,
@@ -42,7 +43,8 @@ use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use kulupu_primitives::{DOLLARS, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS, deposit};
-use crate::fee::{WeightToFee, TargetedFeeAdjustment};
+use transaction_payment::{TargetedFeeAdjustment, Multiplier};
+use crate::fee::WeightToFee;
 
 // A few exports that help ease life for downstream crates.
 pub use sp_runtime::{Permill, Perbill};
@@ -277,8 +279,16 @@ impl OnUnbalanced<NegativeImbalance> for DealWithFees {
 
 parameter_types! {
 	pub const TransactionByteFee: Balance = 10 * MILLICENTS;
-	// for a sane configuration, this should always be less than `AvailableBlockRatio`.
+	/// The portion of the `AvailableBlockRatio` that we adjust the fees with. Blocks filled less
+	/// than this will decrease the weight and more will increase.
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
+	/// The adjustment variable of the runtime. Higher values will cause `TargetBlockFullness` to
+	/// change the fees more rapidly.
+	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(3, 100_000);
+	/// Minimum amount of the multiplier. This value cannot be too low. A test case should ensure
+	/// that combined with `AdjustmentVariable`, we can recover from the minimum.
+	/// See `multiplier_can_grow_from_zero`.
+	pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000u128);
 }
 
 impl transaction_payment::Trait for Runtime {
@@ -286,7 +296,7 @@ impl transaction_payment::Trait for Runtime {
 	type OnTransactionPayment = DealWithFees;
 	type TransactionByteFee = TransactionByteFee;
 	type WeightToFee = WeightToFee;
-	type FeeMultiplierUpdate = TargetedFeeAdjustment<TargetBlockFullness, Self>;
+	type FeeMultiplierUpdate = TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
 }
 
 impl difficulty::Trait for Runtime { }
