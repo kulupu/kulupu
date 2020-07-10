@@ -63,9 +63,9 @@ jobs:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
   - script: |
-      rustup update nightly --no-self-update
-      rustup update stable --no-self-update
-      rustup target add wasm32-unknown-unknown --toolchain nightly --no-self-update
+      rustup --no-self-update update nightly
+      rustup --no-self-update update stable
+      rustup --no-self-update target add wasm32-unknown-unknown --toolchain nightly
     displayName: 'Rust setup'
   - script: |
       set LIBCLANG_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\Llvm\x64\bin
