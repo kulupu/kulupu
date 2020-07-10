@@ -63,7 +63,7 @@ pub const MILLICENTS: u128 = CENTS / 1_000;
 pub const MICROCENTS: u128 = MILLICENTS / 1_000;
 
 pub const fn deposit(items: u32, bytes: u32) -> u128 {
-	items as u128 * 20 * DOLLARS + (bytes as u128) * 100 * MILLICENTS
+	items as u128 * 2 * DOLLARS + (bytes as u128) * 10 * MILLICENTS
 }
 
 /// Block number of one hour.
