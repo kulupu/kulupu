@@ -520,7 +520,7 @@ impl identity::Trait for Runtime {
 	type MaxSubAccounts = MaxSubAccounts;
 	type MaxAdditionalFields = MaxAdditionalFields;
 	type MaxRegistrars = MaxRegistrars;
-	type RegistrarOrigin = system::EnsureNever<AccountId>;
+	type RegistrarOrigin = system::EnsureRoot<AccountId>;
 	type ForceOrigin = system::EnsureNever<AccountId>;
 }
 
