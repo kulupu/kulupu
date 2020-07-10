@@ -63,8 +63,8 @@ jobs:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
   - script: |
-      rustup update nightly
-      rustup update stable
+      rustup update --no-self-update nightly
+      rustup update --no-self-update stable
       rustup target add wasm32-unknown-unknown --toolchain nightly
     displayName: 'Rust setup'
   - script: |

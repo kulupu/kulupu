@@ -27,21 +27,24 @@ mod fee;
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use sp_std::prelude::*;
-use sp_core::{OpaqueMetadata, u32_trait::{_1, _2, _3, _4, _5}};
+use codec::{Encode, Decode};
+use sp_core::{OpaqueMetadata, u32_trait::{_1, _2, _4, _5, _9, _10}};
 use sp_runtime::{
 	ApplyExtrinsicResult, Percent, ModuleId, generic, create_runtime_str, MultiSignature,
-	Perquintill, transaction_validity::{TransactionValidity, TransactionSource},
+	RuntimeDebug, Perquintill, transaction_validity::{TransactionValidity, TransactionSource},
+	FixedPointNumber,
 };
 use sp_runtime::traits::{
-	BlakeTwo256, Block as BlockT, StaticLookup,
-	Verify, IdentifyAccount, Convert
+	BlakeTwo256, Block as BlockT, StaticLookup, Saturating,
+	Verify, IdentifyAccount, Convert, ConvertInto,
 };
 use sp_api::impl_runtime_apis;
 use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
-use kulupu_primitives::{DOLLARS, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS};
-use crate::fee::{WeightToFee, TargetedFeeAdjustment};
+use kulupu_primitives::{DOLLARS, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS, deposit};
+use transaction_payment::{TargetedFeeAdjustment, Multiplier};
+use crate::fee::WeightToFee;
 
 // A few exports that help ease life for downstream crates.
 pub use sp_runtime::{Permill, Perbill};
@@ -49,7 +52,7 @@ pub use sp_runtime::{Permill, Perbill};
 pub use sp_runtime::BuildStorage;
 pub use frame_support::{
 	StorageValue, construct_runtime, parameter_types,
-	traits::{Currency, Randomness, LockIdentifier, OnUnbalanced},
+	traits::{Currency, Randomness, LockIdentifier, OnUnbalanced, InstanceFilter},
 	weights::{
 		Weight, RuntimeDbWeight,
 		constants::{
@@ -107,10 +110,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kulupu"),
 	impl_name: create_runtime_str!("kulupu"),
 	authoring_version: 3,
-	spec_version: 4,
+	spec_version: 5,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 1,
+	transaction_version: 2,
 };
 
 /// The version infromation used to identify this runtime when compiled natively.
@@ -122,16 +125,21 @@ pub fn native_version() -> NativeVersion {
 	}
 }
 
+const AVERAGE_ON_INITIALIZE_WEIGHT: Perbill = Perbill::from_percent(10);
 parameter_types! {
 	pub const BlockHashCount: BlockNumber = 250;
-	pub const MaximumBlockWeight: Weight = 2 * WEIGHT_PER_SECOND;
 	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
+	pub const MaximumBlockWeight: Weight = 2 * WEIGHT_PER_SECOND;
+	pub MaximumExtrinsicWeight: Weight = AvailableBlockRatio::get()
+		.saturating_sub(AVERAGE_ON_INITIALIZE_WEIGHT) * MaximumBlockWeight::get();
 	pub const MaximumBlockLength: u32 = 5 * 1024 * 1024;
 	pub const Version: RuntimeVersion = VERSION;
 	pub const DbWeight: RuntimeDbWeight = frame_support::weights::constants::RocksDbWeight::get();
 }
 
 impl system::Trait for Runtime {
+	/// Filter for base call.
+	type BaseCallFilter = ();
 	/// The identifier used to distinguish between accounts.
 	type AccountId = AccountId;
 	/// The aggregated dispatch type that is available for extrinsics.
@@ -166,6 +174,8 @@ impl system::Trait for Runtime {
 	type ExtrinsicBaseWeight = ExtrinsicBaseWeight;
 	/// Maximum size of all encoded transactions (in bytes) that are allowed in one block.
 	type MaximumBlockLength = MaximumBlockLength;
+	/// Maximum extrinsic weight.
+	type MaximumExtrinsicWeight = MaximumExtrinsicWeight;
 	/// Portion of the block weight that is available to all normal transactions.
 	type AvailableBlockRatio = AvailableBlockRatio;
 	/// Version of the runtime.
@@ -190,20 +200,25 @@ impl scheduler::Trait for Runtime {
 }
 
 parameter_types! {
-	// One storage item; value is size 4+4+16+32 bytes = 56 bytes.
-	pub const MultisigDepositBase: Balance = 30 * CENTS;
+	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
+	pub const DepositBase: Balance = deposit(1, 88);
 	// Additional storage item size of 32 bytes.
-	pub const MultisigDepositFactor: Balance = 5 * CENTS;
+	pub const DepositFactor: Balance = deposit(0, 32);
 	pub const MaxSignatories: u16 = 100;
+}
+
+impl multisig::Trait for Runtime {
+	type Event = Event;
+	type Call = Call;
+	type Currency = Balances;
+	type DepositBase = DepositBase;
+	type DepositFactor = DepositFactor;
+	type MaxSignatories = MaxSignatories;
 }
 
 impl utility::Trait for Runtime {
 	type Event = Event;
 	type Call = Call;
-	type Currency = Balances;
-	type MultisigDepositBase = MultisigDepositBase;
-	type MultisigDepositFactor = MultisigDepositFactor;
-	type MaxSignatories = MaxSignatories;
 }
 
 parameter_types! {
@@ -264,8 +279,16 @@ impl OnUnbalanced<NegativeImbalance> for DealWithFees {
 
 parameter_types! {
 	pub const TransactionByteFee: Balance = 10 * MILLICENTS;
-	// for a sane configuration, this should always be less than `AvailableBlockRatio`.
+	/// The portion of the `AvailableBlockRatio` that we adjust the fees with. Blocks filled less
+	/// than this will decrease the weight and more will increase.
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
+	/// The adjustment variable of the runtime. Higher values will cause `TargetBlockFullness` to
+	/// change the fees more rapidly.
+	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(3, 100_000);
+	/// Minimum amount of the multiplier. This value cannot be too low. A test case should ensure
+	/// that combined with `AdjustmentVariable`, we can recover from the minimum.
+	/// See `multiplier_can_grow_from_zero`.
+	pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000u128);
 }
 
 impl transaction_payment::Trait for Runtime {
@@ -273,7 +296,7 @@ impl transaction_payment::Trait for Runtime {
 	type OnTransactionPayment = DealWithFees;
 	type TransactionByteFee = TransactionByteFee;
 	type WeightToFee = WeightToFee;
-	type FeeMultiplierUpdate = TargetedFeeAdjustment<TargetBlockFullness, Self>;
+	type FeeMultiplierUpdate = TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
 }
 
 impl difficulty::Trait for Runtime { }
@@ -335,9 +358,10 @@ impl democracy::Trait for Runtime {
 	type InstantOrigin = system::EnsureNever<AccountId>;
 	type InstantAllowed = InstantAllowed;
 	type FastTrackVotingPeriod = FastTrackVotingPeriod;
-	/// To cancel a proposal which has been passed, 2/3 of the council must agree
-	/// to it.
-	type CancellationOrigin = collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
+	/// To cancel a proposal which has been passed, all of the council must
+	/// agree to it.
+	type CancellationOrigin = collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
+	type OperationalPreimageOrigin = collective::EnsureMember<AccountId, CouncilCollective>;
 	/// Any single technical committee member may veto a coming council
 	/// proposal, however they can only do it once and it lasts only for the
 	/// cooloff period.
@@ -399,7 +423,7 @@ parameter_types! {
 	/// Daily council elections.
 	pub const TermDuration: BlockNumber = 24 * HOURS;
 	pub const DesiredMembers: u32 = 17;
-	pub const DesiredRunnersUp: u32 = 9;
+	pub const DesiredRunnersUp: u32 = 30;
 	pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
 }
 
@@ -436,11 +460,11 @@ impl collective::Trait<TechnicalCollective> for Runtime {
 
 impl membership::Trait<membership::Instance1> for Runtime {
 	type Event = Event;
-	type AddOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type RemoveOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type SwapOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type ResetOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type PrimeOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type AddOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
+	type RemoveOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
+	type SwapOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
+	type ResetOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
+	type PrimeOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
 	type MembershipInitialized = TechnicalCommittee;
 	type MembershipChanged = TechnicalCommittee;
 }
@@ -496,8 +520,94 @@ impl identity::Trait for Runtime {
 	type MaxSubAccounts = MaxSubAccounts;
 	type MaxAdditionalFields = MaxAdditionalFields;
 	type MaxRegistrars = MaxRegistrars;
-	type RegistrarOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type RegistrarOrigin = system::EnsureRoot<AccountId>;
 	type ForceOrigin = system::EnsureNever<AccountId>;
+}
+
+parameter_types! {
+	// One storage item; key size 32, value size 8; .
+	pub const ProxyDepositBase: Balance = deposit(1, 8);
+	// Additional storage item size of 33 bytes.
+	pub const ProxyDepositFactor: Balance = deposit(0, 33);
+	pub const MaxProxies: u16 = 32;
+}
+
+/// The type used to represent the kinds of proxying allowed.
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug)]
+pub enum ProxyType {
+	Any,
+	NonTransfer,
+	Governance,
+	IdentityJudgement,
+}
+impl Default for ProxyType { fn default() -> Self { Self::Any } }
+impl InstanceFilter<Call> for ProxyType {
+	fn filter(&self, c: &Call) -> bool {
+		match self {
+			ProxyType::Any => true,
+			ProxyType::NonTransfer => matches!(c,
+				Call::System(..) |
+				Call::Timestamp(..) |
+				Call::Indices(indices::Call::claim(..)) |
+				Call::Indices(indices::Call::free(..)) |
+				Call::Indices(indices::Call::freeze(..)) |
+				// Specifically omitting Indices `transfer`, `force_transfer`
+				// Specifically omitting the entire Balances pallet
+				Call::Democracy(..) |
+				Call::Council(..) |
+				Call::TechnicalCommittee(..) |
+				Call::ElectionsPhragmen(..) |
+				Call::TechnicalMembership(..) |
+				Call::Treasury(..) |
+				Call::Utility(..) |
+				Call::Identity(..) |
+				Call::Vesting(vesting::Call::vest(..)) |
+				Call::Vesting(vesting::Call::vest_other(..)) |
+				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
+				Call::Scheduler(..) |
+				Call::Proxy(..) |
+				Call::Multisig(..)
+			),
+			ProxyType::Governance => matches!(c,
+				Call::Democracy(..) | Call::Council(..) | Call::TechnicalCommittee(..)
+					| Call::ElectionsPhragmen(..) | Call::Treasury(..) | Call::Utility(..)
+			),
+			ProxyType::IdentityJudgement => matches!(c,
+				Call::Identity(identity::Call::provide_judgement(..))
+				| Call::Utility(utility::Call::batch(..))
+			)
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		match (self, o) {
+			(x, y) if x == y => true,
+			(ProxyType::Any, _) => true,
+			(_, ProxyType::Any) => false,
+			(ProxyType::NonTransfer, _) => true,
+			_ => false,
+		}
+	}
+}
+
+impl proxy::Trait for Runtime {
+	type Event = Event;
+	type Call = Call;
+	type Currency = Balances;
+	type ProxyType = ProxyType;
+	type ProxyDepositBase = ProxyDepositBase;
+	type ProxyDepositFactor = ProxyDepositFactor;
+	type MaxProxies = MaxProxies;
+}
+
+parameter_types! {
+	pub const MinVestedTransfer: Balance = 10 * DOLLARS;
+}
+
+impl vesting::Trait for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type BlockNumberToBalance = ConvertInto;
+	type MinVestedTransfer = MinVestedTransfer;
 }
 
 construct_runtime!(
@@ -531,8 +641,11 @@ construct_runtime!(
 		Identity: identity::{Module, Call, Storage, Event<T>},
 
 		// Utility module.
-		Utility: utility::{Module, Call, Storage, Event<T>},
+		Utility: utility::{Module, Call, Event},
 		Scheduler: scheduler::{Module, Call, Storage, Event<T>},
+		Multisig: multisig::{Module, Call, Storage, Event<T>},
+		Proxy: proxy::{Module, Call, Storage, Event<T>},
+		Vesting: vesting::{Module, Call, Storage, Event<T>, Config<T>},
 	}
 );
 
