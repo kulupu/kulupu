@@ -358,9 +358,9 @@ impl democracy::Trait for Runtime {
 	type InstantOrigin = system::EnsureNever<AccountId>;
 	type InstantAllowed = InstantAllowed;
 	type FastTrackVotingPeriod = FastTrackVotingPeriod;
-	/// To cancel a proposal which has been passed, 2/3 of the council must agree
-	/// to it.
-	type CancellationOrigin = system::EnsureNever<AccountId>;
+	/// To cancel a proposal which has been passed, all of the council must
+	/// agree to it.
+	type CancellationOrigin = collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
 	type OperationalPreimageOrigin = collective::EnsureMember<AccountId, CouncilCollective>;
 	/// Any single technical committee member may veto a coming council
 	/// proposal, however they can only do it once and it lasts only for the
