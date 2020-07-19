@@ -98,7 +98,7 @@ cargo run --release -- --validator --author 0x7e946b7dd192307b4538d664ead9547406
 
 * **Algorithm**: RandomX
 * **Block time**: 60 seconds
-* **Issurance**: 1 KULU per second (60 KULU per block)
+* **Issurance**: 1 KLP per second (60 KLP per block)
 * No premine
 
 ## Disclaimer
