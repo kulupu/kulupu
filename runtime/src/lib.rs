@@ -42,7 +42,7 @@ use sp_api::impl_runtime_apis;
 use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
-use kulupu_primitives::{DOLLARS, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS, deposit};
+use kulupu_primitives::{DOLLARS, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS, BLOCK_TIME, deposit};
 use transaction_payment::{TargetedFeeAdjustment, Multiplier};
 use crate::fee::WeightToFee;
 
@@ -299,7 +299,13 @@ impl transaction_payment::Trait for Runtime {
 	type FeeMultiplierUpdate = TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
 }
 
-impl difficulty::Trait for Runtime { }
+parameter_types! {
+	pub const BlockTime: u128 = BLOCK_TIME;
+}
+
+impl difficulty::Trait for Runtime {
+	type BlockTime = BlockTime;
+}
 
 impl eras::Trait for Runtime { }
 
