@@ -5,7 +5,8 @@
   "bootNodes": [
     "/dns4/bootnode0.nodes.kulupu.network/tcp/30333/p2p/QmU2WrqoJWWqrhUvk98SBvVbtUCqVcrXhPG7yftecyXnGw",
     "/ip4/135.181.6.137/tcp/30333/p2p/12D3KooWGsBjSr3cgLJz4hGhXNnEeboXzRoz52WpknnqhiV7qGkb",
-    "/ip4/46.101.184.250/tcp/30333/p2p/12D3KooWCd4G7eeNHiY6jLPdURzYbHdH7nRVFUNRLBjzBTeBRcfe"
+    "/ip4/46.101.184.250/tcp/30333/p2p/12D3KooWCd4G7eeNHiY6jLPdURzYbHdH7nRVFUNRLBjzBTeBRcfe",
+	"/ip4/95.217.4.196/tcp/30333/p2p/12D3KooWNQ99D7cDfMsRAyYHDiQGGttegKsoNj7r98qVk3NuWXHk"
   ],
   "telemetryEndpoints": null,
   "protocolId": "kulupu",
