@@ -3,8 +3,7 @@
   "id": "kulupu",
   "bootNodes": [
     "/dns4/hat.nodes.kulupu.network/tcp/30333/p2p/QmUn9WGHir2CrqeyY3Y7GfMe6UYPZYw8ix5pYZLoZJaKRm",
-    "/dns4/legend.nodes.kulupu.network/tcp/30333/p2p/QmYeDXU7bEDSKjAXAd2P4qHfAJiLr4gzLUd6jD8ud9Xx92",
-		"/ip4/135.181.6.137/tcp/30333/p2p/12D3KooWGsBjSr3cgLJz4hGhXNnEeboXzRoz52WpknnqhiV7qGkb"
+    "/dns4/legend.nodes.kulupu.network/tcp/30333/p2p/QmYeDXU7bEDSKjAXAd2P4qHfAJiLr4gzLUd6jD8ud9Xx92"
   ],
   "telemetryEndpoints": null,
   "protocolId": "kul",
