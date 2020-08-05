@@ -110,7 +110,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kulupu"),
 	impl_name: create_runtime_str!("kulupu"),
 	authoring_version: 3,
-	spec_version: 5,
+	spec_version: 6,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
@@ -300,11 +300,11 @@ impl transaction_payment::Trait for Runtime {
 }
 
 parameter_types! {
-	pub const BlockTime: u128 = BLOCK_TIME;
+	pub const TargetPeriod: u64 = BLOCK_TIME;
 }
 
 impl difficulty::Trait for Runtime {
-	type BlockTime = BlockTime;
+	type TargetPeriod = TargetPeriod;
 }
 
 impl eras::Trait for Runtime { }

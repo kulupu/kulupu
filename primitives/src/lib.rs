@@ -25,7 +25,7 @@ pub type Difficulty = sp_core::U256;
 /// Block interval, in seconds, the network will tune its next_target for.
 pub const BLOCK_TIME_SEC: u64 = 60;
 /// Block time interval in milliseconds.
-pub const BLOCK_TIME: u128 = BLOCK_TIME_SEC as u128 * 1000;
+pub const BLOCK_TIME: u64 = BLOCK_TIME_SEC * 1000;
 
 /// Nominal height for standard time intervals, hour is 60 blocks
 pub const HOUR_HEIGHT: u64 = 3600 / BLOCK_TIME_SEC;
