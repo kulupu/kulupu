@@ -25,15 +25,18 @@ use sp_inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalErr
 #[cfg(feature = "std")]
 use sp_inherents::ProvideInherentData;
 use frame_support::{
-	decl_module, decl_storage, decl_error, ensure,
+	decl_module, decl_storage, decl_error, decl_event, ensure,
 	traits::{Get, Currency},
-	weights::DispatchClass,
+	weights::{DispatchClass, Weight},
 };
-use frame_system::ensure_none;
+use frame_system::{self as system, ensure_none, ensure_root};
 
 /// Trait for rewards.
 pub trait Trait: pallet_balances::Trait {
+	/// The overarching event type.
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	/// Value of the reward.
+	// [fixme: should be removed in next runtime upgrade]
 	type Reward: Get<Self::Balance>;
 }
 
@@ -46,13 +49,25 @@ decl_error! {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Rewards {
+		/// Current block author.
 		Author get(fn author): Option<T::AccountId>;
+		/// Current block reward.
+		Reward get(fn reward): T::Balance;
+	}
+}
+
+decl_event! {
+	pub enum Event<T> where Balance = <T as pallet_balances::Trait>::Balance {
+		/// Block reward has changed. [reward]
+		RewardChanged(Balance),
 	}
 }
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
+
+		fn deposit_event() = default;
 
 		#[weight = (
 			T::DbWeight::get().reads_writes(1, 1),
@@ -65,12 +80,38 @@ decl_module! {
 			<Self as Store>::Author::put(author);
 		}
 
+		#[weight = (
+			T::DbWeight::get().reads_writes(0, 1),
+			DispatchClass::Operational
+		)]
+		fn set_reward(origin, reward: T::Balance) {
+			ensure_root(origin)?;
+			Reward::<T>::put(reward);
+			Self::deposit_event(RawEvent::RewardChanged(reward))
+		}
+
 		fn on_finalize() {
 			if let Some(author) = <Self as Store>::Author::get() {
-				drop(pallet_balances::Module::<T>::deposit_creating(&author, T::Reward::get()));
+				let mut reward = Reward::<T>::get();
+
+				// This should never happen, but we put it here in
+				// case the runtime upgrade script had issues.
+				// [fixme: should be removed in next runtime upgrade]
+				if reward == Default::default() {
+					reward = T::Reward::get();
+				}
+
+				drop(pallet_balances::Module::<T>::deposit_creating(&author, reward));
 			}
 
 			<Self as Store>::Author::kill();
+		}
+
+		// [fixme: should be removed in next runtime upgrade]
+		fn on_runtime_upgrade() -> Weight {
+			Reward::<T>::put(T::Reward::get());
+
+			0
 		}
 	}
 }
