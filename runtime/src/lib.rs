@@ -314,6 +314,7 @@ parameter_types! {
 }
 
 impl rewards::Trait for Runtime {
+	type Event = Event;
 	type Reward = Reward;
 }
 
@@ -633,7 +634,7 @@ construct_runtime!(
 		// PoW consensus and era support.
 		Difficulty: difficulty::{Module, Call, Storage, Config},
 		Eras: eras::{Module, Call, Storage, Config<T>},
-		Rewards: rewards::{Module, Call, Inherent, Storage},
+		Rewards: rewards::{Module, Call, Inherent, Storage, Event<T>},
 
 		// Governance.
 		Democracy: democracy::{Module, Call, Storage, Config, Event<T>},
