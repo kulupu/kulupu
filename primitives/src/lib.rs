@@ -25,7 +25,7 @@ pub type Difficulty = sp_core::U256;
 /// Block interval, in seconds, the network will tune its next_target for.
 pub const BLOCK_TIME_SEC: u64 = 60;
 /// Block time interval in milliseconds.
-pub const BLOCK_TIME_MSEC: u128 = BLOCK_TIME_SEC as u128 * 1000;
+pub const BLOCK_TIME: u64 = BLOCK_TIME_SEC * 1000;
 
 /// Nominal height for standard time intervals, hour is 60 blocks
 pub const HOUR_HEIGHT: u64 = 3600 / BLOCK_TIME_SEC;
@@ -38,10 +38,6 @@ pub const YEAR_HEIGHT: u64 = 52 * WEEK_HEIGHT;
 
 /// Number of blocks used to calculate difficulty adjustments
 pub const DIFFICULTY_ADJUST_WINDOW: u64 = HOUR_HEIGHT;
-/// Average time span of the difficulty adjustment window in seconds.
-pub const BLOCK_TIME_WINDOW_SEC: u64 = DIFFICULTY_ADJUST_WINDOW * BLOCK_TIME_SEC;
-/// Average time span of the difficulty adjustment window in milliseconds.
-pub const BLOCK_TIME_WINDOW_MSEC: u128 = DIFFICULTY_ADJUST_WINDOW as u128 * BLOCK_TIME_MSEC;
 /// Clamp factor to use for difficulty adjustment
 /// Limit value to within this factor of goal
 pub const CLAMP_FACTOR: u128 = 2;

@@ -23,11 +23,10 @@ use sp_std::cmp::{min, max};
 use sp_core::U256;
 use sp_runtime::traits::UniqueSaturatedInto;
 use sp_timestamp::OnTimestampSet;
-use frame_support::{decl_storage, decl_module};
+use frame_support::{decl_storage, decl_module, traits::Get};
 use kulupu_primitives::{
-	DIFFICULTY_ADJUST_WINDOW, BLOCK_TIME_MSEC, BLOCK_TIME_WINDOW_MSEC,
-	DIFFICULTY_DAMP_FACTOR, CLAMP_FACTOR, MIN_DIFFICULTY, MAX_DIFFICULTY,
-	Difficulty,
+	DIFFICULTY_ADJUST_WINDOW, DIFFICULTY_DAMP_FACTOR, CLAMP_FACTOR,
+	MIN_DIFFICULTY, MAX_DIFFICULTY, Difficulty,
 };
 
 #[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, Debug)]
@@ -46,7 +45,10 @@ pub fn clamp(actual: u128, goal: u128, clamp_factor: u128) -> u128 {
 	max(goal / clamp_factor, min(actual, goal * clamp_factor))
 }
 
-pub trait Trait: pallet_timestamp::Trait { }
+pub trait Trait: pallet_timestamp::Trait {
+	/// Target block time in millseconds.
+	type TargetBlockTime: Get<Self::Moment>;
+}
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Difficulty {
@@ -64,11 +66,17 @@ decl_storage! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin { }
+	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+		/// Target block time in milliseconds.
+		const TargetBlockTime: T::Moment = T::TargetBlockTime::get();
+	}
 }
 
 impl<T: Trait> OnTimestampSet<T::Moment> for Module<T> {
 	fn on_timestamp_set(now: T::Moment) {
+		let block_time = UniqueSaturatedInto::<u128>::unique_saturated_into(T::TargetBlockTime::get());
+		let block_time_window = DIFFICULTY_ADJUST_WINDOW as u128 * block_time;
+
 		let mut data = PastDifficultiesAndTimestamps::<T>::get();
 
 		for i in 1..data.len() {
@@ -87,7 +95,7 @@ impl<T: Trait> OnTimestampSet<T::Moment> for Module<T> {
 
 			let delta = match (prev, cur) {
 				(Some(prev), Some(cur)) => cur.saturating_sub(prev),
-				_ => BLOCK_TIME_MSEC.into(),
+				_ => block_time.into(),
 			};
 			ts_delta += delta;
 		}
@@ -111,15 +119,15 @@ impl<T: Trait> OnTimestampSet<T::Moment> for Module<T> {
 
 		// adjust time delta toward goal subject to dampening and clamping
 		let adj_ts = clamp(
-			damp(ts_delta, BLOCK_TIME_WINDOW_MSEC as u128, DIFFICULTY_DAMP_FACTOR),
-			BLOCK_TIME_WINDOW_MSEC as u128,
+			damp(ts_delta, block_time_window, DIFFICULTY_DAMP_FACTOR),
+			block_time_window,
 			CLAMP_FACTOR,
 		);
 
 		// minimum difficulty avoids getting stuck due to dampening
 		let difficulty = min(U256::from(MAX_DIFFICULTY),
 							 max(U256::from(MIN_DIFFICULTY),
-								 diff_sum * U256::from(BLOCK_TIME_MSEC) / U256::from(adj_ts)));
+								 diff_sum * U256::from(block_time) / U256::from(adj_ts)));
 
 		<PastDifficultiesAndTimestamps<T>>::put(data);
 		<CurrentDifficulty>::put(difficulty);
