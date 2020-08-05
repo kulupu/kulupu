@@ -300,11 +300,11 @@ impl transaction_payment::Trait for Runtime {
 }
 
 parameter_types! {
-	pub const TargetPeriod: u64 = BLOCK_TIME;
+	pub const TargetBlockTime: u64 = BLOCK_TIME;
 }
 
 impl difficulty::Trait for Runtime {
-	type TargetPeriod = TargetPeriod;
+	type TargetBlockTime = TargetBlockTime;
 }
 
 impl eras::Trait for Runtime { }
