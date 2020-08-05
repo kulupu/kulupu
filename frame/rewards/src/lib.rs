@@ -29,7 +29,7 @@ use frame_support::{
 	traits::{Get, Currency},
 	weights::{DispatchClass, Weight},
 };
-use frame_system::{self as system, ensure_none, ensure_root};
+use frame_system::{ensure_none, ensure_root};
 
 /// Trait for rewards.
 pub trait Trait: pallet_balances::Trait {
