@@ -44,6 +44,7 @@ use sp_version::RuntimeVersion;
 use sp_version::NativeVersion;
 use kulupu_primitives::{DOLLARS, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS, deposit};
 use transaction_payment::{TargetedFeeAdjustment, Multiplier};
+use system::EnsureRoot;
 use crate::fee::WeightToFee;
 
 // A few exports that help ease life for downstream crates.
@@ -190,6 +191,8 @@ impl system::Trait for Runtime {
 	type OnKilledAccount = ();
 	/// The data to be stored in an account.
 	type AccountData = balances::AccountData<Balance>;
+	/// System weight info.
+	type SystemWeightInfo = ();
 }
 
 impl scheduler::Trait for Runtime {
@@ -197,6 +200,9 @@ impl scheduler::Trait for Runtime {
 	type Origin = Origin;
 	type Call = Call;
 	type MaximumWeight = MaximumBlockWeight;
+	type PalletsOrigin = OriginCaller;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -214,11 +220,13 @@ impl multisig::Trait for Runtime {
 	type DepositBase = DepositBase;
 	type DepositFactor = DepositFactor;
 	type MaxSignatories = MaxSignatories;
+	type WeightInfo = ();
 }
 
 impl utility::Trait for Runtime {
 	type Event = Event;
 	type Call = Call;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -234,6 +242,8 @@ impl indices::Trait for Runtime {
 	type Currency = Balances;
 	/// The ubiquitous event type.
 	type Event = Event;
+	/// Weight info for indices.
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -245,6 +255,7 @@ impl timestamp::Trait for Runtime {
 	type Moment = u64;
 	type OnTimestampSet = Difficulty;
 	type MinimumPeriod = MinimumPeriod;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -259,6 +270,7 @@ impl balances::Trait for Runtime {
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
+	type WeightInfo = ();
 }
 
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
@@ -371,6 +383,8 @@ impl democracy::Trait for Runtime {
 	type Slash = Treasury;
 	type Scheduler = Scheduler;
 	type MaxVotes = MaxVotes;
+	type PalletsOrigin = OriginCaller;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -385,6 +399,7 @@ impl collective::Trait<CouncilCollective> for Runtime {
 	type Event = Event;
 	type MotionDuration = CouncilMotionDuration;
 	type MaxProposals = CouncilMaxProposals;
+	type WeightInfo = ();
 }
 
 /// Converter for currencies to votes.
@@ -442,6 +457,7 @@ impl elections_phragmen::Trait for Runtime {
 	type DesiredRunnersUp = DesiredRunnersUp;
 	type TermDuration = TermDuration;
 	type ModuleId = ElectionsPhragmenModuleId;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -456,6 +472,7 @@ impl collective::Trait<TechnicalCollective> for Runtime {
 	type Event = Event;
 	type MotionDuration = TechnicalMotionDuration;
 	type MaxProposals = TechnicalMaxProposals;
+	type WeightInfo = ();
 }
 
 impl membership::Trait<membership::Instance1> for Runtime {
@@ -497,7 +514,9 @@ impl treasury::Trait for Runtime {
 	type ProposalBondMinimum = ProposalBondMinimum;
 	type SpendPeriod = SpendPeriod;
 	type Burn = Burn;
+	type BurnDestination = ();
 	type ModuleId = TreasuryModuleId;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -522,6 +541,7 @@ impl identity::Trait for Runtime {
 	type MaxRegistrars = MaxRegistrars;
 	type RegistrarOrigin = system::EnsureRoot<AccountId>;
 	type ForceOrigin = system::EnsureNever<AccountId>;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -597,6 +617,7 @@ impl proxy::Trait for Runtime {
 	type ProxyDepositBase = ProxyDepositBase;
 	type ProxyDepositFactor = ProxyDepositFactor;
 	type MaxProxies = MaxProxies;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -608,6 +629,7 @@ impl vesting::Trait for Runtime {
 	type Currency = Balances;
 	type BlockNumberToBalance = ConvertInto;
 	type MinVestedTransfer = MinVestedTransfer;
+	type WeightInfo = ();
 }
 
 construct_runtime!(
