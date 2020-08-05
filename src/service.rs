@@ -21,7 +21,9 @@ use std::str::FromStr;
 use codec::Encode;
 use sp_core::{H256, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
 use sc_consensus::LongestChain;
-use sc_service::{error::{Error as ServiceError}, AbstractService, Configuration, ServiceBuilder};
+use sc_service::{
+	error::{Error as ServiceError}, Configuration, ServiceBuilder, TaskManager, ServiceComponents
+};
 use sc_executor::native_executor_instance;
 use sc_network::config::DummyFinalityProofRequestBuilder;
 use kulupu_runtime::{self, opaque::Block, RuntimeApi, AccountId};
@@ -89,11 +91,14 @@ macro_rules! new_full_start {
 			.with_transaction_pool(|builder| {
 				let pool_api = sc_transaction_pool::FullChainApi::new(
 					builder.client().clone(),
+					None,
 				);
-				Ok(sc_transaction_pool::BasicPool::new(
+				Ok(sc_transaction_pool::BasicPool::new_full(
 					builder.config().transaction_pool.clone(),
 					std::sync::Arc::new(pool_api),
 					builder.prometheus_registry(),
+					builder.spawn_handle(),
+					builder.client().clone(),
 				))
 			})?
 			.with_import_queue(|_config, client, select_chain, _transaction_pool, spawn_task_handle, prometheus_registry| {
@@ -133,14 +138,16 @@ pub fn new_full(
 	author: Option<&str>,
 	threads: usize,
 	round: u32
-) -> Result<impl AbstractService, ServiceError> {
+) -> Result<TaskManager, ServiceError> {
 	let role = config.role.clone();
 
 	let (builder, mut import_setup, inherent_data_providers) = new_full_start!(config, author);
 
 	let (block_import, algorithm) = import_setup.take().expect("Link Half and Block Import are present for Full Services or setup failed before. qed");
 
-	let service = builder
+	let ServiceComponents {
+		client, transaction_pool, select_chain, network, task_manager, ..
+	} = builder
 		.with_finality_proof_provider(|_client, _backend| {
 			Ok(Arc::new(()) as _)
 		})?
@@ -149,35 +156,35 @@ pub fn new_full(
 	if role.is_authority() {
 		for _ in 0..threads {
 			let proposer = sc_basic_authorship::ProposerFactory::new(
-				service.client(),
-				service.transaction_pool(),
+				client.clone(),
+				transaction_pool.clone(),
 				None,
 			);
 
 			sc_consensus_pow::start_mine(
 				Box::new(block_import.clone()),
-				service.client(),
+				client.clone(),
 				algorithm.clone(),
 				proposer,
 				None,
 				round,
-				service.network(),
+				network.clone(),
 				std::time::Duration::new(2, 0),
-				service.select_chain().map(|v| v.clone()),
+				select_chain.clone(),
 				inherent_data_providers.clone(),
 				sp_consensus::AlwaysCanAuthor,
 			);
 		}
 	}
 
-	Ok(service)
+	Ok(task_manager)
 }
 
 /// Builds a new service for a light client.
 pub fn new_light(
 	config: Configuration,
 	author: Option<&str>
-) -> Result<impl AbstractService, ServiceError> {
+) -> Result<TaskManager, ServiceError> {
 	let inherent_data_providers = kulupu_inherent_data_providers(author)?;
 
 	ServiceBuilder::new_light::<Block, RuntimeApi, Executor>(config)?
@@ -190,14 +197,14 @@ pub fn new_light(
 
 			let pool_api = sc_transaction_pool::LightChainApi::new(
 				builder.client().clone(),
-				fetcher.clone(),
+				fetcher,
 			);
-			let pool = sc_transaction_pool::BasicPool::with_revalidation_type(
+			let pool = Arc::new(sc_transaction_pool::BasicPool::new_light(
 				builder.config().transaction_pool.clone(),
 				Arc::new(pool_api),
 				builder.prometheus_registry(),
-				sc_transaction_pool::RevalidationType::Light,
-			);
+				builder.spawn_handle(),
+			));
 			Ok(pool)
 		})?
 		.with_import_queue_and_fprb(|_config, client, _backend, _fetcher, select_chain, _transaction_pool, spawn_task_handle, prometheus_registry| {
@@ -230,4 +237,5 @@ pub fn new_light(
 			Ok(Arc::new(()) as _)
 		})?
 		.build_light()
+		.map(|ServiceComponents { task_manager, .. }| task_manager)
 }
