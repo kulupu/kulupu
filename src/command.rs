@@ -21,6 +21,8 @@ use crate::chain_spec;
 use crate::cli::{Cli, Subcommand};
 use crate::service;
 
+const DEFAULT_CHECK_INHERENTS_AFTER: u32 = 142560;
+
 /// URL for the telemetry server. Disabled by default.
 pub const POLKADOT_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
@@ -76,7 +78,7 @@ pub fn run() -> sc_cli::Result<()> {
 		Some(Subcommand::Base(subcommand)) => {
 			let runner = cli.create_runner(subcommand)?;
 			runner.run_subcommand(subcommand, |config| {
-				let (builder, _, _) = new_full_start!(config, None);
+				let (builder, _, _) = new_full_start!(config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER));
 				Ok(builder.to_chain_ops_parts())
 			})
 		},
@@ -108,13 +110,15 @@ pub fn run() -> sc_cli::Result<()> {
 				|config| match config.role {
 					Role::Light => service::new_light(
 						config,
-						cli.author.as_ref().map(|s| s.as_str())
+						cli.author.as_ref().map(|s| s.as_str()),
+						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
 					),
 					_ => service::new_full(
 						config,
 						cli.author.as_ref().map(|s| s.as_str()),
 						cli.threads.unwrap_or(1),
 						cli.round.unwrap_or(5000),
+						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
 					)
 				}
 			)

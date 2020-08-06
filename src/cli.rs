@@ -42,6 +42,8 @@ pub struct Cli {
 	pub round: Option<u32>,
 	#[structopt(long)]
 	pub enable_polkadot_telemetry: bool,
+	#[structopt(long)]
+	pub check_inherents_after: Option<u32>,
 }
 
 #[derive(Debug, StructOpt)]

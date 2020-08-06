@@ -78,7 +78,7 @@ pub fn kulupu_inherent_data_providers(
 /// Use this macro if you don't actually need the full service, but just the builder in order to
 /// be able to perform chain operations.
 macro_rules! new_full_start {
-	($config:expr, $author:expr) => {{
+	($config:expr, $author:expr, $check_inherents_after:expr) => {{
 		let mut import_setup = None;
 		let inherent_data_providers = crate::service::kulupu_inherent_data_providers($author)?;
 
@@ -108,7 +108,7 @@ macro_rules! new_full_start {
 					client.clone(),
 					client.clone(),
 					algorithm.clone(),
-					0,
+					$check_inherents_after,
 					select_chain,
 					inherent_data_providers.clone(),
 				);
@@ -137,11 +137,13 @@ pub fn new_full(
 	config: Configuration,
 	author: Option<&str>,
 	threads: usize,
-	round: u32
+	round: u32,
+	check_inherents_after: u32,
 ) -> Result<TaskManager, ServiceError> {
 	let role = config.role.clone();
 
-	let (builder, mut import_setup, inherent_data_providers) = new_full_start!(config, author);
+	let (builder, mut import_setup, inherent_data_providers) =
+		new_full_start!(config, author, check_inherents_after);
 
 	let (block_import, algorithm) = import_setup.take().expect("Link Half and Block Import are present for Full Services or setup failed before. qed");
 
@@ -183,7 +185,8 @@ pub fn new_full(
 /// Builds a new service for a light client.
 pub fn new_light(
 	config: Configuration,
-	author: Option<&str>
+	author: Option<&str>,
+	check_inherents_after: u32,
 ) -> Result<TaskManager, ServiceError> {
 	let inherent_data_providers = kulupu_inherent_data_providers(author)?;
 
@@ -216,7 +219,7 @@ pub fn new_light(
 				client.clone(),
 				client.clone(),
 				algorithm.clone(),
-				0,
+				check_inherents_after,
 				select_chain,
 				inherent_data_providers.clone(),
 			);
