@@ -13,6 +13,7 @@ sp-inherents = { path = "../../vendor/substrate/primitives/inherents", default-f
 frame-support = { path = "../../vendor/substrate/frame/support", default-features = false }
 frame-system = { path = "../../vendor/substrate/frame/system", default-features = false }
 pallet-balances = { path = "../../vendor/substrate/frame/balances", default-features = false }
+pallet-treasury = { path = "../../vendor/substrate/frame/treasury", default-features = false }
 
 [features]
 default = ["std"]
@@ -25,4 +26,5 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"pallet-balances/std",
+	"pallet-treasury/std",
 ]

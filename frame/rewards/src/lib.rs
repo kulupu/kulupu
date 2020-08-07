@@ -19,8 +19,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Encode, Decode};
-use sp_std::{result, prelude::*};
-use sp_runtime::RuntimeDebug;
+use sp_std::{result, cmp::min, prelude::*};
+use sp_runtime::{RuntimeDebug, Permill, traits::{Saturating, Zero}};
 use sp_inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
 #[cfg(feature = "std")]
 use sp_inherents::ProvideInherentData;
@@ -32,7 +32,7 @@ use frame_support::{
 use frame_system::{ensure_none, ensure_root};
 
 /// Trait for rewards.
-pub trait Trait: pallet_balances::Trait {
+pub trait Trait: pallet_balances::Trait + pallet_treasury::Trait {
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	/// Value of the reward.
@@ -44,6 +44,8 @@ decl_error! {
 	pub enum Error for Module<T: Trait> {
 		/// Author already set in block.
 		AuthorAlreadySet,
+		/// Donation already set in block.
+		DonationAlreadySet,
 	}
 }
 
@@ -51,8 +53,12 @@ decl_storage! {
 	trait Store for Module<T: Trait> as Rewards {
 		/// Current block author.
 		Author get(fn author): Option<T::AccountId>;
+		/// Current block donation.
+		AuthorDonation get(fn author_donation): Option<Permill>;
 		/// Current block reward.
 		Reward get(fn reward): T::Balance;
+		/// Taxation rate.
+		Taxation get(fn taxation): Permill;
 	}
 }
 
@@ -81,6 +87,17 @@ decl_module! {
 		}
 
 		#[weight = (
+			T::DbWeight::get().reads_writes(1, 1),
+			DispatchClass::Mandatory
+		)]
+		fn donate(origin, donation: Permill) {
+			ensure_none(origin)?;
+			ensure!(<Self as Store>::AuthorDonation::get().is_none(), Error::<T>::DonationAlreadySet);
+
+			<Self as Store>::AuthorDonation::put(donation);
+		}
+
+		#[weight = (
 			T::DbWeight::get().reads_writes(0, 1),
 			DispatchClass::Operational
 		)]
@@ -92,6 +109,8 @@ decl_module! {
 
 		fn on_finalize() {
 			if let Some(author) = <Self as Store>::Author::get() {
+				let treasury_id = pallet_treasury::Module::<T>::account_id();
+
 				let mut reward = Reward::<T>::get();
 
 				// This should never happen, but we put it here in
@@ -101,10 +120,20 @@ decl_module! {
 					reward = T::Reward::get();
 				}
 
-				drop(pallet_balances::Module::<T>::deposit_creating(&author, reward));
+				let tax = Self::taxation() * reward;
+				let donate = min(
+					tax,
+					Self::author_donation().map(|dp| dp * reward).unwrap_or(T::Balance::zero())
+				);
+
+				let miner = reward.saturating_sub(tax);
+
+				drop(pallet_balances::Module::<T>::deposit_creating(&author, miner));
+				drop(pallet_balances::Module::<T>::deposit_creating(&treasury_id, donate));
 			}
 
 			<Self as Store>::Author::kill();
+			<Self as Store>::AuthorDonation::kill();
 		}
 
 		// [fixme: should be removed in next runtime upgrade]
