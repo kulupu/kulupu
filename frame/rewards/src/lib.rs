@@ -51,6 +51,8 @@ decl_error! {
 	pub enum Error for Module<T: Trait> {
 		/// Author already set in block.
 		AuthorAlreadySet,
+		/// Reward set is too low.
+		RewardTooLow,
 	}
 }
 
@@ -93,6 +95,7 @@ decl_module! {
 		)]
 		fn set_reward(origin, reward: BalanceOf<T>) {
 			ensure_root(origin)?;
+			ensure!(reward >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
 			Reward::<T>::put(reward);
 			Self::deposit_event(RawEvent::RewardChanged(reward))
 		}

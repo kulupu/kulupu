@@ -56,6 +56,8 @@ fn set_reward_works() {
 		assert_ok!(Rewards::set_reward(Origin::root(), 42));
 		assert_eq!(Reward::<Test>::get(), 42);
 		assert_eq!(last_event(), RawEvent::RewardChanged(42).into());
+		// Fails when too low
+		assert_noop!(Rewards::set_reward(Origin::root(), 0), Error::<Test>::RewardTooLow);
 	});
 }
 
