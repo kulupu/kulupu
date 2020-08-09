@@ -27,7 +27,7 @@ fn last_event() -> mock::Event {
 	System::events().pop().expect("Event expected").event
 }
 
-// Run until a particular block.
+// Move to the next block.
 fn next_block() {
 	Rewards::on_finalize(System::block_number());
 	Balances::on_finalize(System::block_number());
