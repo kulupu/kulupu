@@ -41,7 +41,6 @@ impl_outer_event! {
 }
 
 // Configure a mock runtime to test the pallet.
-
 #[derive(Clone, Eq, PartialEq)]
 pub struct Test;
 parameter_types! {
