@@ -327,7 +327,7 @@ parameter_types! {
 
 impl rewards::Trait for Runtime {
 	type Event = Event;
-	type Reward = Reward;
+	type Currency = Balances;
 }
 
 pub struct Author;

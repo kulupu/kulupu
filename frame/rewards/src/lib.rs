@@ -18,6 +18,11 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
+
 use codec::{Encode, Decode};
 use sp_std::{result, prelude::*};
 use sp_runtime::RuntimeDebug;
@@ -27,18 +32,20 @@ use sp_inherents::ProvideInherentData;
 use frame_support::{
 	decl_module, decl_storage, decl_error, decl_event, ensure,
 	traits::{Get, Currency},
-	weights::{DispatchClass, Weight},
+	weights::DispatchClass,
 };
 use frame_system::{ensure_none, ensure_root};
 
 /// Trait for rewards.
-pub trait Trait: pallet_balances::Trait {
+pub trait Trait: frame_system::Trait {
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-	/// Value of the reward.
-	// [fixme: should be removed in next runtime upgrade]
-	type Reward: Get<Self::Balance>;
+	/// An implementation of on-chain currency.
+	type Currency: Currency<Self::AccountId>;
 }
+
+/// Type alias for currency balance.
+pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
 
 decl_error! {
 	pub enum Error for Module<T: Trait> {
@@ -52,12 +59,12 @@ decl_storage! {
 		/// Current block author.
 		Author get(fn author): Option<T::AccountId>;
 		/// Current block reward.
-		Reward get(fn reward): T::Balance;
+		Reward get(fn reward) config(): BalanceOf<T>;
 	}
 }
 
 decl_event! {
-	pub enum Event<T> where Balance = <T as pallet_balances::Trait>::Balance {
+	pub enum Event<T> where Balance = BalanceOf<T> {
 		/// Block reward has changed. [reward]
 		RewardChanged(Balance),
 	}
@@ -84,7 +91,7 @@ decl_module! {
 			T::DbWeight::get().reads_writes(0, 1),
 			DispatchClass::Operational
 		)]
-		fn set_reward(origin, reward: T::Balance) {
+		fn set_reward(origin, reward: BalanceOf<T>) {
 			ensure_root(origin)?;
 			Reward::<T>::put(reward);
 			Self::deposit_event(RawEvent::RewardChanged(reward))
@@ -92,26 +99,11 @@ decl_module! {
 
 		fn on_finalize() {
 			if let Some(author) = <Self as Store>::Author::get() {
-				let mut reward = Reward::<T>::get();
-
-				// This should never happen, but we put it here in
-				// case the runtime upgrade script had issues.
-				// [fixme: should be removed in next runtime upgrade]
-				if reward == Default::default() {
-					reward = T::Reward::get();
-				}
-
-				drop(pallet_balances::Module::<T>::deposit_creating(&author, reward));
+				let reward = Reward::<T>::get();
+				drop(T::Currency::deposit_creating(&author, reward));
 			}
 
 			<Self as Store>::Author::kill();
-		}
-
-		// [fixme: should be removed in next runtime upgrade]
-		fn on_runtime_upgrade() -> Weight {
-			Reward::<T>::put(T::Reward::get());
-
-			0
 		}
 	}
 }
