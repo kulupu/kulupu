@@ -110,8 +110,8 @@ pub mod opaque {
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kulupu"),
 	impl_name: create_runtime_str!("kulupu"),
-	authoring_version: 3,
-	spec_version: 6,
+	authoring_version: 4,
+	spec_version: 7,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 3,
@@ -327,7 +327,7 @@ parameter_types! {
 
 impl rewards::Trait for Runtime {
 	type Event = Event;
-	type Reward = Reward;
+	type Currency = Balances;
 }
 
 pub struct Author;
