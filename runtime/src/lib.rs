@@ -323,11 +323,13 @@ impl eras::Trait for Runtime { }
 
 parameter_types! {
 	pub const Reward: Balance = 60 * DOLLARS;
+	pub DonationDestination: AccountId = Treasury::account_id();
 }
 
 impl rewards::Trait for Runtime {
 	type Event = Event;
 	type Currency = Balances;
+	type DonationDestination = DonationDestination;
 }
 
 pub struct Author;

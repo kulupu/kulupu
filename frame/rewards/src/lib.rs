@@ -43,7 +43,7 @@ pub trait Trait: frame_system::Trait {
 	/// An implementation of on-chain currency.
 	type Currency: Currency<Self::AccountId>;
 	/// Donation destination.
-	type DonationDestination: Get<T::AccountId>
+	type DonationDestination: Get<Self::AccountId>;
 }
 
 /// Type alias for currency balance.
@@ -77,6 +77,8 @@ decl_event! {
 	pub enum Event<T> where Balance = BalanceOf<T> {
 		/// Block reward has changed. [reward]
 		RewardChanged(Balance),
+		/// Block taxation has changed. [taxation]
+		TaxationChanged(Permill),
 	}
 }
 
@@ -114,32 +116,57 @@ decl_module! {
 		)]
 		fn set_reward(origin, reward: BalanceOf<T>) {
 			ensure_root(origin)?;
-			ensure!(reward >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
+			Self::check_new_reward_taxation(reward, Taxation::get())?;
+
 			Reward::<T>::put(reward);
-			Self::deposit_event(RawEvent::RewardChanged(reward))
+			Self::deposit_event(RawEvent::RewardChanged(reward));
+		}
+
+		#[weight = (
+			T::DbWeight::get().reads_writes(0, 1),
+			DispatchClass::Operational
+		)]
+		fn set_taxation(origin, taxation: Permill) {
+			ensure_root(origin)?;
+			Self::check_new_reward_taxation(Reward::<T>::get(), taxation)?;
+
+			Taxation::put(taxation);
+			Self::deposit_event(RawEvent::TaxationChanged(taxation));
 		}
 
 		fn on_finalize() {
 			if let Some(author) = <Self as Store>::Author::get() {
 				let treasury_id = T::DonationDestination::get();
 
-				let mut reward = Reward::<T>::get();
+				let reward = Reward::<T>::get();
 
 				let tax = Self::taxation() * reward;
 				let donate = min(
 					tax,
-					Self::author_donation().map(|dp| dp * reward).unwrap_or(T::Balance::zero())
+					Self::author_donation().map(|dp| dp * reward).unwrap_or(Zero::zero())
 				);
 
 				let miner = reward.saturating_sub(tax);
 
-				drop(pallet_balances::Module::<T>::deposit_creating(&author, miner));
-				drop(pallet_balances::Module::<T>::deposit_creating(&treasury_id, donate));
+				drop(T::Currency::deposit_creating(&author, miner));
+				drop(T::Currency::deposit_creating(&treasury_id, donate));
 			}
 
 			<Self as Store>::Author::kill();
 			<Self as Store>::AuthorDonation::kill();
 		}
+	}
+}
+
+impl<T: Trait> Module<T> {
+	fn check_new_reward_taxation(reward: BalanceOf<T>, taxation: Permill) -> Result<(), Error<T>> {
+		let tax = taxation * reward;
+		let miner = reward.saturating_sub(tax);
+
+		ensure!(tax >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
+		ensure!(miner >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
+
+		Ok(())
 	}
 }
 
