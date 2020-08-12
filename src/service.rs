@@ -19,7 +19,7 @@
 use std::sync::Arc;
 use std::str::FromStr;
 use codec::Encode;
-use sp_runtime::{Permill, traits::Bounded};
+use sp_runtime::{Perbill, traits::Bounded};
 use sp_core::{H256, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
 use sc_consensus::LongestChain;
 use sc_service::{
@@ -75,7 +75,7 @@ pub fn kulupu_inherent_data_providers(
 		if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER) {
 			inherent_data_providers
 				.register_provider(pallet_rewards::InherentDataProvider(
-					(encoded_author, if donate { Permill::max_value() } else { Permill::zero() })
+					(encoded_author, if donate { Perbill::max_value() } else { Perbill::zero() })
 				))
 				.map_err(Into::into)
 				.map_err(sp_consensus::Error::InherentData)?;

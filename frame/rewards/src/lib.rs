@@ -25,7 +25,7 @@ mod tests;
 
 use codec::{Encode, Decode};
 use sp_std::{result, cmp::min, prelude::*};
-use sp_runtime::{RuntimeDebug, Permill, traits::{Saturating, Zero}};
+use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
 use sp_inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
 #[cfg(feature = "std")]
 use sp_inherents::ProvideInherentData;
@@ -65,11 +65,11 @@ decl_storage! {
 		/// Current block author.
 		Author get(fn author): Option<T::AccountId>;
 		/// Current block donation.
-		AuthorDonation get(fn author_donation): Option<Permill>;
+		AuthorDonation get(fn author_donation): Option<Perbill>;
 		/// Current block reward.
 		Reward get(fn reward) config(): BalanceOf<T>;
 		/// Taxation rate.
-		Taxation get(fn taxation) config(): Permill;
+		Taxation get(fn taxation) config(): Perbill;
 	}
 }
 
@@ -78,7 +78,7 @@ decl_event! {
 		/// Block reward has changed. [reward]
 		RewardChanged(Balance),
 		/// Block taxation has changed. [taxation]
-		TaxationChanged(Permill),
+		TaxationChanged(Perbill),
 	}
 }
 
@@ -92,7 +92,7 @@ decl_module! {
 			T::DbWeight::get().reads_writes(2, 2),
 			DispatchClass::Mandatory
 		)]
-		fn set_author(origin, author: T::AccountId, donation: Permill) {
+		fn set_author(origin, author: T::AccountId, donation: Perbill) {
 			ensure_none(origin)?;
 			ensure!(<Self as Store>::Author::get().is_none(), Error::<T>::AuthorAlreadySet);
 			ensure!(<Self as Store>::AuthorDonation::get().is_none(), Error::<T>::DonationAlreadySet);
@@ -117,7 +117,7 @@ decl_module! {
 			T::DbWeight::get().reads_writes(0, 1),
 			DispatchClass::Operational
 		)]
-		fn set_taxation(origin, taxation: Permill) {
+		fn set_taxation(origin, taxation: Perbill) {
 			ensure_root(origin)?;
 			Self::check_new_reward_taxation(Reward::<T>::get(), taxation)?;
 
@@ -149,7 +149,7 @@ decl_module! {
 
 		// [fixme: should be removed in next runtime upgrade]
 		fn on_runtime_upgrade() -> Weight {
-			Taxation::put(Permill::zero());
+			Taxation::put(Perbill::zero());
 
 			0
 		}
@@ -157,11 +157,10 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-	fn check_new_reward_taxation(reward: BalanceOf<T>, taxation: Permill) -> Result<(), Error<T>> {
+	fn check_new_reward_taxation(reward: BalanceOf<T>, taxation: Perbill) -> Result<(), Error<T>> {
 		let tax = taxation * reward;
 		let miner = reward.saturating_sub(tax);
 
-		ensure!(tax >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
 		ensure!(miner >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
 
 		Ok(())
@@ -213,7 +212,7 @@ impl ProvideInherentData for InherentDataProviderV0 {
 	}
 }
 
-pub type InherentType = (Vec<u8>, Permill);
+pub type InherentType = (Vec<u8>, Perbill);
 
 #[cfg(feature = "std")]
 pub struct InherentDataProvider(pub InherentType);

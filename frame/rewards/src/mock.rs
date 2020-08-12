@@ -20,7 +20,7 @@ use crate::{Module, Trait, GenesisConfig};
 use sp_core::H256;
 use frame_support::{impl_outer_origin, impl_outer_event, parameter_types, weights::Weight};
 use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup}, testing::Header, Perbill, Permill,
+	traits::{BlakeTwo256, IdentityLookup}, testing::Header, Perbill,
 };
 use frame_system as system;
 
@@ -112,7 +112,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	GenesisConfig::<Test> {
 		reward: 60,
-		taxation: Permill::from_percent(10),
+		taxation: Perbill::from_percent(10),
 	}.assimilate_storage(&mut t).unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
