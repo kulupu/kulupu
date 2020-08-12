@@ -114,7 +114,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_version: 7,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 3,
+	transaction_version: 4,
 };
 
 /// The version infromation used to identify this runtime when compiled natively.
@@ -322,12 +322,13 @@ impl difficulty::Trait for Runtime {
 impl eras::Trait for Runtime { }
 
 parameter_types! {
-	pub const Reward: Balance = 60 * DOLLARS;
+	pub DonationDestination: AccountId = Treasury::account_id();
 }
 
 impl rewards::Trait for Runtime {
 	type Event = Event;
 	type Currency = Balances;
+	type DonationDestination = DonationDestination;
 }
 
 pub struct Author;
@@ -497,7 +498,7 @@ parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 20 * DOLLARS;
 	pub const SpendPeriod: BlockNumber = 6 * DAYS;
-	pub const Burn: Permill = Permill::from_percent(0);
+	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TreasuryModuleId: ModuleId = ModuleId(*b"py/trsry");
 
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
@@ -656,7 +657,7 @@ construct_runtime!(
 		// PoW consensus and era support.
 		Difficulty: difficulty::{Module, Call, Storage, Config},
 		Eras: eras::{Module, Call, Storage, Config<T>},
-		Rewards: rewards::{Module, Call, Inherent, Storage, Event<T>},
+		Rewards: rewards::{Module, Call, Inherent, Storage, Event<T>, Config<T>},
 
 		// Governance.
 		Democracy: democracy::{Module, Call, Storage, Config, Event<T>},

@@ -93,9 +93,14 @@ impl pallet_balances::Trait for Test {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub DonationDestination: u64 = 255;
+}
+
 impl Trait for Test {
 	type Event = Event;
 	type Currency = Balances;
+	type DonationDestination = DonationDestination;
 }
 
 pub type System = frame_system::Module<Test>;
@@ -107,6 +112,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	GenesisConfig::<Test> {
 		reward: 60,
+		taxation: Perbill::from_percent(10),
 	}.assimilate_storage(&mut t).unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);

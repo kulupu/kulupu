@@ -78,7 +78,7 @@ pub fn run() -> sc_cli::Result<()> {
 		Some(Subcommand::Base(subcommand)) => {
 			let runner = cli.create_runner(subcommand)?;
 			runner.run_subcommand(subcommand, |config| {
-				let (builder, _, _) = new_full_start!(config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER));
+				let (builder, _, _) = new_full_start!(config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), cli.donate);
 				Ok(builder.to_chain_ops_parts())
 			})
 		},
@@ -112,6 +112,7 @@ pub fn run() -> sc_cli::Result<()> {
 						config,
 						cli.author.as_ref().map(|s| s.as_str()),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
+						cli.donate,
 					),
 					_ => service::new_full(
 						config,
@@ -119,6 +120,7 @@ pub fn run() -> sc_cli::Result<()> {
 						cli.threads.unwrap_or(1),
 						cli.round.unwrap_or(5000),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
+						cli.donate,
 					)
 				}
 			)
