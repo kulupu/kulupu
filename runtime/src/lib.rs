@@ -322,7 +322,6 @@ impl difficulty::Trait for Runtime {
 impl eras::Trait for Runtime { }
 
 parameter_types! {
-	pub const Reward: Balance = 60 * DOLLARS;
 	pub DonationDestination: AccountId = Treasury::account_id();
 }
 
