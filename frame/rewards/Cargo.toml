@@ -12,12 +12,11 @@ sp-std = { path = "../../vendor/substrate/primitives/std", default-features = fa
 sp-inherents = { path = "../../vendor/substrate/primitives/inherents", default-features = false }
 frame-support = { path = "../../vendor/substrate/frame/support", default-features = false }
 frame-system = { path = "../../vendor/substrate/frame/system", default-features = false }
-pallet-balances = { path = "../../vendor/substrate/frame/balances", default-features = false }
-pallet-treasury = { path = "../../vendor/substrate/frame/treasury", default-features = false }
 
 [dev-dependencies]
 sp-core = { path = "../../vendor/substrate/primitives/core", default-features = false }
 sp-io = { path = "../../vendor/substrate/primitives/io", default-features = false }
+pallet-balances = { path = "../../vendor/substrate/frame/balances", default-features = false }
 
 [features]
 default = ["std"]
@@ -29,6 +28,4 @@ std = [
 	"sp-inherents/std",
 	"frame-support/std",
 	"frame-system/std",
-	"pallet-balances/std",
-	"pallet-treasury/std",
 ]
