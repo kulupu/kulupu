@@ -43,6 +43,8 @@ pub struct Cli {
 	#[structopt(long)]
 	pub enable_polkadot_telemetry: bool,
 	#[structopt(long)]
+	pub donate: bool,
+	#[structopt(long)]
 	pub check_inherents_after: Option<u32>,
 }
 

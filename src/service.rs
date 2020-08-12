@@ -19,7 +19,7 @@
 use std::sync::Arc;
 use std::str::FromStr;
 use codec::Encode;
-use sp_runtime::Permill;
+use sp_runtime::{Permill, traits::Bounded};
 use sp_core::{H256, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
 use sc_consensus::LongestChain;
 use sc_service::{
@@ -40,7 +40,7 @@ native_executor_instance!(
 
 /// Inherent data provider for Kulupu.
 pub fn kulupu_inherent_data_providers(
-	author: Option<&str>
+	author: Option<&str>, donate: bool,
 ) -> Result<sp_inherents::InherentDataProviders, ServiceError> {
 	let inherent_data_providers = sp_inherents::InherentDataProviders::new();
 
@@ -52,19 +52,30 @@ pub fn kulupu_inherent_data_providers(
 	}
 
 	if let Some(author) = author {
+		let encoded_author = if author.starts_with("0x") {
+			AccountId::unchecked_from(
+				H256::from_str(&author[2..]).expect("Invalid author account")
+			)
+		} else {
+			let (address, version) = AccountId::from_ss58check_with_version(author)
+				.expect("Invalid author address");
+			assert!(version == Ss58AddressFormat::KulupuAccount, "Invalid author version");
+			address
+		}.encode();
+
+		if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER_V0) {
+			inherent_data_providers
+				.register_provider(pallet_rewards::InherentDataProviderV0(
+					encoded_author.clone(),
+				))
+				.map_err(Into::into)
+				.map_err(sp_consensus::Error::InherentData)?;
+		}
+
 		if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER) {
 			inherent_data_providers
 				.register_provider(pallet_rewards::InherentDataProvider(
-					(if author.starts_with("0x") {
-						AccountId::unchecked_from(
-							H256::from_str(&author[2..]).expect("Invalid author account")
-						)
-					} else {
-						let (address, version) = AccountId::from_ss58check_with_version(author)
-							.expect("Invalid author address");
-						assert!(version == Ss58AddressFormat::KulupuAccount, "Invalid author version");
-						address
-					}.encode(), Permill::zero())
+					(encoded_author, if donate { Permill::max_value() } else { Permill::zero() })
 				))
 				.map_err(Into::into)
 				.map_err(sp_consensus::Error::InherentData)?;
@@ -79,9 +90,12 @@ pub fn kulupu_inherent_data_providers(
 /// Use this macro if you don't actually need the full service, but just the builder in order to
 /// be able to perform chain operations.
 macro_rules! new_full_start {
-	($config:expr, $author:expr, $check_inherents_after:expr) => {{
+	($config:expr, $author:expr, $check_inherents_after:expr, $donate:expr) => {{
 		let mut import_setup = None;
-		let inherent_data_providers = crate::service::kulupu_inherent_data_providers($author)?;
+		let inherent_data_providers = crate::service::kulupu_inherent_data_providers(
+			$author,
+			$donate,
+		)?;
 
 		let builder = sc_service::ServiceBuilder::new_full::<
 			kulupu_runtime::opaque::Block, kulupu_runtime::RuntimeApi, crate::service::Executor
@@ -140,11 +154,12 @@ pub fn new_full(
 	threads: usize,
 	round: u32,
 	check_inherents_after: u32,
+	donate: bool,
 ) -> Result<TaskManager, ServiceError> {
 	let role = config.role.clone();
 
 	let (builder, mut import_setup, inherent_data_providers) =
-		new_full_start!(config, author, check_inherents_after);
+		new_full_start!(config, author, check_inherents_after, donate);
 
 	let (block_import, algorithm) = import_setup.take().expect("Link Half and Block Import are present for Full Services or setup failed before. qed");
 
@@ -188,8 +203,9 @@ pub fn new_light(
 	config: Configuration,
 	author: Option<&str>,
 	check_inherents_after: u32,
+	donate: bool,
 ) -> Result<TaskManager, ServiceError> {
-	let inherent_data_providers = kulupu_inherent_data_providers(author)?;
+	let inherent_data_providers = kulupu_inherent_data_providers(author, donate)?;
 
 	ServiceBuilder::new_light::<Block, RuntimeApi, Executor>(config)?
 		.with_select_chain(|_config, backend| {
