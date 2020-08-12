@@ -16,10 +16,11 @@
 
 use serde_json::json;
 use sp_core::{U256, crypto::UncheckedFrom};
+use sp_runtime::Permill;
 use sc_service::ChainType;
 use kulupu_runtime::{
 	BalancesConfig, GenesisConfig, IndicesConfig, SystemConfig,
-	DifficultyConfig, ErasConfig, AccountId, WASM_BINARY,
+	DifficultyConfig, ErasConfig, AccountId, RewardsConfig, WASM_BINARY,
 };
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
@@ -94,6 +95,10 @@ fn testnet_genesis(initial_difficulty: U256) -> GenesisConfig {
 		membership_Instance1: Some(Default::default()),
 		timestamp: Some(Default::default()),
 		vesting: Some(Default::default()),
+		rewards: Some(RewardsConfig {
+			reward: 60_000_000_000_000,
+			taxation: Permill::from_percent(0),
+		}),
 	}
 }
 
@@ -137,5 +142,9 @@ pub fn mainnet_genesis() -> GenesisConfig {
 		membership_Instance1: Some(Default::default()),
 		timestamp: Some(Default::default()),
 		vesting: None,
+		rewards: Some(RewardsConfig {
+			reward: 60_000_000_000_000,
+			taxation: Permill::from_percent(0),
+		}),
 	}
 }
