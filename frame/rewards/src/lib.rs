@@ -69,7 +69,7 @@ decl_storage! {
 		/// Current block reward.
 		Reward get(fn reward) config(): BalanceOf<T>;
 		/// Taxation rate.
-		Taxation get(fn taxation): Permill;
+		Taxation get(fn taxation) config(): Permill;
 	}
 }
 
