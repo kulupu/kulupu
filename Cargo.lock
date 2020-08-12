@@ -3594,7 +3594,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-balances",
- "pallet-treasury",
  "parity-scale-codec",
  "serde",
  "sp-core",

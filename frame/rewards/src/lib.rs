@@ -89,24 +89,15 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = (
-			T::DbWeight::get().reads_writes(1, 1),
+			T::DbWeight::get().reads_writes(2, 2),
 			DispatchClass::Mandatory
 		)]
-		fn set_author(origin, author: T::AccountId) {
+		fn set_author(origin, author: T::AccountId, donation: Permill) {
 			ensure_none(origin)?;
 			ensure!(<Self as Store>::Author::get().is_none(), Error::<T>::AuthorAlreadySet);
-
-			<Self as Store>::Author::put(author);
-		}
-
-		#[weight = (
-			T::DbWeight::get().reads_writes(1, 1),
-			DispatchClass::Mandatory
-		)]
-		fn donate(origin, donation: Permill) {
-			ensure_none(origin)?;
 			ensure!(<Self as Store>::AuthorDonation::get().is_none(), Error::<T>::DonationAlreadySet);
 
+			<Self as Store>::Author::put(author);
 			<Self as Store>::AuthorDonation::put(donation);
 		}
 
@@ -170,7 +161,8 @@ impl<T: Trait> Module<T> {
 	}
 }
 
-pub const INHERENT_IDENTIFIER: InherentIdentifier = *b"rewards_";
+pub const INHERENT_IDENTIFIER_V0: InherentIdentifier = *b"rewards_";
+pub const INHERENT_IDENTIFIER: InherentIdentifier = *b"rewards1";
 
 #[derive(Encode, Decode, RuntimeDebug)]
 pub enum InherentError { }
@@ -193,7 +185,28 @@ impl InherentError {
 	}
 }
 
-pub type InherentType = Vec<u8>;
+#[cfg(feature = "std")]
+pub struct InherentDataProviderV0(pub Vec<u8>);
+
+#[cfg(feature = "std")]
+impl ProvideInherentData for InherentDataProviderV0 {
+	fn inherent_identifier(&self) -> &'static InherentIdentifier {
+		&INHERENT_IDENTIFIER_V0
+	}
+
+	fn provide_inherent_data(
+		&self,
+		inherent_data: &mut InherentData
+	) -> Result<(), sp_inherents::Error> {
+		inherent_data.put_data(INHERENT_IDENTIFIER_V0, &self.0)
+	}
+
+	fn error_to_string(&self, error: &[u8]) -> Option<String> {
+		InherentError::try_from(&INHERENT_IDENTIFIER_V0, error).map(|e| format!("{:?}", e))
+	}
+}
+
+pub type InherentType = (Vec<u8>, Permill);
 
 #[cfg(feature = "std")]
 pub struct InherentDataProvider(pub InherentType);
@@ -222,13 +235,10 @@ impl<T: Trait> ProvideInherent for Module<T> {
 	const INHERENT_IDENTIFIER: InherentIdentifier = INHERENT_IDENTIFIER;
 
 	fn create_inherent(data: &InherentData) -> Option<Self::Call> {
-		let author_raw = data.get_data::<InherentType>(&INHERENT_IDENTIFIER)
-			.expect("Gets and decodes anyupgrade inherent data")?;
+		let (author_raw, donation) = data.get_data::<InherentType>(&INHERENT_IDENTIFIER).ok()??;
+		let author = T::AccountId::decode(&mut &author_raw[..]).ok()?;
 
-		let author = T::AccountId::decode(&mut &author_raw[..])
-			.expect("Decodes author raw inherent data");
-
-		Some(Call::set_author(author))
+		Some(Call::set_author(author, donation))
 	}
 
 	fn check_inherent(_call: &Self::Call, _data: &InherentData) -> result::Result<(), Self::Error> {

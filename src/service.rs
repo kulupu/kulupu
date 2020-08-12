@@ -19,6 +19,7 @@
 use std::sync::Arc;
 use std::str::FromStr;
 use codec::Encode;
+use sp_runtime::Permill;
 use sp_core::{H256, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
 use sc_consensus::LongestChain;
 use sc_service::{
@@ -54,7 +55,7 @@ pub fn kulupu_inherent_data_providers(
 		if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER) {
 			inherent_data_providers
 				.register_provider(pallet_rewards::InherentDataProvider(
-					if author.starts_with("0x") {
+					(if author.starts_with("0x") {
 						AccountId::unchecked_from(
 							H256::from_str(&author[2..]).expect("Invalid author account")
 						)
@@ -63,7 +64,7 @@ pub fn kulupu_inherent_data_providers(
 							.expect("Invalid author address");
 						assert!(version == Ss58AddressFormat::KulupuAccount, "Invalid author version");
 						address
-					}.encode()
+					}.encode(), Permill::zero())
 				))
 				.map_err(Into::into)
 				.map_err(sp_consensus::Error::InherentData)?;
