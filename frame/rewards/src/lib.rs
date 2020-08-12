@@ -32,7 +32,7 @@ use sp_inherents::ProvideInherentData;
 use frame_support::{
 	decl_module, decl_storage, decl_error, decl_event, ensure,
 	traits::{Get, Currency},
-	weights::DispatchClass,
+	weights::{DispatchClass, Weight},
 };
 use frame_system::{ensure_none, ensure_root};
 
@@ -145,6 +145,13 @@ decl_module! {
 
 			<Self as Store>::Author::kill();
 			<Self as Store>::AuthorDonation::kill();
+		}
+
+		// [fixme: should be removed in next runtime upgrade]
+		fn on_runtime_upgrade() -> Weight {
+			Taxation::put(Permill::zero());
+
+			0
 		}
 	}
 }
