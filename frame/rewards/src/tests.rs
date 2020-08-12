@@ -65,11 +65,11 @@ fn set_reward_works() {
 fn set_author_works() {
 	new_test_ext().execute_with(|| {
 		// Fails with bad origin
-		assert_noop!(Rewards::set_author(Origin::signed(1), 1), BadOrigin);
+		assert_noop!(Rewards::set_author(Origin::signed(1), 1, Permill::zero()), BadOrigin);
 		// Block author can successfully set themselves
-		assert_ok!(Rewards::set_author(Origin::none(), 1));
+		assert_ok!(Rewards::set_author(Origin::none(), 1, Permill::zero()));
 		// Cannot set author twice
-		assert_noop!(Rewards::set_author(Origin::none(), 2), Error::<Test>::AuthorAlreadySet);
+		assert_noop!(Rewards::set_author(Origin::none(), 2, Permill::zero()), Error::<Test>::AuthorAlreadySet);
 		assert_eq!(Author::<Test>::get(), Some(1));
 	});
 }
@@ -78,7 +78,7 @@ fn set_author_works() {
 fn reward_payment_works() {
 	new_test_ext().execute_with(|| {
 		// Block author sets themselves as author
-		assert_ok!(Rewards::set_author(Origin::none(), 1));
+		assert_ok!(Rewards::set_author(Origin::none(), 1, Permill::zero()));
 		// Next block
 		next_block();
 		// User gets reward
@@ -86,7 +86,7 @@ fn reward_payment_works() {
 
 		// Set new reward
 		assert_ok!(Rewards::set_reward(Origin::root(), 42));
-		assert_ok!(Rewards::set_author(Origin::none(), 2));
+		assert_ok!(Rewards::set_author(Origin::none(), 2, Permill::zero()));
 		next_block();
 		assert_eq!(Balances::free_balance(2), 42);
 	});

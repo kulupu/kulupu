@@ -18,6 +18,7 @@ use serde_json::json;
 use sp_core::{U256, crypto::UncheckedFrom};
 use sp_runtime::Permill;
 use sc_service::ChainType;
+use kulupu_primitives::DOLLARS;
 use kulupu_runtime::{
 	BalancesConfig, GenesisConfig, IndicesConfig, SystemConfig,
 	DifficultyConfig, ErasConfig, AccountId, RewardsConfig, WASM_BINARY,
@@ -96,7 +97,7 @@ fn testnet_genesis(initial_difficulty: U256) -> GenesisConfig {
 		timestamp: Some(Default::default()),
 		vesting: Some(Default::default()),
 		rewards: Some(RewardsConfig {
-			reward: 60_000_000_000_000,
+			reward: 60 * DOLLARS,
 			taxation: Permill::from_percent(0),
 		}),
 	}
@@ -143,7 +144,7 @@ pub fn mainnet_genesis() -> GenesisConfig {
 		timestamp: Some(Default::default()),
 		vesting: None,
 		rewards: Some(RewardsConfig {
-			reward: 60_000_000_000_000,
+			reward: 60 * DOLLARS,
 			taxation: Permill::from_percent(0),
 		}),
 	}

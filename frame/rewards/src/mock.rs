@@ -20,7 +20,7 @@ use crate::{Module, Trait, GenesisConfig};
 use sp_core::H256;
 use frame_support::{impl_outer_origin, impl_outer_event, parameter_types, weights::Weight};
 use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup}, testing::Header, Perbill,
+	traits::{BlakeTwo256, IdentityLookup}, testing::Header, Perbill, Permill,
 };
 use frame_system as system;
 
@@ -93,9 +93,14 @@ impl pallet_balances::Trait for Test {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub DonationDestination: u64 = 255;
+}
+
 impl Trait for Test {
 	type Event = Event;
 	type Currency = Balances;
+	type DonationDestination = DonationDestination;
 }
 
 pub type System = frame_system::Module<Test>;
@@ -107,6 +112,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	GenesisConfig::<Test> {
 		reward: 60,
+		taxation: Permill::from_percent(10),
 	}.assimilate_storage(&mut t).unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
