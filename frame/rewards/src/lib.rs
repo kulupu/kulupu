@@ -212,7 +212,7 @@ decl_module! {
 						(frame_system::Module::<T>::block_number() + (lock_days * DAYS).into())
 						/ DAYS.into() * DAYS.into();
 
-					locks.insert(target_lock_block, miner_locked);
+					*locks.entry(target_lock_block).or_default() += miner_locked;
 					Self::do_update_locks(author, locks);
 				}
 			}
