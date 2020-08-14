@@ -21,7 +21,7 @@ use crate::chain_spec;
 use crate::cli::{Cli, Subcommand};
 use crate::service;
 
-const DEFAULT_CHECK_INHERENTS_AFTER: u32 = 152640;
+const DEFAULT_CHECK_INHERENTS_AFTER: u32 = 152641;
 
 /// URL for the telemetry server. Disabled by default.
 pub const POLKADOT_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
