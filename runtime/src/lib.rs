@@ -483,8 +483,7 @@ impl collective::Trait<TechnicalCollective> for Runtime {
 	type WeightInfo = ();
 }
 
-type TechnicalMembership = membership::Instance1;
-impl membership::Trait<TechnicalMembership> for Runtime {
+impl membership::Trait<membership::Instance1> for Runtime {
 	type Event = Event;
 	type AddOrigin = system::EnsureRoot<AccountId>;
 	type RemoveOrigin = system::EnsureRoot<AccountId>;
