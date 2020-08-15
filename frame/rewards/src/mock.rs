@@ -23,6 +23,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup}, testing::Header, Perbill,
 };
 use frame_system as system;
+use sp_std::collections::btree_map::BTreeMap;
 
 impl_outer_origin! {
 	pub enum Origin for Test {}
@@ -51,13 +52,14 @@ parameter_types! {
 }
 
 type Balance = u128;
+type BlockNumber = u64;
 
 impl system::Trait for Test {
 	type BaseCallFilter = ();
 	type Origin = Origin;
 	type Call = ();
 	type Index = u64;
-	type BlockNumber = u64;
+	type BlockNumber = BlockNumber;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = u64;
@@ -97,11 +99,41 @@ parameter_types! {
 	pub DonationDestination: u64 = 255;
 }
 
+const DOLLARS: Balance = 1;
+const DAYS: BlockNumber = 1;
+
+pub struct GenerateRewardLocks;
+impl crate::GenerateRewardLocks<Test> for GenerateRewardLocks {
+	fn generate_reward_locks(
+		current_block: BlockNumber,
+		total_reward: Balance,
+	) -> BTreeMap<BlockNumber, Balance> {
+		let mut locks = BTreeMap::new();
+		let locked_reward = total_reward.saturating_sub(1 * DOLLARS);
+
+		if locked_reward > 0 {
+			const TOTAL_LOCK_PERIOD: BlockNumber = 100 * DAYS;
+			const DIVIDE: BlockNumber = 10;
+
+			for i in 0..DIVIDE {
+				let one_locked_reward = locked_reward / DIVIDE as u128;
+
+				let estimate_block_number = current_block + (i + 1) * (TOTAL_LOCK_PERIOD / DIVIDE);
+				let actual_block_number = estimate_block_number / DAYS * DAYS;
+
+				locks.insert(actual_block_number, one_locked_reward);
+			}
+		}
+
+		locks
+	}
+}
+
 impl Trait for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
-	type GenerateRewardLocks = ();
+	type GenerateRewardLocks = GenerateRewardLocks;
 }
 
 pub type System = frame_system::Module<Test>;

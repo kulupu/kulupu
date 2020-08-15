@@ -332,12 +332,13 @@ impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
 		let locked_reward = total_reward.saturating_sub(1 * DOLLARS);
 
 		if locked_reward > 0 {
+			const TOTAL_LOCK_PERIOD: BlockNumber = 100 * DAYS;
 			const DIVIDE: BlockNumber = 10;
 
 			for i in 0..DIVIDE {
 				let one_locked_reward = locked_reward / DIVIDE as u128;
 
-				let estimate_block_number = current_block + (i + 1) * DIVIDE * DAYS;
+				let estimate_block_number = current_block + (i + 1) * (TOTAL_LOCK_PERIOD / DIVIDE);
 				let actual_block_number = estimate_block_number / DAYS * DAYS;
 
 				locks.insert(actual_block_number, one_locked_reward);
