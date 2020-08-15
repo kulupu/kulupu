@@ -100,20 +100,24 @@ fn reward_payment_works() {
 #[test]
 fn reward_locks_work() {
 	new_test_ext().execute_with(|| {
+		// Make numbers better :)
+		assert_ok!(Rewards::set_taxation(Origin::root(), Perbill::zero()));
+		assert_ok!(Rewards::set_reward(Origin::root(), 101));
+
 		// Block author sets themselves as author
 		assert_ok!(Rewards::set_author(Origin::none(), 1, Perbill::zero()));
 		// Next block
 		run_to_block(2);
 		// User gets reward
-		assert_eq!(Balances::free_balance(1), 54);
-		// 50 is locked, 4 is unlocked
-		assert_ok!(Balances::transfer(Origin::signed(1), 2, 4));
+		assert_eq!(Balances::free_balance(1), 101);
+		// 100 is locked, 1 is unlocked for paying txs
+		assert_ok!(Balances::transfer(Origin::signed(1), 2, 1));
 
 		// Cannot transfer because of locks
-		assert_noop!(Balances::transfer(Origin::signed(1), 2, 5), BalancesError::<Test, _>::LiquidityRestrictions);
+		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
 
-		// Confirm locks (10 of them, each of value 5)
-		let mut expected_locks = (1..=10).map(|x| (x * 10 + 1, 5)).collect::<BTreeMap<_, _>>();
+		// Confirm locks (10 of them, each of value 10)
+		let mut expected_locks = (1..=10).map(|x| (x * 10 + 1, 10)).collect::<BTreeMap<_, _>>();
 		assert_eq!(Rewards::reward_locks(1), expected_locks);
 
 		// 10 blocks later (10 days)
@@ -124,7 +128,7 @@ fn reward_locks_work() {
 		expected_locks.remove(&11);
 		assert_eq!(Rewards::reward_locks(1), expected_locks);
 		// Transfer works
-		assert_ok!(Balances::transfer(Origin::signed(1), 2, 5));
+		assert_ok!(Balances::transfer(Origin::signed(1), 2, 10));
 		// Cannot transfer more
 		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
 
@@ -136,25 +140,25 @@ fn reward_locks_work() {
 
 		// Locks as expected
 		// Left over from block 1 + from block 11
-		let mut expected_locks = (2..=10).map(|x| (x * 10 + 1, 10)).collect::<BTreeMap<_, _>>();
+		let mut expected_locks = (2..=10).map(|x| (x * 10 + 1, 10 + 10)).collect::<BTreeMap<_, _>>();
 		// Last one from block 11
-		expected_locks.insert(111, 5);
+		expected_locks.insert(111, 10);
 		// From block 12
-		expected_locks.append(&mut (2..=11).map(|x| (x * 10 + 2, 5)).collect::<BTreeMap<_, _>>());
+		expected_locks.append(&mut (2..=11).map(|x| (x * 10 + 2, 10)).collect::<BTreeMap<_, _>>());
 		assert_eq!(Rewards::reward_locks(1), expected_locks);
 
-		// User gains 8 free from the rewards
-		assert_ok!(Balances::transfer(Origin::signed(1), 2, 8));
+		// User gains 2 free for txs
+		assert_ok!(Balances::transfer(Origin::signed(1), 2, 2));
 		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
 
-		// 10 more is unlocked on block 21
+		// 20 more is unlocked on block 21
 		run_to_block(21);
 		assert_ok!(Rewards::update_locks(Origin::signed(1)));
-		assert_ok!(Balances::transfer(Origin::signed(1), 2, 10));
-		// 5 more unlocked on block 22
+		assert_ok!(Balances::transfer(Origin::signed(1), 2, 20));
+		// 10 more unlocked on block 22
 		run_to_block(22);
 		assert_ok!(Rewards::update_locks(Origin::signed(1)));
-		assert_ok!(Balances::transfer(Origin::signed(1), 2, 5));
+		assert_ok!(Balances::transfer(Origin::signed(1), 2, 10));
 
 		// Cannot transfer more
 		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
