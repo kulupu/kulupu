@@ -28,7 +28,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use sp_std::prelude::*;
 use codec::{Encode, Decode};
-use sp_core::{OpaqueMetadata, u32_trait::{_1, _2, _4, _5, _9, _10}};
+use sp_core::{OpaqueMetadata, u32_trait::{_1, _2, _4, _5}};
 use sp_runtime::{
 	ApplyExtrinsicResult, Percent, ModuleId, generic, create_runtime_str, MultiSignature,
 	RuntimeDebug, Perquintill, transaction_validity::{TransactionValidity, TransactionSource},
@@ -485,11 +485,11 @@ impl collective::Trait<TechnicalCollective> for Runtime {
 
 impl membership::Trait<membership::Instance1> for Runtime {
 	type Event = Event;
-	type AddOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
-	type RemoveOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
-	type SwapOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
-	type ResetOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
-	type PrimeOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
+	type AddOrigin = system::EnsureRoot<AccountId>;
+	type RemoveOrigin = system::EnsureRoot<AccountId>;
+	type SwapOrigin = system::EnsureRoot<AccountId>;
+	type ResetOrigin = system::EnsureRoot<AccountId>;
+	type PrimeOrigin = system::EnsureRoot<AccountId>;
 	type MembershipInitialized = TechnicalCommittee;
 	type MembershipChanged = TechnicalCommittee;
 }
@@ -509,8 +509,8 @@ parameter_types! {
 
 impl treasury::Trait for Runtime {
 	type Currency = Balances;
-	type ApproveOrigin = collective::EnsureProportionAtLeast<_4, _5, AccountId, CouncilCollective>;
-	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type ApproveOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _5, AccountId, CouncilCollective>;
 	type Tippers = ElectionsPhragmen;
 	type TipCountdown = TipCountdown;
 	type TipFindersFee = TipFindersFee;
