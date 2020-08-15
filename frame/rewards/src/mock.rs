@@ -101,6 +101,7 @@ impl Trait for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
+	type GenerateRewardLocks = ();
 }
 
 pub type System = frame_system::Module<Test>;
