@@ -483,13 +483,14 @@ impl collective::Trait<TechnicalCollective> for Runtime {
 	type WeightInfo = ();
 }
 
-impl membership::Trait<membership::Instance1> for Runtime {
+type TechnicalMembership = membership::Instance1;
+impl membership::Trait<TechnicalMembership> for Runtime {
 	type Event = Event;
-	type AddOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
-	type RemoveOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
-	type SwapOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
-	type ResetOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
-	type PrimeOrigin = collective::EnsureProportionAtLeast<_9, _10, AccountId, CouncilCollective>;
+	type AddOrigin = system::EnsureRoot<AccountId>;
+	type RemoveOrigin = system::EnsureRoot<AccountId>;
+	type SwapOrigin = system::EnsureRoot<AccountId>;
+	type ResetOrigin = system::EnsureRoot<AccountId>;
+	type PrimeOrigin = system::EnsureRoot<AccountId>;
 	type MembershipInitialized = TechnicalCommittee;
 	type MembershipChanged = TechnicalCommittee;
 }
@@ -509,8 +510,8 @@ parameter_types! {
 
 impl treasury::Trait for Runtime {
 	type Currency = Balances;
-	type ApproveOrigin = collective::EnsureProportionAtLeast<_4, _5, AccountId, CouncilCollective>;
-	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type ApproveOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _5, AccountId, CouncilCollective>;
 	type Tippers = ElectionsPhragmen;
 	type TipCountdown = TipCountdown;
 	type TipFindersFee = TipFindersFee;
