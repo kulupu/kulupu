@@ -18,6 +18,8 @@
 
 use crate::*;
 use crate::mock::*;
+use sp_runtime::testing::{Digest, DigestItem};
+use frame_system::InitKind;
 use frame_support::{assert_ok, assert_noop};
 use frame_support::error::BadOrigin;
 use frame_support::traits::{OnInitialize, OnFinalize};
@@ -29,11 +31,23 @@ fn last_event() -> mock::Event {
 }
 
 /// Run until a particular block.
-fn run_to_block(n: u64) {
+fn run_to_block(n: u64, author: u64) {
 	while System::block_number() < n {
 		Rewards::on_finalize(System::block_number());
 		Balances::on_finalize(System::block_number());
-		System::set_block_number(System::block_number() + 1);
+
+		let current_block = System::block_number() + 1;
+		let parent_hash = System::parent_hash();
+		let pre_digest = DigestItem::PreRuntime(sp_consensus_pow::POW_ENGINE_ID, author.encode());
+		System::initialize(
+			&current_block,
+			&parent_hash,
+			&Default::default(),
+			&Digest { logs: vec![pre_digest] },
+			InitKind::Full
+		);
+		System::set_block_number(current_block);
+
 		Balances::on_initialize(System::block_number());
 		Rewards::on_initialize(System::block_number());
 	}
@@ -41,7 +55,7 @@ fn run_to_block(n: u64) {
 
 #[test]
 fn genesis_config_works() {
-	new_test_ext().execute_with(|| {
+	new_test_ext(1).execute_with(|| {
 		assert_eq!(Author::<Test>::get(), None);
 		assert_eq!(Reward::<Test>::get(), 60);
 		assert_eq!(Balances::free_balance(1), 0);
@@ -52,7 +66,7 @@ fn genesis_config_works() {
 
 #[test]
 fn set_reward_works() {
-	new_test_ext().execute_with(|| {
+	new_test_ext(1).execute_with(|| {
 		// Fails with bad origin
 		assert_noop!(Rewards::set_reward(Origin::signed(1), 42), BadOrigin);
 		assert_noop!(Rewards::set_reward(Origin::none(), 42), BadOrigin);
@@ -67,7 +81,7 @@ fn set_reward_works() {
 
 #[test]
 fn set_author_works() {
-	new_test_ext().execute_with(|| {
+	new_test_ext(1).execute_with(|| {
 		// Fails with bad origin
 		assert_noop!(Rewards::set_author(Origin::signed(1), 1, Perbill::zero()), BadOrigin);
 		// Block author can successfully set themselves
@@ -80,11 +94,11 @@ fn set_author_works() {
 
 #[test]
 fn reward_payment_works() {
-	new_test_ext().execute_with(|| {
+	new_test_ext(1).execute_with(|| {
 		// Block author sets themselves as author
 		assert_ok!(Rewards::set_author(Origin::none(), 1, Perbill::zero()));
 		// Next block
-		run_to_block(2);
+		run_to_block(2, 2);
 		// User gets reward
 		assert_eq!(Balances::free_balance(1), 54);
 
@@ -92,14 +106,14 @@ fn reward_payment_works() {
 		assert_ok!(Rewards::set_reward(Origin::root(), 42));
 		assert_ok!(Rewards::set_taxation(Origin::root(), Perbill::zero()));
 		assert_ok!(Rewards::set_author(Origin::none(), 2, Perbill::zero()));
-		run_to_block(3);
+		run_to_block(3, 1);
 		assert_eq!(Balances::free_balance(2), 42);
 	});
 }
 
 #[test]
 fn reward_locks_work() {
-	new_test_ext().execute_with(|| {
+	new_test_ext(1).execute_with(|| {
 		// Make numbers better :)
 		assert_ok!(Rewards::set_taxation(Origin::root(), Perbill::zero()));
 		assert_ok!(Rewards::set_reward(Origin::root(), 101));
@@ -107,7 +121,7 @@ fn reward_locks_work() {
 		// Block author sets themselves as author
 		assert_ok!(Rewards::set_author(Origin::none(), 1, Perbill::zero()));
 		// Next block
-		run_to_block(2);
+		run_to_block(2, 1);
 		// User gets reward
 		assert_eq!(Balances::free_balance(1), 101);
 		// 100 is locked, 1 is unlocked for paying txs
@@ -121,7 +135,7 @@ fn reward_locks_work() {
 		assert_eq!(Rewards::reward_locks(1), expected_locks);
 
 		// 10 blocks later (10 days)
-		run_to_block(11);
+		run_to_block(11, 1);
 		// User update locks
 		assert_ok!(Rewards::update_locks(Origin::signed(1)));
 		// Locks updated
@@ -134,9 +148,9 @@ fn reward_locks_work() {
 
 		// User mints more blocks
 		assert_ok!(Rewards::set_author(Origin::none(), 1, Perbill::zero()));
-		run_to_block(12);
+		run_to_block(12, 1);
 		assert_ok!(Rewards::set_author(Origin::none(), 1, Perbill::zero()));
-		run_to_block(13);
+		run_to_block(13, 1);
 
 		// Locks as expected
 		// Left over from block 1 + from block 11
@@ -152,11 +166,11 @@ fn reward_locks_work() {
 		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
 
 		// 20 more is unlocked on block 21
-		run_to_block(21);
+		run_to_block(21, 1);
 		assert_ok!(Rewards::update_locks(Origin::signed(1)));
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 20));
 		// 10 more unlocked on block 22
-		run_to_block(22);
+		run_to_block(22, 1);
 		assert_ok!(Rewards::update_locks(Origin::signed(1)));
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 10));
 

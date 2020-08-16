@@ -18,11 +18,12 @@
 
 use crate::{Module, Trait, GenesisConfig};
 use sp_core::H256;
+use codec::Encode;
 use frame_support::{impl_outer_origin, impl_outer_event, parameter_types, weights::Weight};
 use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup}, testing::Header, Perbill,
+	traits::{BlakeTwo256, IdentityLookup}, testing::{Digest, DigestItem, Header}, Perbill,
 };
-use frame_system as system;
+use frame_system::{self as system, InitKind};
 use sp_std::collections::btree_map::BTreeMap;
 
 impl_outer_origin! {
@@ -141,7 +142,7 @@ pub type Balances = pallet_balances::Module<Test>;
 pub type Rewards = Module<Test>;
 
 // Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
+pub fn new_test_ext(author: u64) -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	GenesisConfig::<Test> {
 		reward: 60,
@@ -149,6 +150,18 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}.assimilate_storage(&mut t).unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
-	ext.execute_with(|| System::set_block_number(1));
+	ext.execute_with(|| {
+		let current_block = 1;
+		let parent_hash = System::parent_hash();
+		let pre_digest = DigestItem::PreRuntime(sp_consensus_pow::POW_ENGINE_ID, author.encode());
+		System::initialize(
+			&current_block,
+			&parent_hash,
+			&Default::default(),
+			&Digest { logs: vec![pre_digest] },
+			InitKind::Full
+		);
+		System::set_block_number(current_block);
+	});
 	ext
 }
