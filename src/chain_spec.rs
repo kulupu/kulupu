@@ -71,7 +71,7 @@ pub fn breaknet1_config() -> ChainSpec {
 	ChainSpec::from_genesis(
 		"Kulupu breaknet1",
 		"breaknet1",
-		ChainType::Local,
+		ChainType::Live,
 		|| breaknet1_genesis(
 			U256::from(20000),
 		),
