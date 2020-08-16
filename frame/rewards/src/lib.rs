@@ -72,14 +72,10 @@ pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::
 
 decl_error! {
 	pub enum Error for Module<T: Trait> {
-		/// Author already set in block.
-		AuthorAlreadySet,
 		/// Reward set is too low.
 		RewardTooLow,
-		/// Donation already set in block.
-		DonationAlreadySet,
-		/// Author is not expected.
-		UnexpectedAuthor,
+		/// Author preferences already set.
+		AuthorPrefsAlreadySet,
 	}
 }
 
@@ -118,29 +114,16 @@ decl_module! {
 			T::DbWeight::get().reads_writes(2, 2),
 			DispatchClass::Mandatory
 		)]
-		fn set_author(
+		fn note_author_prefs(
 			origin,
-			author: T::AccountId,
 			donation: Perbill,
 		) {
 			ensure_none(origin)?;
-			ensure!(<Self as Store>::Author::get().is_none(), Error::<T>::AuthorAlreadySet);
-			ensure!(<Self as Store>::AuthorDonation::get().is_none(), Error::<T>::DonationAlreadySet);
+			ensure!(
+				<Self as Store>::AuthorDonation::get().is_none(),
+				Error::<T>::AuthorPrefsAlreadySet
+			);
 
-			let expected_author = frame_system::Module::<T>::digest()
-				.logs
-				.iter()
-				.filter_map(|s| s.as_pre_runtime())
-				.filter_map(|(id, mut data)| if id == POW_ENGINE_ID {
-					T::AccountId::decode(&mut data).ok()
-				} else {
-					None
-				})
-				.next();
-
-			ensure!(expected_author == Some(author.clone()), Error::<T>::UnexpectedAuthor);
-
-			<Self as Store>::Author::put(author);
 			<Self as Store>::AuthorDonation::put(donation);
 		}
 
@@ -174,6 +157,25 @@ decl_module! {
 			let locks = Self::reward_locks(&account);
 
 			Self::do_update_locks(account, locks);
+		}
+
+		fn on_initialize(now: T::BlockNumber) -> Weight {
+			let author = frame_system::Module::<T>::digest()
+				.logs
+				.iter()
+				.filter_map(|s| s.as_pre_runtime())
+				.filter_map(|(id, mut data)| if id == POW_ENGINE_ID {
+					T::AccountId::decode(&mut data).ok()
+				} else {
+					None
+				})
+				.next();
+
+			if let Some(author) = author {
+				<Self as Store>::Author::put(author);
+			}
+
+			0
 		}
 
 		fn on_finalize() {
@@ -338,9 +340,9 @@ impl<T: Trait> ProvideInherent for Module<T> {
 
 	fn create_inherent(data: &InherentData) -> Option<Self::Call> {
 		let (author_raw, donation) = data.get_data::<InherentType>(&INHERENT_IDENTIFIER).ok()??;
-		let author = T::AccountId::decode(&mut &author_raw[..]).ok()?;
+		let _author = T::AccountId::decode(&mut &author_raw[..]).ok()?;
 
-		Some(Call::set_author(author, donation))
+		Some(Call::note_author_prefs(donation))
 	}
 
 	fn check_inherent(_call: &Self::Call, _data: &InherentData) -> result::Result<(), Self::Error> {
