@@ -14,8 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::{Arc, Mutex};
-use std::cell::RefCell;
+mod compute;
+
+use std::sync::Arc;
 use codec::{Encode, Decode};
 use sp_core::{U256, H256, sr25519, crypto::Pair};
 use sp_api::ProvideRuntimeApi;
@@ -27,126 +28,8 @@ use sp_consensus_pow::{Seal as RawSeal, DifficultyApi};
 use sc_consensus_pow::PowAlgorithm;
 use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore};
 use kulupu_primitives::{Difficulty, AlgorithmApi};
-use lru_cache::LruCache;
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
-use lazy_static::lazy_static;
-use kulupu_randomx as randomx;
-use log::*;
-
-#[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
-pub struct SealV1 {
-	pub difficulty: Difficulty,
-	pub nonce: H256,
-}
-
-#[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
-pub struct SealV2 {
-	pub difficulty: Difficulty,
-	pub nonce: H256,
-	pub signature: sr25519::Signature,
-}
-
-#[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
-pub struct Calculation {
-	pub pre_hash: H256,
-	pub difficulty: Difficulty,
-	pub nonce: H256,
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub struct ComputeV1 {
-	pub key_hash: H256,
-	pub pre_hash: H256,
-	pub difficulty: Difficulty,
-	pub nonce: H256,
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub struct ComputeV2 {
-	pub key_hash: H256,
-	pub pre_hash: H256,
-	pub difficulty: Difficulty,
-	pub nonce: H256,
-}
-
-lazy_static! {
-	static ref SHARED_CACHES: Arc<Mutex<LruCache<H256, Arc<randomx::FullCache>>>> =
-		Arc::new(Mutex::new(LruCache::new(2)));
-}
-thread_local!(static MACHINES: RefCell<Option<(H256, randomx::FullVM)>> = RefCell::new(None));
-
-impl ComputeV2 {
-	pub fn sign(&self, pair: &sr25519::Pair) -> sr25519::Signature {
-		let calculation = Calculation {
-			difficulty: self.difficulty,
-			pre_hash: self.pre_hash,
-			nonce: self.nonce,
-		};
-
-		pair.sign(&calculation.encode()[..])
-	}
-
-	pub fn verify(
-		&self,
-		signature: &sr25519::Signature,
-		public: &sr25519::Public,
-	) -> bool {
-		let calculation = Calculation {
-			difficulty: self.difficulty,
-			pre_hash: self.pre_hash,
-			nonce: self.nonce,
-		};
-
-		sr25519::Pair::verify(
-			signature,
-			&calculation.encode()[..],
-			public
-		)
-	}
-
-	pub fn compute(self, signature: sr25519::Signature) -> (SealV2, H256) {
-		MACHINES.with(|m| {
-			let mut ms = m.borrow_mut();
-			let calculation = Calculation {
-				difficulty: self.difficulty,
-				pre_hash: self.pre_hash,
-				nonce: self.nonce,
-			};
-
-			let need_new_vm = ms.as_ref().map(|(mkey_hash, _)| {
-				mkey_hash != &self.key_hash
-			}).unwrap_or(true);
-
-			if need_new_vm {
-				let mut shared_caches = SHARED_CACHES.lock().expect("Mutex poisioned");
-
-				if let Some(cache) = shared_caches.get_mut(&self.key_hash) {
-					*ms = Some((self.key_hash, randomx::FullVM::new(cache.clone())));
-				} else {
-					info!("At block boundary, generating new RandomX cache with key hash {} ...",
-						  self.key_hash);
-					let cache = Arc::new(randomx::FullCache::new(&self.key_hash[..]));
-					shared_caches.insert(self.key_hash, cache.clone());
-					*ms = Some((self.key_hash, randomx::FullVM::new(cache)));
-				}
-			}
-
-			let work = ms.as_mut()
-				.map(|(mkey_hash, vm)| {
-					assert_eq!(mkey_hash, &self.key_hash,
-							   "Condition failed checking cached key_hash. This is a bug");
-					vm.calculate(&(calculation, &signature).encode()[..])
-				})
-				.expect("Local MACHINES always set to Some above; qed");
-
-			(SealV2 {
-				nonce: self.nonce,
-				difficulty: self.difficulty,
-				signature,
-			}, H256::from(work))
-		})
-	}
-}
+use crate::compute::{ComputeV1, ComputeV2, SealV1, SealV2};
 
 /// Checks whether the given hash is above difficulty.
 fn is_valid_hash(hash: &H256, difficulty: Difficulty) -> bool {
@@ -194,6 +77,11 @@ fn key_hash<B, C>(
 	Ok(current.hash())
 }
 
+pub enum RandomXAlgorithmVersion {
+	V1,
+	V2,
+}
+
 pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
 	pair: Option<sr25519::Pair>,
@@ -234,30 +122,67 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		seal: &RawSeal,
 		difficulty: Difficulty,
 	) -> Result<bool, sc_consensus_pow::Error<B>> {
-		assert_eq!(
-			self.client.runtime_api().identifier(parent)
-				.map_err(|e| sc_consensus_pow::Error::Environment(
-					format!("Fetching identifier from runtime failed: {:?}", e))
-				)?,
-			kulupu_primitives::ALGORITHM_IDENTIFIER_V2
-		);
+		let version_raw = self.client.runtime_api().identifier(parent)
+			.map_err(|e| sc_consensus_pow::Error::Environment(
+				format!("Fetching identifier from runtime failed: {:?}", e))
+			)?;
+
+		let version = match version_raw {
+			kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => RandomXAlgorithmVersion::V1,
+			kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => RandomXAlgorithmVersion::V2,
+			_ => return Err(sc_consensus_pow::Error::<B>::Other(
+				"Unknown algorithm identifier".to_string(),
+			)),
+		};
 
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
 
-		let seal = match SealV2::decode(&mut &seal[..]) {
-			Ok(seal) => seal,
-			Err(_) => return Ok(false),
-		};
+		match version {
+			RandomXAlgorithmVersion::V1 => {
+				let seal = match SealV1::decode(&mut &seal[..]) {
+					Ok(seal) => seal,
+					Err(_) => return Ok(false),
+				};
 
-		let compute = ComputeV2 {
-			key_hash,
-			difficulty,
-			pre_hash: *pre_hash,
-			nonce: seal.nonce,
-		};
+				let compute = ComputeV1 {
+					key_hash,
+					difficulty,
+					pre_hash: *pre_hash,
+					nonce: seal.nonce,
+				};
 
-		match pre_digest {
-			Some(pre_digest) => {
+				// No pre-digest check is needed for V1 algorithm.
+
+				let (computed_seal, computed_work) = compute.seal_and_work();
+
+				if computed_seal != seal {
+					return Ok(false)
+				}
+
+				if !is_valid_hash(&computed_work, difficulty) {
+					return Ok(false)
+				}
+
+				Ok(true)
+			},
+			RandomXAlgorithmVersion::V2 => {
+				let seal = match SealV2::decode(&mut &seal[..]) {
+					Ok(seal) => seal,
+					Err(_) => return Ok(false),
+				};
+
+				let compute = ComputeV2 {
+					key_hash,
+					difficulty,
+					pre_hash: *pre_hash,
+					nonce: seal.nonce,
+				};
+
+				let pre_digest = match pre_digest {
+					Some(pre_digest) => pre_digest,
+					None => return Ok(false),
+				};
+
 				let author = match sr25519::Public::decode(&mut &pre_digest[..]) {
 					Ok(author) => author,
 					Err(_) => return Ok(false),
@@ -266,22 +191,22 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				if !compute.verify(&seal.signature, &author) {
 					return Ok(false)
 				}
+
+				let (computed_seal, computed_work) = compute.seal_and_work(
+					seal.signature.clone()
+				);
+
+				if computed_seal != seal {
+					return Ok(false)
+				}
+
+				if !is_valid_hash(&computed_work, difficulty) {
+					return Ok(false)
+				}
+
+				Ok(true)
 			},
-			None => return Ok(false),
 		}
-
-
-		let (computed_seal, computed_work) = compute.compute(seal.signature.clone());
-
-		if computed_seal != seal {
-			return Ok(false)
-		}
-
-		if !is_valid_hash(&computed_work, difficulty) {
-			return Ok(false)
-		}
-
-		Ok(true)
 	}
 
 	fn mine(
@@ -292,57 +217,87 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		difficulty: Difficulty,
 		round: u32,
 	) -> Result<Option<RawSeal>, sc_consensus_pow::Error<B>> {
-		if let Some(pair) = &self.pair {
-			match pre_digest {
-				Some(pre_digest) => {
-					let author = match sr25519::Public::decode(&mut &pre_digest[..]) {
-						Ok(author) => author,
-						Err(_) => {
-							warn!(target: "kulupu-pow", "Author key decoding failed, not mining.");
-							return Ok(None)
-						},
+		let version_raw = self.client.runtime_api().identifier(parent)
+			.map_err(|e| sc_consensus_pow::Error::Environment(
+				format!("Fetching identifier from runtime failed: {:?}", e))
+			)?;
+
+		let version = match version_raw {
+			kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => RandomXAlgorithmVersion::V1,
+			kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => RandomXAlgorithmVersion::V2,
+			_ => return Err(sc_consensus_pow::Error::<B>::Other(
+				"Unknown algorithm identifier".to_string()
+			)),
+		};
+
+		let mut rng = SmallRng::from_rng(&mut thread_rng())
+			.map_err(|e| sc_consensus_pow::Error::Environment(
+				format!("Initialize RNG failed for mining: {:?}", e)
+			))?;
+		let key_hash = key_hash(self.client.as_ref(), parent)?;
+
+		match version {
+			RandomXAlgorithmVersion::V1 => {
+				for _ in 0..round {
+					let nonce = H256::random_using(&mut rng);
+
+					let compute = ComputeV1 {
+						key_hash,
+						difficulty,
+						pre_hash: *pre_hash,
+						nonce,
 					};
 
-					if author != pair.public() {
-						warn!(target: "kulupu-pow", "Author key mismatch, not mining.");
-						return Ok(None)
+					let (seal, work) = compute.seal_and_work();
+
+					if is_valid_hash(&work, difficulty) {
+						return Ok(Some(seal.encode()))
 					}
-				},
-				None => {
-					warn!(target: "kulupu-pow", "Author key does not exist, not mining.");
-					return Ok(None)
-				},
-			}
-
-			let mut rng = SmallRng::from_rng(&mut thread_rng())
-				.map_err(|e| sc_consensus_pow::Error::Environment(
-					format!("Initialize RNG failed for mining: {:?}", e)
-				))?;
-			let key_hash = key_hash(self.client.as_ref(), parent)?;
-
-			for _ in 0..round {
-				let nonce = H256::random_using(&mut rng);
-
-				let compute = ComputeV2 {
-					key_hash,
-					difficulty,
-					pre_hash: *pre_hash,
-					nonce,
-				};
-
-				let signature = compute.sign(pair);
-				let (seal, work) = compute.compute(signature);
-
-				if is_valid_hash(&work, difficulty) {
-					return Ok(Some(seal.encode()))
 				}
-			}
 
-			Ok(None)
-		} else {
-			warn!(target: "kulupu-pow", "Author not set, not mining.");
+				Ok(None)
+			},
+			RandomXAlgorithmVersion::V2 => {
+				let pair = self.pair.as_ref().ok_or(sc_consensus_pow::Error::<B>::Other(
+					"Unable to mine: v2 author pair not set".to_string(),
+				))?;
 
-			Ok(None)
+				let pre_digest = pre_digest.ok_or(sc_consensus_pow::Error::<B>::Other(
+					"Unable to mine: v2 pre-digest not set".to_string(),
+				))?;
+
+				let author = sr25519::Public::decode(&mut &pre_digest[..]).map_err(|_| {
+					sc_consensus_pow::Error::<B>::Other(
+						"Unable to mine: v2 author pre-digest decoding failed".to_string(),
+					)
+				})?;
+
+				if author != pair.public() {
+					return Err(sc_consensus_pow::Error::<B>::Other(
+						"Unable to mine: v2 author key mismatch".to_string(),
+					))
+				}
+
+				for _ in 0..round {
+					let nonce = H256::random_using(&mut rng);
+
+					let compute = ComputeV2 {
+						key_hash,
+						difficulty,
+						pre_hash: *pre_hash,
+						nonce,
+					};
+
+					let signature = compute.sign(pair);
+					let (seal, work) = compute.seal_and_work(signature);
+
+					if is_valid_hash(&work, difficulty) {
+						return Ok(Some(seal.encode()))
+					}
+				}
+
+				Ok(None)
+			},
 		}
 	}
 }
