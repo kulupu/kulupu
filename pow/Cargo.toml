@@ -16,6 +16,7 @@ sp-runtime = { path = "../vendor/substrate/primitives/runtime" }
 sp-inherents = { path = "../vendor/substrate/primitives/inherents" }
 sp-core = { path = "../vendor/substrate/primitives/core" }
 sp-api = { path = "../vendor/substrate/primitives/api" }
+sp-application-crypto = { path = "../vendor/substrate/primitives/application-crypto" }
 sc-client-api = { package = "sc-client-api", path = "../vendor/substrate/client/api" }
 sc-consensus-pow = { path = "../vendor/substrate/client/consensus/pow" }
 kulupu-primitives = { path = "../primitives" }

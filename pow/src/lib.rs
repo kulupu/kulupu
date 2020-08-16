@@ -18,7 +18,7 @@ mod compute;
 
 use std::sync::Arc;
 use codec::{Encode, Decode};
-use sp_core::{U256, H256, sr25519, crypto::Pair};
+use sp_core::{U256, H256, crypto::Pair};
 use sp_api::ProvideRuntimeApi;
 use sp_runtime::generic::BlockId;
 use sp_runtime::traits::{
@@ -30,6 +30,12 @@ use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore};
 use kulupu_primitives::{Difficulty, AlgorithmApi};
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
 use crate::compute::{ComputeV1, ComputeV2, SealV1, SealV2};
+
+pub mod app {
+	use sp_application_crypto::{app_crypto, sr25519};
+	use sp_core::crypto::KeyTypeId;
+	app_crypto!(sr25519, KeyTypeId(*b"klp2"));
+}
 
 /// Checks whether the given hash is above difficulty.
 fn is_valid_hash(hash: &H256, difficulty: Difficulty) -> bool {
@@ -84,11 +90,11 @@ pub enum RandomXAlgorithmVersion {
 
 pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
-	pair: Option<sr25519::Pair>,
+	pair: Option<app::Pair>,
 }
 
 impl<C> RandomXAlgorithm<C> {
-	pub fn new(client: Arc<C>, pair: Option<sr25519::Pair>) -> Self {
+	pub fn new(client: Arc<C>, pair: Option<app::Pair>) -> Self {
 		Self { client, pair }
 	}
 }
@@ -183,7 +189,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 					None => return Ok(false),
 				};
 
-				let author = match sr25519::Public::decode(&mut &pre_digest[..]) {
+				let author = match app::Public::decode(&mut &pre_digest[..]) {
 					Ok(author) => author,
 					Err(_) => return Ok(false),
 				};
@@ -266,7 +272,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 					"Unable to mine: v2 pre-digest not set".to_string(),
 				))?;
 
-				let author = sr25519::Public::decode(&mut &pre_digest[..]).map_err(|_| {
+				let author = app::Public::decode(&mut &pre_digest[..]).map_err(|_| {
 					sc_consensus_pow::Error::<B>::Other(
 						"Unable to mine: v2 author pre-digest decoding failed".to_string(),
 					)
