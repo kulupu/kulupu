@@ -824,7 +824,7 @@ impl_runtime_apis! {
 
 	impl kulupu_primitives::AlgorithmApi<Block> for Runtime {
 		fn identifier() -> [u8; 8] {
-			kulupu_primitives::ALGORITHM_IDENTIFIER
+			kulupu_primitives::ALGORITHM_IDENTIFIER_V2
 		}
 	}
 }

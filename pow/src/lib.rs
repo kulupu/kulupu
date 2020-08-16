@@ -17,7 +17,7 @@
 use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
 use codec::{Encode, Decode};
-use sp_core::{U256, H256};
+use sp_core::{U256, H256, sr25519, crypto::Pair};
 use sp_api::ProvideRuntimeApi;
 use sp_runtime::generic::BlockId;
 use sp_runtime::traits::{
@@ -34,9 +34,16 @@ use kulupu_randomx as randomx;
 use log::*;
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
-pub struct Seal {
+pub struct SealV1 {
 	pub difficulty: Difficulty,
 	pub nonce: H256,
+}
+
+#[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
+pub struct SealV2 {
+	pub difficulty: Difficulty,
+	pub nonce: H256,
+	pub signature: sr25519::Signature,
 }
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
@@ -47,7 +54,15 @@ pub struct Calculation {
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub struct Compute {
+pub struct ComputeV1 {
+	pub key_hash: H256,
+	pub pre_hash: H256,
+	pub difficulty: Difficulty,
+	pub nonce: H256,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct ComputeV2 {
 	pub key_hash: H256,
 	pub pre_hash: H256,
 	pub difficulty: Difficulty,
@@ -60,8 +75,18 @@ lazy_static! {
 }
 thread_local!(static MACHINES: RefCell<Option<(H256, randomx::FullVM)>> = RefCell::new(None));
 
-impl Compute {
-	pub fn compute(self) -> (Seal, H256) {
+impl ComputeV2 {
+	pub fn sign(&self, pair: &sr25519::Pair) -> sr25519::Signature {
+		let calculation = Calculation {
+			difficulty: self.difficulty,
+			pre_hash: self.pre_hash,
+			nonce: self.nonce,
+		};
+
+		pair.sign(&calculation.encode()[..])
+	}
+
+	pub fn compute(self, signature: sr25519::Signature) -> (SealV2, H256) {
 		MACHINES.with(|m| {
 			let mut ms = m.borrow_mut();
 			let calculation = Calculation {
@@ -92,13 +117,14 @@ impl Compute {
 				.map(|(mkey_hash, vm)| {
 					assert_eq!(mkey_hash, &self.key_hash,
 							   "Condition failed checking cached key_hash. This is a bug");
-					vm.calculate(&calculation.encode()[..])
+					vm.calculate(&(calculation, &signature).encode()[..])
 				})
 				.expect("Local MACHINES always set to Some above; qed");
 
-			(Seal {
+			(SealV2 {
 				nonce: self.nonce,
 				difficulty: self.difficulty,
+				signature,
 			}, H256::from(work))
 		})
 	}
@@ -152,17 +178,21 @@ fn key_hash<B, C>(
 
 pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
+	pair: sr25519::Pair,
 }
 
 impl<C> RandomXAlgorithm<C> {
 	pub fn new(client: Arc<C>) -> Self {
-		Self { client }
+		let pair = sr25519::Pair::generate().0;
+		info!(target: "kulupu-pow", "Signing to target: {:?}", pair.public());
+
+		Self { client, pair }
 	}
 }
 
 impl<C> Clone for RandomXAlgorithm<C> {
 	fn clone(&self) -> Self {
-		Self { client: self.client.clone() }
+		Self { client: self.client.clone(), pair: self.pair.clone() }
 	}
 }
 
@@ -185,6 +215,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		&self,
 		parent: &BlockId<B>,
 		pre_hash: &H256,
+		pre_digest: Option<&[u8]>,
 		seal: &RawSeal,
 		difficulty: Difficulty,
 	) -> Result<bool, sc_consensus_pow::Error<B>> {
@@ -193,24 +224,24 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				.map_err(|e| sc_consensus_pow::Error::Environment(
 					format!("Fetching identifier from runtime failed: {:?}", e))
 				)?,
-			kulupu_primitives::ALGORITHM_IDENTIFIER
+			kulupu_primitives::ALGORITHM_IDENTIFIER_V2
 		);
 
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
 
-		let seal = match Seal::decode(&mut &seal[..]) {
+		let seal = match SealV2::decode(&mut &seal[..]) {
 			Ok(seal) => seal,
 			Err(_) => return Ok(false),
 		};
 
-		let compute = Compute {
+		let compute = ComputeV2 {
 			key_hash,
 			difficulty,
 			pre_hash: *pre_hash,
 			nonce: seal.nonce,
 		};
 
-		let (computed_seal, computed_work) = compute.compute();
+		let (computed_seal, computed_work) = compute.compute(seal.signature.clone());
 
 		if computed_seal != seal {
 			return Ok(false)
@@ -227,6 +258,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		&self,
 		parent: &BlockId<B>,
 		pre_hash: &H256,
+		pre_digest: Option<&[u8]>,
 		difficulty: Difficulty,
 		round: u32,
 	) -> Result<Option<RawSeal>, sc_consensus_pow::Error<B>> {
@@ -239,14 +271,15 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		for _ in 0..round {
 			let nonce = H256::random_using(&mut rng);
 
-			let compute = Compute {
+			let compute = ComputeV2 {
 				key_hash,
 				difficulty,
 				pre_hash: *pre_hash,
 				nonce,
 			};
 
-			let (seal, work) = compute.compute();
+			let signature = compute.sign(&self.pair);
+			let (seal, work) = compute.compute(signature);
 
 			if is_valid_hash(&work, difficulty) {
 				return Ok(Some(seal.encode()))
