@@ -16,6 +16,7 @@
 
 use std::{path::PathBuf, fs::File, io::Write};
 use log::info;
+use sp_core::crypto::{Pair, Ss58Codec, Ss58AddressFormat};
 use sc_cli::{SubstrateCli, ChainSpec, Role, RuntimeVersion};
 use crate::chain_spec;
 use crate::cli::{Cli, Subcommand};
@@ -78,7 +79,7 @@ pub fn run() -> sc_cli::Result<()> {
 		Some(Subcommand::Base(subcommand)) => {
 			let runner = cli.create_runner(subcommand)?;
 			runner.run_subcommand(subcommand, |config| {
-				let (builder, _, _) = new_full_start!(config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), cli.donate);
+				let (builder, _, _, _) = new_full_start!(config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), cli.donate);
 				Ok(builder.to_chain_ops_parts())
 			})
 		},

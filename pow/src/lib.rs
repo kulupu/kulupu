@@ -86,6 +86,24 @@ impl ComputeV2 {
 		pair.sign(&calculation.encode()[..])
 	}
 
+	pub fn verify(
+		&self,
+		signature: &sr25519::Signature,
+		public: &sr25519::Public,
+	) -> bool {
+		let calculation = Calculation {
+			difficulty: self.difficulty,
+			pre_hash: self.pre_hash,
+			nonce: self.nonce,
+		};
+
+		sr25519::Pair::verify(
+			signature,
+			&calculation.encode()[..],
+			public
+		)
+	}
+
 	pub fn compute(self, signature: sr25519::Signature) -> (SealV2, H256) {
 		MACHINES.with(|m| {
 			let mut ms = m.borrow_mut();
@@ -178,14 +196,11 @@ fn key_hash<B, C>(
 
 pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
-	pair: sr25519::Pair,
+	pair: Option<sr25519::Pair>,
 }
 
 impl<C> RandomXAlgorithm<C> {
-	pub fn new(client: Arc<C>) -> Self {
-		let pair = sr25519::Pair::generate().0;
-		info!(target: "kulupu-pow", "Signing to target: {:?}", pair.public());
-
+	pub fn new(client: Arc<C>, pair: Option<sr25519::Pair>) -> Self {
 		Self { client, pair }
 	}
 }
@@ -241,6 +256,21 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 			nonce: seal.nonce,
 		};
 
+		match pre_digest {
+			Some(pre_digest) => {
+				let author = match sr25519::Public::decode(&mut &pre_digest[..]) {
+					Ok(author) => author,
+					Err(_) => return Ok(false),
+				};
+
+				if !compute.verify(&seal.signature, &author) {
+					return Ok(false)
+				}
+			},
+			None => return Ok(false),
+		}
+
+
 		let (computed_seal, computed_work) = compute.compute(seal.signature.clone());
 
 		if computed_seal != seal {
@@ -262,31 +292,58 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		difficulty: Difficulty,
 		round: u32,
 	) -> Result<Option<RawSeal>, sc_consensus_pow::Error<B>> {
-		let mut rng = SmallRng::from_rng(&mut thread_rng())
-			.map_err(|e| sc_consensus_pow::Error::Environment(
-				format!("Initialize RNG failed for mining: {:?}", e)
-			))?;
-		let key_hash = key_hash(self.client.as_ref(), parent)?;
+		if let Some(pair) = &self.pair {
+			match pre_digest {
+				Some(pre_digest) => {
+					let author = match sr25519::Public::decode(&mut &pre_digest[..]) {
+						Ok(author) => author,
+						Err(_) => {
+							warn!(target: "kulupu-pow", "Author key decoding failed, not mining.");
+							return Ok(None)
+						},
+					};
 
-		for _ in 0..round {
-			let nonce = H256::random_using(&mut rng);
-
-			let compute = ComputeV2 {
-				key_hash,
-				difficulty,
-				pre_hash: *pre_hash,
-				nonce,
-			};
-
-			let signature = compute.sign(&self.pair);
-			let (seal, work) = compute.compute(signature);
-
-			if is_valid_hash(&work, difficulty) {
-				return Ok(Some(seal.encode()))
+					if author != pair.public() {
+						warn!(target: "kulupu-pow", "Author key mismatch, not mining.");
+						return Ok(None)
+					}
+				},
+				None => {
+					warn!(target: "kulupu-pow", "Author key does not exist, not mining.");
+					return Ok(None)
+				},
 			}
-		}
 
-		Ok(None)
+			let mut rng = SmallRng::from_rng(&mut thread_rng())
+				.map_err(|e| sc_consensus_pow::Error::Environment(
+					format!("Initialize RNG failed for mining: {:?}", e)
+				))?;
+			let key_hash = key_hash(self.client.as_ref(), parent)?;
+
+			for _ in 0..round {
+				let nonce = H256::random_using(&mut rng);
+
+				let compute = ComputeV2 {
+					key_hash,
+					difficulty,
+					pre_hash: *pre_hash,
+					nonce,
+				};
+
+				let signature = compute.sign(pair);
+				let (seal, work) = compute.compute(signature);
+
+				if is_valid_hash(&work, difficulty) {
+					return Ok(Some(seal.encode()))
+				}
+			}
+
+			Ok(None)
+		} else {
+			warn!(target: "kulupu-pow", "Author not set, not mining.");
+
+			Ok(None)
+		}
 	}
 }
 
