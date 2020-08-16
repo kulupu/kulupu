@@ -131,7 +131,6 @@ macro_rules! new_full_start {
 				let algorithm = kulupu_pow::RandomXAlgorithm::new(
 					client.clone(),
 					None,
-					None,
 				);
 
 				let pow_block_import = sc_consensus_pow::PowBlockImport::new(
@@ -199,7 +198,6 @@ pub fn new_full(
 		let algorithm = kulupu_pow::RandomXAlgorithm::new(
 			client.clone(),
 			Some(keystore.clone()),
-			author.clone(),
 		);
 
 		for _ in 0..threads {
@@ -260,7 +258,7 @@ pub fn new_light(
 		.with_import_queue_and_fprb(|_config, client, _backend, _fetcher, select_chain, _transaction_pool, spawn_task_handle, prometheus_registry| {
 			let fprb = Box::new(DummyFinalityProofRequestBuilder::default()) as Box<_>;
 
-			let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone(), None, None);
+			let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone(), None);
 
 			let pow_block_import = sc_consensus_pow::PowBlockImport::new(
 				client.clone(),

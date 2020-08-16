@@ -18,7 +18,7 @@ mod compute;
 
 use std::sync::Arc;
 use codec::{Encode, Decode};
-use sp_core::{U256, H256, crypto::Pair};
+use sp_core::{U256, H256};
 use sp_api::ProvideRuntimeApi;
 use sp_runtime::generic::BlockId;
 use sp_runtime::traits::{
@@ -94,12 +94,11 @@ pub enum RandomXAlgorithmVersion {
 pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
 	keystore: Option<KeyStorePtr>,
-	public: Option<app::Public>,
 }
 
 impl<C> RandomXAlgorithm<C> {
-	pub fn new(client: Arc<C>, keystore: Option<KeyStorePtr>, public: Option<app::Public>) -> Self {
-		Self { client, keystore, public, }
+	pub fn new(client: Arc<C>, keystore: Option<KeyStorePtr>) -> Self {
+		Self { client, keystore }
 	}
 }
 
@@ -108,7 +107,6 @@ impl<C> Clone for RandomXAlgorithm<C> {
 		Self {
 			client: self.client.clone(),
 			keystore: self.keystore.clone(),
-			public: self.public.clone(),
 		}
 	}
 }
@@ -272,18 +270,6 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				Ok(None)
 			},
 			RandomXAlgorithmVersion::V2 => {
-				let public = self.public.as_ref().ok_or(sc_consensus_pow::Error::<B>::Other(
-					"Unable to mine: v2 author not set".to_string(),
-				))?;
-
-				let pair = self.keystore.as_ref().ok_or(sc_consensus_pow::Error::<B>::Other(
-					"Unable to mine: v2 keystore not set".to_string(),
-				))?.read().key_pair::<app::Pair>(
-					&public,
-				).map_err(|_| sc_consensus_pow::Error::<B>::Other(
-					"Unable to mine: v2 fetch pair from public failed".to_string(),
-				))?;
-
 				let pre_digest = pre_digest.ok_or(sc_consensus_pow::Error::<B>::Other(
 					"Unable to mine: v2 pre-digest not set".to_string(),
 				))?;
@@ -294,11 +280,13 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 					)
 				})?;
 
-				if author != pair.public() {
-					return Err(sc_consensus_pow::Error::<B>::Other(
-						"Unable to mine: v2 author key mismatch".to_string(),
-					))
-				}
+				let pair = self.keystore.as_ref().ok_or(sc_consensus_pow::Error::<B>::Other(
+					"Unable to mine: v2 keystore not set".to_string(),
+				))?.read().key_pair::<app::Pair>(
+					&author,
+				).map_err(|_| sc_consensus_pow::Error::<B>::Other(
+					"Unable to mine: v2 fetch pair from author failed".to_string(),
+				))?;
 
 				for _ in 0..round {
 					let nonce = H256::random_using(&mut rng);
