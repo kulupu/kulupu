@@ -20,15 +20,14 @@ use std::sync::Arc;
 use std::str::FromStr;
 use codec::Encode;
 use sp_runtime::{Perbill, traits::Bounded};
-use sp_core::{H256, crypto::{Pair, UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
+use sp_core::{H256, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
 use sc_consensus::LongestChain;
 use sc_service::{
 	error::{Error as ServiceError}, Configuration, ServiceBuilder, TaskManager, ServiceComponents
 };
 use sc_executor::native_executor_instance;
 use sc_network::config::DummyFinalityProofRequestBuilder;
-use kulupu_runtime::{self, opaque::Block, RuntimeApi, AccountId};
-use log::info;
+use kulupu_runtime::{self, opaque::Block, RuntimeApi};
 
 pub use sc_executor::NativeExecutor;
 
@@ -39,9 +38,26 @@ native_executor_instance!(
 	kulupu_runtime::native_version,
 );
 
+pub fn decode_author(
+	author: Option<&str>,
+) -> Option<kulupu_pow::app::Public> {
+	author.map(|author| {
+		if author.starts_with("0x") {
+			kulupu_pow::app::Public::unchecked_from(
+				H256::from_str(&author[2..]).expect("Invalid author account")
+			).into()
+		} else {
+			let (address, version) = kulupu_pow::app::Public::from_ss58check_with_version(author)
+				.expect("Invalid author address");
+			assert!(version == Ss58AddressFormat::KulupuAccount, "Invalid author version");
+			address
+		}
+	})
+}
+
 /// Inherent data provider for Kulupu.
 pub fn kulupu_inherent_data_providers(
-	author: Option<&str>, donate: bool,
+	author: Option<kulupu_pow::app::Public>, donate: bool,
 ) -> Result<sp_inherents::InherentDataProviders, ServiceError> {
 	let inherent_data_providers = sp_inherents::InherentDataProviders::new();
 
@@ -53,16 +69,7 @@ pub fn kulupu_inherent_data_providers(
 	}
 
 	if let Some(author) = author {
-		let encoded_author = if author.starts_with("0x") {
-			AccountId::unchecked_from(
-				H256::from_str(&author[2..]).expect("Invalid author account")
-			)
-		} else {
-			let (address, version) = AccountId::from_ss58check_with_version(author)
-				.expect("Invalid author address");
-			assert!(version == Ss58AddressFormat::KulupuAccount, "Invalid author version");
-			address
-		}.encode();
+		let encoded_author = author.encode();
 
 		if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER_V0) {
 			inherent_data_providers
@@ -92,12 +99,11 @@ pub fn kulupu_inherent_data_providers(
 /// be able to perform chain operations.
 macro_rules! new_full_start {
 	($config:expr, $author:expr, $check_inherents_after:expr, $donate:expr) => {{
-		let pair = sp_core::sr25519::Pair::generate().0;
-		info!("Mining using {:?}", pair.public());
+		let author = crate::service::decode_author($author);
 
 		let mut import_setup = None;
 		let inherent_data_providers = crate::service::kulupu_inherent_data_providers(
-			Some(&pair.public().to_ss58check_with_version(Ss58AddressFormat::KulupuAccount)),
+			author,
 			$donate,
 		)?;
 
@@ -121,7 +127,11 @@ macro_rules! new_full_start {
 				))
 			})?
 			.with_import_queue(|_config, client, select_chain, _transaction_pool, spawn_task_handle, prometheus_registry| {
-				let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone(), Some(pair.clone()));
+				let algorithm = kulupu_pow::RandomXAlgorithm::new(
+					client.clone(),
+					None,
+					None,
+				);
 
 				let pow_block_import = sc_consensus_pow::PowBlockImport::new(
 					client.clone(),
@@ -142,12 +152,12 @@ macro_rules! new_full_start {
 					prometheus_registry,
 				)?;
 
-				import_setup = Some((pow_block_import, algorithm));
+				import_setup = Some(pow_block_import);
 
 				Ok(import_queue)
 			})?;
 
-		(builder, import_setup, inherent_data_providers, pair)
+		(builder, import_setup, inherent_data_providers)
 	}}
 }
 
@@ -162,13 +172,13 @@ pub fn new_full(
 ) -> Result<TaskManager, ServiceError> {
 	let role = config.role.clone();
 
-	let (builder, mut import_setup, inherent_data_providers, pair) =
+	let (builder, mut import_setup, inherent_data_providers) =
 		new_full_start!(config, author, check_inherents_after, donate);
 
-	let (block_import, algorithm) = import_setup.take().expect("Link Half and Block Import are present for Full Services or setup failed before. qed");
+	let block_import = import_setup.take().expect("Link Half and Block Import are present for Full Services or setup failed before. qed");
 
 	let ServiceComponents {
-		client, transaction_pool, select_chain, network, task_manager, ..
+		client, transaction_pool, select_chain, network, task_manager, keystore, ..
 	} = builder
 		.with_finality_proof_provider(|_client, _backend| {
 			Ok(Arc::new(()) as _)
@@ -176,6 +186,13 @@ pub fn new_full(
 		.build_full()?;
 
 	if role.is_authority() {
+		let author = decode_author(author);
+		let algorithm = kulupu_pow::RandomXAlgorithm::new(
+			client.clone(),
+			Some(keystore.clone()),
+			author.clone(),
+		);
+
 		for _ in 0..threads {
 			let proposer = sc_basic_authorship::ProposerFactory::new(
 				client.clone(),
@@ -188,7 +205,7 @@ pub fn new_full(
 				client.clone(),
 				algorithm.clone(),
 				proposer,
-				Some(pair.public().encode()),
+				author.clone().map(|a| a.encode()),
 				round,
 				network.clone(),
 				std::time::Duration::new(2, 0),
@@ -209,7 +226,7 @@ pub fn new_light(
 	check_inherents_after: u32,
 	donate: bool,
 ) -> Result<TaskManager, ServiceError> {
-	let inherent_data_providers = kulupu_inherent_data_providers(author, donate)?;
+	let inherent_data_providers = kulupu_inherent_data_providers(decode_author(author), donate)?;
 
 	ServiceBuilder::new_light::<Block, RuntimeApi, Executor>(config)?
 		.with_select_chain(|_config, backend| {
@@ -234,7 +251,7 @@ pub fn new_light(
 		.with_import_queue_and_fprb(|_config, client, _backend, _fetcher, select_chain, _transaction_pool, spawn_task_handle, prometheus_registry| {
 			let fprb = Box::new(DummyFinalityProofRequestBuilder::default()) as Box<_>;
 
-			let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone(), None);
+			let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone(), None, None);
 
 			let pow_block_import = sc_consensus_pow::PowBlockImport::new(
 				client.clone(),

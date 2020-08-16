@@ -93,12 +93,12 @@ pub enum RandomXAlgorithmVersion {
 
 pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
-	keystore: KeyStorePtr,
+	keystore: Option<KeyStorePtr>,
 	public: Option<app::Public>,
 }
 
 impl<C> RandomXAlgorithm<C> {
-	pub fn new(client: Arc<C>, keystore: KeyStorePtr, public: Option<app::Public>) -> Self {
+	pub fn new(client: Arc<C>, keystore: Option<KeyStorePtr>, public: Option<app::Public>) -> Self {
 		Self { client, keystore, public, }
 	}
 }
@@ -276,7 +276,9 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 					"Unable to mine: v2 author not set".to_string(),
 				))?;
 
-				let pair = self.keystore.read().key_pair::<app::Pair>(
+				let pair = self.keystore.as_ref().ok_or(sc_consensus_pow::Error::<B>::Other(
+					"Unable to mine: v2 keystore not set".to_string(),
+				))?.read().key_pair::<app::Pair>(
 					&public,
 				).map_err(|_| sc_consensus_pow::Error::<B>::Other(
 					"Unable to mine: v2 fetch pair from public failed".to_string(),
