@@ -75,7 +75,9 @@ pub fn breaknet1_config() -> ChainSpec {
 		|| breaknet1_genesis(
 			U256::from(20000),
 		),
-		vec![],
+		vec![
+			"/ip4/95.217.86.109/tcp/20999/12D3KooWB53ynzuPfA1FcxHYuF5zur25571M5TQyBkko6S4gikYT".parse().unwrap(),
+		],
 		None,
 		Some("kulupubreaknet1"),
 		Some(json!({
