@@ -110,11 +110,11 @@ pub mod opaque {
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kulupu"),
 	impl_name: create_runtime_str!("kulupu"),
-	authoring_version: 4,
-	spec_version: 7,
+	authoring_version: 5,
+	spec_version: 8,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 4,
+	transaction_version: 5,
 };
 
 /// The version infromation used to identify this runtime when compiled natively.
