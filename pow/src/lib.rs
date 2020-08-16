@@ -27,6 +27,7 @@ use sp_runtime::traits::{
 use sp_consensus_pow::{Seal as RawSeal, DifficultyApi};
 use sc_consensus_pow::PowAlgorithm;
 use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore};
+use sc_keystore::KeyStorePtr;
 use kulupu_primitives::{Difficulty, AlgorithmApi};
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
 use crate::compute::{ComputeV1, ComputeV2, SealV1, SealV2};
@@ -34,7 +35,9 @@ use crate::compute::{ComputeV1, ComputeV2, SealV1, SealV2};
 pub mod app {
 	use sp_application_crypto::{app_crypto, sr25519};
 	use sp_core::crypto::KeyTypeId;
-	app_crypto!(sr25519, KeyTypeId(*b"klp2"));
+
+	pub const ID: KeyTypeId = KeyTypeId(*b"klp2");
+	app_crypto!(sr25519, ID);
 }
 
 /// Checks whether the given hash is above difficulty.
@@ -90,18 +93,23 @@ pub enum RandomXAlgorithmVersion {
 
 pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
-	pair: Option<app::Pair>,
+	keystore: KeyStorePtr,
+	public: Option<app::Public>,
 }
 
 impl<C> RandomXAlgorithm<C> {
-	pub fn new(client: Arc<C>, pair: Option<app::Pair>) -> Self {
-		Self { client, pair }
+	pub fn new(client: Arc<C>, keystore: KeyStorePtr, public: Option<app::Public>) -> Self {
+		Self { client, keystore, public, }
 	}
 }
 
 impl<C> Clone for RandomXAlgorithm<C> {
 	fn clone(&self) -> Self {
-		Self { client: self.client.clone(), pair: self.pair.clone() }
+		Self {
+			client: self.client.clone(),
+			keystore: self.keystore.clone(),
+			public: self.public.clone(),
+		}
 	}
 }
 
@@ -264,8 +272,14 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				Ok(None)
 			},
 			RandomXAlgorithmVersion::V2 => {
-				let pair = self.pair.as_ref().ok_or(sc_consensus_pow::Error::<B>::Other(
-					"Unable to mine: v2 author pair not set".to_string(),
+				let public = self.public.as_ref().ok_or(sc_consensus_pow::Error::<B>::Other(
+					"Unable to mine: v2 author not set".to_string(),
+				))?;
+
+				let pair = self.keystore.read().key_pair::<app::Pair>(
+					&public,
+				).map_err(|_| sc_consensus_pow::Error::<B>::Other(
+					"Unable to mine: v2 fetch pair from public failed".to_string(),
 				))?;
 
 				let pre_digest = pre_digest.ok_or(sc_consensus_pow::Error::<B>::Other(
@@ -294,7 +308,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 						nonce,
 					};
 
-					let signature = compute.sign(pair);
+					let signature = compute.sign(&pair);
 					let (seal, work) = compute.seal_and_work(signature);
 
 					if is_valid_hash(&work, difficulty) {

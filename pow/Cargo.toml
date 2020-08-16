@@ -19,6 +19,7 @@ sp-api = { path = "../vendor/substrate/primitives/api" }
 sp-application-crypto = { path = "../vendor/substrate/primitives/application-crypto" }
 sc-client-api = { package = "sc-client-api", path = "../vendor/substrate/client/api" }
 sc-consensus-pow = { path = "../vendor/substrate/client/consensus/pow" }
+sc-keystore = { path = "../vendor/substrate/client/keystore" }
 kulupu-primitives = { path = "../primitives" }
 kulupu-runtime = { path = "../runtime" }
 kulupu-randomx = { path = "randomx" }
