@@ -27,6 +27,7 @@ use codec::{Encode, Decode};
 use sp_std::{result, cmp::min, prelude::*, collections::btree_map::BTreeMap};
 use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
 use sp_inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
+use sp_consensus_pow::POW_ENGINE_ID;
 #[cfg(feature = "std")]
 use sp_inherents::ProvideInherentData;
 use frame_support::{
@@ -77,6 +78,8 @@ decl_error! {
 		RewardTooLow,
 		/// Donation already set in block.
 		DonationAlreadySet,
+		/// Author is not expected.
+		UnexpectedAuthor,
 	}
 }
 
@@ -123,6 +126,19 @@ decl_module! {
 			ensure_none(origin)?;
 			ensure!(<Self as Store>::Author::get().is_none(), Error::<T>::AuthorAlreadySet);
 			ensure!(<Self as Store>::AuthorDonation::get().is_none(), Error::<T>::DonationAlreadySet);
+
+			let expected_author = frame_system::Module::<T>::digest()
+				.logs
+				.iter()
+				.filter_map(|s| s.as_pre_runtime())
+				.filter_map(|(id, mut data)| if id == POW_ENGINE_ID {
+					T::AccountId::decode(&mut data).ok()
+				} else {
+					None
+				})
+				.next();
+
+			ensure!(expected_author == Some(author.clone()), Error::<T>::UnexpectedAuthor);
 
 			<Self as Store>::Author::put(author);
 			<Self as Store>::AuthorDonation::put(donation);

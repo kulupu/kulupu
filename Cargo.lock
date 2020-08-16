@@ -3596,6 +3596,7 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "serde",
+ "sp-consensus-pow",
  "sp-core",
  "sp-inherents",
  "sp-io",
