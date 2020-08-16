@@ -28,6 +28,7 @@ use sc_service::{
 use sc_executor::native_executor_instance;
 use sc_network::config::DummyFinalityProofRequestBuilder;
 use kulupu_runtime::{self, opaque::Block, RuntimeApi};
+use log::*;
 
 pub use sc_executor::NativeExecutor;
 
@@ -169,6 +170,7 @@ pub fn new_full(
 	round: u32,
 	check_inherents_after: u32,
 	donate: bool,
+	register_key: Option<&str>,
 ) -> Result<TaskManager, ServiceError> {
 	let role = config.role.clone();
 
@@ -184,6 +186,13 @@ pub fn new_full(
 			Ok(Arc::new(()) as _)
 		})?
 		.build_full()?;
+
+	if let Some(suri) = register_key {
+		match keystore.write().insert::<kulupu_pow::app::Pair>(suri) {
+			Ok(_) => info!("Registered one key"),
+			Err(e) => warn!("Registering key failed: {:?}", e),
+		}
+	}
 
 	if role.is_authority() {
 		let author = decode_author(author);

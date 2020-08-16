@@ -121,6 +121,7 @@ pub fn run() -> sc_cli::Result<()> {
 						cli.round.unwrap_or(5000),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
 						cli.donate,
+						cli.register_mining_key.as_ref().map(|k| k.as_str()),
 					)
 				}
 			)
