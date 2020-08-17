@@ -17,6 +17,7 @@
 use std::{path::PathBuf, fs::File, io::Write};
 use log::info;
 use sc_cli::{SubstrateCli, ChainSpec, Role, RuntimeVersion};
+use sc_service::PartialComponents;
 use crate::chain_spec;
 use crate::cli::{Cli, Subcommand};
 use crate::service;
@@ -79,8 +80,9 @@ pub fn run() -> sc_cli::Result<()> {
 		Some(Subcommand::Base(subcommand)) => {
 			let runner = cli.create_runner(subcommand)?;
 			runner.run_subcommand(subcommand, |config| {
-				let (builder, _, _) = new_full_start!(config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), cli.donate);
-				Ok(builder.to_chain_ops_parts())
+				let PartialComponents { client, backend, task_manager, import_queue, .. } =
+					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate)?;
+				Ok((client, backend, import_queue, task_manager))
 			})
 		},
 		Some(Subcommand::ExportBuiltinWasm(cmd)) => {
@@ -113,7 +115,7 @@ pub fn run() -> sc_cli::Result<()> {
 						config,
 						cli.author.as_ref().map(|s| s.as_str()),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
-						cli.donate,
+						!cli.no_donate,
 					),
 					_ => service::new_full(
 						config,
@@ -121,7 +123,7 @@ pub fn run() -> sc_cli::Result<()> {
 						cli.threads.unwrap_or(1),
 						cli.round.unwrap_or(5000),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
-						cli.donate,
+						!cli.no_donate,
 						cli.register_mining_key.as_ref().map(|k| k.as_str()),
 					)
 				}

@@ -1,6 +1,6 @@
 [package]
 name = "kulupu-runtime"
-version = "1.3.2"
+version = "1.4.0"
 authors = ["Wei Tang <wei@that.world>"]
 edition = "2018"
 
@@ -44,6 +44,9 @@ multisig = { package = "pallet-multisig", path = "../vendor/substrate/frame/mult
 rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
 eras = { package = "pallet-eras", path = "../frame/eras", default-features = false }
 difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", default-features = false }
+
+frame-system-rpc-runtime-api = { default-features = false, path = "../vendor/substrate/frame/system/rpc/runtime-api/" }
+pallet-transaction-payment-rpc-runtime-api = { default-features = false, path = "../vendor/substrate/frame/transaction-payment/rpc/runtime-api/" }
 
 [build-dependencies]
 wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.5", path = "../vendor/substrate/utils/wasm-builder-runner" }
@@ -89,4 +92,7 @@ std = [
 	"rewards/std",
 	"eras/std",
 	"difficulty/std",
+
+	"frame-system-rpc-runtime-api/std",
+	"pallet-transaction-payment-rpc-runtime-api/std",
 ]

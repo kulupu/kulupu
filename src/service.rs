@@ -21,13 +21,10 @@ use std::str::FromStr;
 use codec::Encode;
 use sp_runtime::{Perbill, traits::Bounded};
 use sp_core::{H256, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
-use sc_consensus::LongestChain;
-use sc_service::{
-	error::{Error as ServiceError}, Configuration, ServiceBuilder, TaskManager, ServiceComponents
-};
+use sc_service::{error::{Error as ServiceError}, Configuration, TaskManager};
 use sc_executor::native_executor_instance;
-use sc_network::config::DummyFinalityProofRequestBuilder;
-use kulupu_runtime::{self, opaque::Block, RuntimeApi};
+use sc_client_api::backend::RemoteBackend;
+use kulupu_runtime::{self, opaque::Block, RuntimeApi, AccountId};
 use log::*;
 
 pub use sc_executor::NativeExecutor;
@@ -55,6 +52,10 @@ pub fn decode_author(
 		}
 	})
 }
+
+type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
+type FullBackend = sc_service::TFullBackend<Block>;
+type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
 /// Inherent data provider for Kulupu.
 pub fn kulupu_inherent_data_providers(
@@ -94,71 +95,58 @@ pub fn kulupu_inherent_data_providers(
 	Ok(inherent_data_providers)
 }
 
-/// Starts a `ServiceBuilder` for a full service.
-///
-/// Use this macro if you don't actually need the full service, but just the builder in order to
-/// be able to perform chain operations.
-macro_rules! new_full_start {
-	($config:expr, $author:expr, $check_inherents_after:expr, $donate:expr) => {{
-		let author = crate::service::decode_author($author);
+pub fn new_partial(
+	config: &Configuration,
+	author: Option<&str>,
+	check_inherents_after: u32,
+	donate: bool,
+) -> Result<sc_service::PartialComponents<
+	FullClient, FullBackend, FullSelectChain,
+	sp_consensus::DefaultImportQueue<Block, FullClient>,
+	sc_transaction_pool::FullPool<Block, FullClient>,
+	sc_consensus_pow::PowBlockImport<Block, Arc<FullClient>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>>,
+>, ServiceError> {
+	let inherent_data_providers = crate::service::kulupu_inherent_data_providers(author, donate)?;
 
-		let mut import_setup = None;
-		let inherent_data_providers = crate::service::kulupu_inherent_data_providers(
-			author,
-			$donate,
-		)?;
+	let (client, backend, keystore, task_manager) =
+		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(&config)?;
+	let client = Arc::new(client);
 
-		let builder = sc_service::ServiceBuilder::new_full::<
-			kulupu_runtime::opaque::Block, kulupu_runtime::RuntimeApi, crate::service::Executor
-		>($config)?
-			.with_select_chain(|_config, backend| {
-				Ok(sc_consensus::LongestChain::new(backend.clone()))
-			})?
-			.with_transaction_pool(|builder| {
-				let pool_api = sc_transaction_pool::FullChainApi::new(
-					builder.client().clone(),
-					None,
-				);
-				Ok(sc_transaction_pool::BasicPool::new_full(
-					builder.config().transaction_pool.clone(),
-					std::sync::Arc::new(pool_api),
-					builder.prometheus_registry(),
-					builder.spawn_handle(),
-					builder.client().clone(),
-				))
-			})?
-			.with_import_queue(|_config, client, select_chain, _transaction_pool, spawn_task_handle, prometheus_registry| {
-				let algorithm = kulupu_pow::RandomXAlgorithm::new(
-					client.clone(),
-					None,
-				);
+	let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-				let pow_block_import = sc_consensus_pow::PowBlockImport::new(
-					client.clone(),
-					client.clone(),
-					algorithm.clone(),
-					$check_inherents_after,
-					select_chain,
-					inherent_data_providers.clone(),
-				);
+	let transaction_pool = sc_transaction_pool::BasicPool::new_full(
+		config.transaction_pool.clone(),
+		config.prometheus_registry(),
+		task_manager.spawn_handle(),
+		client.clone(),
+	);
 
-				let import_queue = sc_consensus_pow::import_queue(
-					Box::new(pow_block_import.clone()),
-					None,
-					None,
-					algorithm.clone(),
-					inherent_data_providers.clone(),
-					spawn_task_handle,
-					prometheus_registry,
-				)?;
+	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone(), None);
 
-				import_setup = Some(pow_block_import);
+	let pow_block_import = sc_consensus_pow::PowBlockImport::new(
+		client.clone(),
+		client.clone(),
+		algorithm.clone(),
+		check_inherents_after,
+		Some(select_chain.clone()),
+		inherent_data_providers.clone(),
+	);
 
-				Ok(import_queue)
-			})?;
+	let import_queue = sc_consensus_pow::import_queue(
+		Box::new(pow_block_import.clone()),
+		None,
+		None,
+		algorithm.clone(),
+		inherent_data_providers.clone(),
+		&task_manager.spawn_handle(),
+		config.prometheus_registry(),
+	)?;
 
-		(builder, import_setup, inherent_data_providers)
-	}}
+	Ok(sc_service::PartialComponents {
+		client, backend, task_manager, import_queue, keystore, select_chain, transaction_pool,
+		inherent_data_providers,
+		other: pow_block_import,
+	})
 }
 
 /// Builds a new service for a full client.
@@ -171,20 +159,60 @@ pub fn new_full(
 	donate: bool,
 	register_key: Option<&str>,
 ) -> Result<TaskManager, ServiceError> {
+	let sc_service::PartialComponents {
+		client, backend, mut task_manager, import_queue, keystore, select_chain, transaction_pool,
+		inherent_data_providers, other: pow_block_import,
+	} = new_partial(&config, author, check_inherents_after, donate)?;
+
+	let (network, network_status_sinks, system_rpc_tx, network_starter) =
+		sc_service::build_network(sc_service::BuildNetworkParams {
+			config: &config,
+			client: client.clone(),
+			transaction_pool: transaction_pool.clone(),
+			spawn_handle: task_manager.spawn_handle(),
+			import_queue,
+			on_demand: None,
+			block_announce_validator_builder: None,
+			finality_proof_request_builder: None,
+			finality_proof_provider: None,
+		})?;
+
+	if config.offchain_worker.enabled {
+		sc_service::build_offchain_workers(
+			&config, backend.clone(), task_manager.spawn_handle(), client.clone(), network.clone(),
+		);
+	}
+
 	let role = config.role.clone();
+	let telemetry_connection_sinks = sc_service::TelemetryConnectionSinks::default();
 
-	let (builder, mut import_setup, inherent_data_providers) =
-		new_full_start!(config, author, check_inherents_after, donate);
+	let rpc_extensions_builder = {
+		let client = client.clone();
+		let pool = transaction_pool.clone();
 
-	let block_import = import_setup.take().expect("Link Half and Block Import are present for Full Services or setup failed before. qed");
+		Box::new(move |deny_unsafe| {
+			let deps = crate::rpc::FullDeps {
+				client: client.clone(),
+				pool: pool.clone(),
+				deny_unsafe,
+			};
 
-	let ServiceComponents {
-		client, transaction_pool, select_chain, network, task_manager, keystore, ..
-	} = builder
-		.with_finality_proof_provider(|_client, _backend| {
-			Ok(Arc::new(()) as _)
-		})?
-		.build_full()?;
+			crate::rpc::create_full(deps)
+		})
+	};
+
+	sc_service::spawn_tasks(sc_service::SpawnTasksParams {
+		network: network.clone(),
+		client: client.clone(),
+		keystore: keystore.clone(),
+		task_manager: &mut task_manager,
+		transaction_pool: transaction_pool.clone(),
+		telemetry_connection_sinks: telemetry_connection_sinks.clone(),
+		rpc_extensions_builder: rpc_extensions_builder,
+		on_demand: None,
+		remote_blockchain: None,
+		backend, network_status_sinks, system_rpc_tx, config,
+	})?;
 
 	if let Some(suri) = register_key {
 		match keystore.write().insert::<kulupu_pow::app::Pair>(suri) {
@@ -208,7 +236,7 @@ pub fn new_full(
 			);
 
 			sc_consensus_pow::start_mine(
-				Box::new(block_import.clone()),
+				Box::new(pow_block_import.clone()),
 				client.clone(),
 				algorithm.clone(),
 				proposer,
@@ -216,13 +244,14 @@ pub fn new_full(
 				round,
 				network.clone(),
 				std::time::Duration::new(2, 0),
-				select_chain.clone(),
+				Some(select_chain.clone()),
 				inherent_data_providers.clone(),
 				sp_consensus::AlwaysCanAuthor,
 			);
 		}
 	}
 
+	network_starter.start_network();
 	Ok(task_manager)
 }
 
@@ -233,57 +262,78 @@ pub fn new_light(
 	check_inherents_after: u32,
 	donate: bool,
 ) -> Result<TaskManager, ServiceError> {
-	let inherent_data_providers = kulupu_inherent_data_providers(decode_author(author), donate)?;
+	let (client, backend, keystore, mut task_manager, on_demand) =
+		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(&config)?;
 
-	ServiceBuilder::new_light::<Block, RuntimeApi, Executor>(config)?
-		.with_select_chain(|_config, backend| {
-			Ok(LongestChain::new(backend.clone()))
-		})?
-		.with_transaction_pool(|builder| {
-			let fetcher = builder.fetcher()
-				.ok_or_else(|| "Trying to start light transaction pool without active fetcher")?;
+	let transaction_pool = Arc::new(sc_transaction_pool::BasicPool::new_light(
+		config.transaction_pool.clone(),
+		config.prometheus_registry(),
+		task_manager.spawn_handle(),
+		client.clone(),
+		on_demand.clone(),
+	));
 
-			let pool_api = sc_transaction_pool::LightChainApi::new(
-				builder.client().clone(),
-				fetcher,
-			);
-			let pool = Arc::new(sc_transaction_pool::BasicPool::new_light(
-				builder.config().transaction_pool.clone(),
-				Arc::new(pool_api),
-				builder.prometheus_registry(),
-				builder.spawn_handle(),
-			));
-			Ok(pool)
-		})?
-		.with_import_queue_and_fprb(|_config, client, _backend, _fetcher, select_chain, _transaction_pool, spawn_task_handle, prometheus_registry| {
-			let fprb = Box::new(DummyFinalityProofRequestBuilder::default()) as Box<_>;
+	let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-			let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone(), None);
+	let inherent_data_providers = kulupu_inherent_data_providers(author, donate)?;
 
-			let pow_block_import = sc_consensus_pow::PowBlockImport::new(
-				client.clone(),
-				client.clone(),
-				algorithm.clone(),
-				check_inherents_after,
-				select_chain,
-				inherent_data_providers.clone(),
-			);
+	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
 
-			let import_queue = sc_consensus_pow::import_queue(
-				Box::new(pow_block_import.clone()),
-				None,
-				None,
-				algorithm.clone(),
-				inherent_data_providers.clone(),
-				spawn_task_handle,
-				prometheus_registry,
-			)?;
+	let pow_block_import = sc_consensus_pow::PowBlockImport::new(
+		client.clone(),
+		client.clone(),
+		algorithm.clone(),
+		check_inherents_after,
+		Some(select_chain),
+		inherent_data_providers.clone(),
+	);
 
-			Ok((import_queue, fprb))
-		})?
-		.with_finality_proof_provider(|_client, _backend| {
-			Ok(Arc::new(()) as _)
-		})?
-		.build_light()
-		.map(|ServiceComponents { task_manager, .. }| task_manager)
+	let import_queue = sc_consensus_pow::import_queue(
+		Box::new(pow_block_import.clone()),
+		None,
+		None,
+		algorithm.clone(),
+		inherent_data_providers.clone(),
+		&task_manager.spawn_handle(),
+		config.prometheus_registry(),
+	)?;
+
+	let (network, network_status_sinks, system_rpc_tx, network_starter) =
+		sc_service::build_network(sc_service::BuildNetworkParams {
+			config: &config,
+			client: client.clone(),
+			transaction_pool: transaction_pool.clone(),
+			spawn_handle: task_manager.spawn_handle(),
+			import_queue,
+			on_demand: Some(on_demand.clone()),
+			block_announce_validator_builder: None,
+			finality_proof_request_builder: None,
+			finality_proof_provider: None,
+		})?;
+
+	if config.offchain_worker.enabled {
+		sc_service::build_offchain_workers(
+			&config, backend.clone(), task_manager.spawn_handle(), client.clone(), network.clone(),
+		);
+	}
+
+	sc_service::spawn_tasks(sc_service::SpawnTasksParams {
+		remote_blockchain: Some(backend.remote_blockchain()),
+		transaction_pool,
+		task_manager: &mut task_manager,
+		on_demand: Some(on_demand),
+		rpc_extensions_builder: Box::new(|_| ()),
+		telemetry_connection_sinks: sc_service::TelemetryConnectionSinks::default(),
+		config,
+		client,
+		keystore,
+		backend,
+		network,
+		network_status_sinks,
+		system_rpc_tx,
+	 })?;
+
+	 network_starter.start_network();
+
+	 Ok(task_manager)
 }
