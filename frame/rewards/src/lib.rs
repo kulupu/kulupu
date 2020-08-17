@@ -215,13 +215,6 @@ decl_module! {
 			<Self as Store>::Author::kill();
 			<Self as Store>::AuthorDonation::kill();
 		}
-
-		// [fixme: should be removed in next runtime upgrade]
-		fn on_runtime_upgrade() -> Weight {
-			Taxation::put(Perbill::zero());
-
-			0
-		}
 	}
 }
 

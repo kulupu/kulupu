@@ -56,7 +56,7 @@ fn run_to_block(n: u64, author: u64) {
 #[test]
 fn genesis_config_works() {
 	new_test_ext(1).execute_with(|| {
-		assert_eq!(Author::<Test>::get(), None);
+		assert_eq!(Author::<Test>::get(), Some(1));
 		assert_eq!(Reward::<Test>::get(), 60);
 		assert_eq!(Balances::free_balance(1), 0);
 		assert_eq!(Balances::free_balance(2), 0);
@@ -83,11 +83,14 @@ fn set_reward_works() {
 fn set_author_works() {
 	new_test_ext(1).execute_with(|| {
 		// Fails with bad origin
-		assert_noop!(Rewards::set_author(Origin::signed(1), 1, Perbill::zero()), BadOrigin);
+		assert_noop!(Rewards::note_author_prefs(Origin::signed(1), Perbill::zero()), BadOrigin);
 		// Block author can successfully set themselves
-		assert_ok!(Rewards::set_author(Origin::none(), 1, Perbill::zero()));
+		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
 		// Cannot set author twice
-		assert_noop!(Rewards::set_author(Origin::none(), 2, Perbill::zero()), Error::<Test>::AuthorAlreadySet);
+		assert_noop!(
+			Rewards::note_author_prefs(Origin::none(), Perbill::zero()),
+			Error::<Test>::AuthorPrefsAlreadySet,
+		);
 		assert_eq!(Author::<Test>::get(), Some(1));
 	});
 }
@@ -96,7 +99,7 @@ fn set_author_works() {
 fn reward_payment_works() {
 	new_test_ext(1).execute_with(|| {
 		// Block author sets themselves as author
-		assert_ok!(Rewards::set_author(Origin::none(), 1, Perbill::zero()));
+		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
 		// Next block
 		run_to_block(2, 2);
 		// User gets reward
@@ -105,7 +108,7 @@ fn reward_payment_works() {
 		// Set new reward
 		assert_ok!(Rewards::set_reward(Origin::root(), 42));
 		assert_ok!(Rewards::set_taxation(Origin::root(), Perbill::zero()));
-		assert_ok!(Rewards::set_author(Origin::none(), 2, Perbill::zero()));
+		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
 		run_to_block(3, 1);
 		assert_eq!(Balances::free_balance(2), 42);
 	});
@@ -119,7 +122,7 @@ fn reward_locks_work() {
 		assert_ok!(Rewards::set_reward(Origin::root(), 101));
 
 		// Block author sets themselves as author
-		assert_ok!(Rewards::set_author(Origin::none(), 1, Perbill::zero()));
+		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
 		// Next block
 		run_to_block(2, 1);
 		// User gets reward
@@ -135,7 +138,7 @@ fn reward_locks_work() {
 		assert_eq!(Rewards::reward_locks(1), expected_locks);
 
 		// 10 blocks later (10 days)
-		run_to_block(11, 1);
+		System::set_block_number(11);
 		// User update locks
 		assert_ok!(Rewards::update_locks(Origin::signed(1)));
 		// Locks updated
@@ -147,9 +150,9 @@ fn reward_locks_work() {
 		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
 
 		// User mints more blocks
-		assert_ok!(Rewards::set_author(Origin::none(), 1, Perbill::zero()));
+		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
 		run_to_block(12, 1);
-		assert_ok!(Rewards::set_author(Origin::none(), 1, Perbill::zero()));
+		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
 		run_to_block(13, 1);
 
 		// Locks as expected
@@ -166,11 +169,11 @@ fn reward_locks_work() {
 		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
 
 		// 20 more is unlocked on block 21
-		run_to_block(21, 1);
+		System::set_block_number(21);
 		assert_ok!(Rewards::update_locks(Origin::signed(1)));
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 20));
 		// 10 more unlocked on block 22
-		run_to_block(22, 1);
+		System::set_block_number(22);
 		assert_ok!(Rewards::update_locks(Origin::signed(1)));
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 10));
 
