@@ -24,7 +24,7 @@ use sp_core::{H256, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
 use sc_service::{error::{Error as ServiceError}, Configuration, TaskManager};
 use sc_executor::native_executor_instance;
 use sc_client_api::backend::RemoteBackend;
-use kulupu_runtime::{self, opaque::Block, RuntimeApi, AccountId};
+use kulupu_runtime::{self, opaque::Block, RuntimeApi};
 use log::*;
 
 pub use sc_executor::NativeExecutor;
@@ -104,9 +104,12 @@ pub fn new_partial(
 	FullClient, FullBackend, FullSelectChain,
 	sp_consensus::DefaultImportQueue<Block, FullClient>,
 	sc_transaction_pool::FullPool<Block, FullClient>,
-	sc_consensus_pow::PowBlockImport<Block, Arc<FullClient>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>>,
+	sc_consensus_pow::PowBlockImport<Block, Arc<FullClient>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, sp_consensus::AlwaysCanAuthor>,
 >, ServiceError> {
-	let inherent_data_providers = crate::service::kulupu_inherent_data_providers(author, donate)?;
+	let inherent_data_providers = crate::service::kulupu_inherent_data_providers(
+		decode_author(author),
+		donate,
+	)?;
 
 	let (client, backend, keystore, task_manager) =
 		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(&config)?;
@@ -130,6 +133,7 @@ pub fn new_partial(
 		check_inherents_after,
 		Some(select_chain.clone()),
 		inherent_data_providers.clone(),
+		sp_consensus::AlwaysCanAuthor,
 	);
 
 	let import_queue = sc_consensus_pow::import_queue(
@@ -190,7 +194,7 @@ pub fn new_full(
 		let client = client.clone();
 		let pool = transaction_pool.clone();
 
-		Box::new(move |deny_unsafe| {
+		Box::new(move |deny_unsafe, _| {
 			let deps = crate::rpc::FullDeps {
 				client: client.clone(),
 				pool: pool.clone(),
@@ -275,9 +279,9 @@ pub fn new_light(
 
 	let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-	let inherent_data_providers = kulupu_inherent_data_providers(author, donate)?;
+	let inherent_data_providers = kulupu_inherent_data_providers(decode_author(author), donate)?;
 
-	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
+	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone(), None);
 
 	let pow_block_import = sc_consensus_pow::PowBlockImport::new(
 		client.clone(),
@@ -286,6 +290,7 @@ pub fn new_light(
 		check_inherents_after,
 		Some(select_chain),
 		inherent_data_providers.clone(),
+		sp_consensus::AlwaysCanAuthor,
 	);
 
 	let import_queue = sc_consensus_pow::import_queue(
@@ -322,7 +327,7 @@ pub fn new_light(
 		transaction_pool,
 		task_manager: &mut task_manager,
 		on_demand: Some(on_demand),
-		rpc_extensions_builder: Box::new(|_| ()),
+		rpc_extensions_builder: Box::new(|_, _| ()),
 		telemetry_connection_sinks: sc_service::TelemetryConnectionSinks::default(),
 		config,
 		client,
