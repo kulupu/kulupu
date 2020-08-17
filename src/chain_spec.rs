@@ -76,7 +76,7 @@ pub fn breaknet2_config() -> ChainSpec {
 			U256::from(20000),
 		),
 		vec![
-			"/ip4/95.217.86.109/tcp/20999/p2p/12D3KooWB53ynzuPfA1FcxHYuF5zur25571M5TQyBkko6S4gikYT".parse().unwrap(),
+			"/ip4/95.217.86.109/tcp/20999/p2p/12D3KooWAcAqu44YoJNqJzQZJwoeU8m5z1nU71XadoywDL8sXgtP".parse().unwrap(),
 		],
 		None,
 		Some("kulupubreaknet1"),
