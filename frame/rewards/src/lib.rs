@@ -128,7 +128,7 @@ decl_module! {
 		}
 
 		#[weight = (
-			T::DbWeight::get().reads_writes(0, 1),
+			T::DbWeight::get().reads_writes(1, 1),
 			DispatchClass::Operational
 		)]
 		fn set_reward(origin, reward: BalanceOf<T>) {
@@ -140,7 +140,7 @@ decl_module! {
 		}
 
 		#[weight = (
-			T::DbWeight::get().reads_writes(0, 1),
+			T::DbWeight::get().reads_writes(1, 1),
 			DispatchClass::Operational
 		)]
 		fn set_taxation(origin, taxation: Perbill) {
