@@ -80,7 +80,7 @@ pub fn run() -> sc_cli::Result<()> {
 			let runner = cli.create_runner(subcommand)?;
 			runner.run_subcommand(subcommand, |config| {
 				let PartialComponents { client, backend, task_manager, import_queue, .. } =
-					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), cli.donate)?;
+					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate)?;
 				Ok((client, backend, import_queue, task_manager))
 			})
 		},
@@ -114,7 +114,7 @@ pub fn run() -> sc_cli::Result<()> {
 						config,
 						cli.author.as_ref().map(|s| s.as_str()),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
-						cli.donate,
+						!cli.no_donate,
 					),
 					_ => service::new_full(
 						config,
@@ -122,7 +122,7 @@ pub fn run() -> sc_cli::Result<()> {
 						cli.threads.unwrap_or(1),
 						cli.round.unwrap_or(5000),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
-						cli.donate,
+						!cli.no_donate,
 					)
 				}
 			)
