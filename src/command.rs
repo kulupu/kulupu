@@ -57,7 +57,7 @@ impl SubstrateCli for Cli {
 			"" | "kulupu" | "mainnet" => Box::new(chain_spec::mainnet_config()),
 			"local" => Box::new(chain_spec::local_testnet_config()),
 			"dev" => Box::new(chain_spec::development_config()),
-			"breaknet3" => Box::new(chain_spec::breaknet3_config()),
+			"breaknet4" => Box::new(chain_spec::breaknet4_config()),
 			path => Box::new(chain_spec::ChainSpec::from_json_file(
 				std::path::PathBuf::from(path),
 			)?),
