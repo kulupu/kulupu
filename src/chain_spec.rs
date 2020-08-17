@@ -120,7 +120,7 @@ fn breaknet4_genesis(initial_difficulty: U256) -> GenesisConfig {
 		vesting: Some(Default::default()),
 		rewards: Some(RewardsConfig {
 			reward: 60 * DOLLARS,
-			taxation: Perbill::from_percent(0),
+			taxation: Perbill::from_percent(20),
 		}),
 	}
 }
