@@ -24,6 +24,7 @@ mod service;
 mod cli;
 mod command;
 mod eras;
+mod rpc;
 
 fn main() -> sc_cli::Result<()> {
 	command::run()

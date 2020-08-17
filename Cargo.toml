@@ -16,9 +16,15 @@ structopt = "0.3"
 codec = { package = "parity-scale-codec", version = "1.0.0", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+jsonrpc-core = "14.0.3"
 
 sc-cli = { path = "vendor/substrate/client/cli" }
+sc-rpc = { path = "vendor/substrate/client/rpc" }
 sp-core = { path = "vendor/substrate/primitives/core" }
+sp-api = { path = "vendor/substrate/primitives/api" }
+sp-blockchain = { path = "vendor/substrate/primitives/blockchain" }
+sp-block-builder = { path = "vendor/substrate/primitives/block-builder" }
+sc-rpc-api = { path = "vendor/substrate/client/rpc-api" }
 sp-timestamp = { path = "vendor/substrate/primitives/timestamp" }
 sc-executor = { path = "vendor/substrate/client/executor" }
 sc-service = { path = "vendor/substrate/client/service" }
@@ -34,6 +40,8 @@ sp-finality-grandpa = { path = "vendor/substrate/primitives/finality-grandpa" }
 sc-client-api = { path = "vendor/substrate/client/api" }
 sp-runtime = { path = "vendor/substrate/primitives/runtime" }
 sc-basic-authorship = { path = "vendor/substrate/client/basic-authorship" }
+substrate-frame-rpc-system = { path = "vendor/substrate/utils/frame/rpc/system" }
+pallet-transaction-payment-rpc = { path = "vendor/substrate/frame/transaction-payment/rpc/" }
 
 pallet-rewards = { path = "frame/rewards" }
 pallet-eras = { path = "frame/eras" }
