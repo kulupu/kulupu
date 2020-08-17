@@ -67,12 +67,12 @@ pub fn local_testnet_config() -> ChainSpec {
 	)
 }
 
-pub fn breaknet1_config() -> ChainSpec {
+pub fn breaknet2_config() -> ChainSpec {
 	ChainSpec::from_genesis(
-		"Kulupu breaknet1",
-		"breaknet1",
+		"Kulupu breaknet2",
+		"breaknet2",
 		ChainType::Live,
-		|| breaknet1_genesis(
+		|| breaknet2_genesis(
 			U256::from(20000),
 		),
 		vec![
@@ -83,7 +83,7 @@ pub fn breaknet1_config() -> ChainSpec {
 		Some(json!({
 			"ss58Format": 16,
 			"tokenDecimals": 12,
-			"tokenSymbol": "KLPTEST1"
+			"tokenSymbol": "KLPTEST2"
 		}).as_object().expect("Created an object").clone()),
 		None,
 	)
@@ -94,10 +94,10 @@ pub fn mainnet_config() -> ChainSpec {
 		.expect("Mainnet config included is valid")
 }
 
-fn breaknet1_genesis(initial_difficulty: U256) -> GenesisConfig {
+fn breaknet2_genesis(initial_difficulty: U256) -> GenesisConfig {
 	GenesisConfig {
 		system: Some(SystemConfig {
-			code: include_bytes!("../res/breaknet1/kulupu_runtime.compact.wasm").to_vec(),
+			code: include_bytes!("../res/breaknet2/kulupu_runtime.compact.wasm").to_vec(),
 			changes_trie_config: Default::default(),
 		}),
 		balances: Some(BalancesConfig {
