@@ -98,6 +98,19 @@ mod tests {
 		let hash1 = compute.clone().seal_and_work();
 		U256::one().to_big_endian(&mut compute.nonce[..]);
 		let hash2 = compute.seal_and_work();
-		assert!(hash1 != hash2);
+		assert!(hash1.1 != hash2.1);
+
+		let mut compute2 = ComputeV2 {
+			key_hash: H256::from([210, 164, 216, 149, 3, 68, 116, 1, 239, 110, 111, 48, 180, 102, 53, 180, 91, 84, 242, 90, 101, 12, 71, 70, 75, 83, 17, 249, 214, 253, 71, 89]),
+			pre_hash: H256::default(),
+			difficulty: U256::default(),
+			nonce: H256::default(),
+		};
+		let hash3 = compute2.clone().seal_and_work(Default::default());
+		U256::one().to_big_endian(&mut compute2.nonce[..]);
+		let hash4 = compute2.seal_and_work(Default::default());
+		assert!(hash3.1 != hash4.1);
+		assert!(hash1.1 != hash3.1);
+		assert!(hash2.1 != hash4.1);
 	}
 }
