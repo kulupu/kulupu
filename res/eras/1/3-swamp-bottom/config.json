@@ -3,7 +3,7 @@
   "id": "kulupu",
   "chainType": "Live",
   "bootNodes": [
-    "/dns4/bootnode0.nodes.kulupu.network/tcp/30333/p2p/QmU2WrqoJWWqrhUvk98SBvVbtUCqVcrXhPG7yftecyXnGw",
+    "/dns4/monument.bootnode.kulupu.network/tcp/30333/p2p/QmU2WrqoJWWqrhUvk98SBvVbtUCqVcrXhPG7yftecyXnGw",
     "/dns4/garden.bootnode.kulupu.network/tcp/30333/p2p/12D3KooWMviaZ5JH2b8gkzcWmD5RWt7jAm9eFSSGYbVTe6qrJqv1",
     "/ip4/135.181.6.137/tcp/30333/p2p/12D3KooWGsBjSr3cgLJz4hGhXNnEeboXzRoz52WpknnqhiV7qGkb",
     "/ip4/46.101.184.250/tcp/30333/p2p/12D3KooWCd4G7eeNHiY6jLPdURzYbHdH7nRVFUNRLBjzBTeBRcfe",
