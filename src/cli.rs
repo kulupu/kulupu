@@ -46,6 +46,8 @@ pub struct Cli {
 	pub no_donate: bool,
 	#[structopt(long)]
 	pub check_inherents_after: Option<u32>,
+	#[structopt(long)]
+	pub register_mining_key: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]

@@ -10,6 +10,7 @@ codec = { package = "parity-scale-codec", version = "1.0.0", default-features = 
 sp-runtime = { path = "../../vendor/substrate/primitives/runtime", default-features = false }
 sp-std = { path = "../../vendor/substrate/primitives/std", default-features = false }
 sp-inherents = { path = "../../vendor/substrate/primitives/inherents", default-features = false }
+sp-consensus-pow = { path = "../../vendor/substrate/primitives/consensus/pow", default-features = false }
 frame-support = { path = "../../vendor/substrate/frame/support", default-features = false }
 frame-system = { path = "../../vendor/substrate/frame/system", default-features = false }
 
@@ -26,6 +27,7 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"sp-inherents/std",
+	"sp-consensus-pow/std",
 	"frame-support/std",
 	"frame-system/std",
 ]

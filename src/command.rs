@@ -57,6 +57,7 @@ impl SubstrateCli for Cli {
 			"" | "kulupu" | "mainnet" => Box::new(chain_spec::mainnet_config()),
 			"local" => Box::new(chain_spec::local_testnet_config()),
 			"dev" => Box::new(chain_spec::development_config()),
+			"breaknet4" => Box::new(chain_spec::breaknet4_config()),
 			path => Box::new(chain_spec::ChainSpec::from_json_file(
 				std::path::PathBuf::from(path),
 			)?),
@@ -123,6 +124,7 @@ pub fn run() -> sc_cli::Result<()> {
 						cli.round.unwrap_or(5000),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
 						!cli.no_donate,
+						cli.register_mining_key.as_ref().map(|k| k.as_str()),
 					)
 				}
 			)

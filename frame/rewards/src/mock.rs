@@ -18,11 +18,15 @@
 
 use crate::{Module, Trait, GenesisConfig};
 use sp_core::H256;
-use frame_support::{impl_outer_origin, impl_outer_event, parameter_types, weights::Weight};
-use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup}, testing::Header, Perbill,
+use codec::Encode;
+use frame_support::{
+	impl_outer_origin, impl_outer_event, parameter_types, weights::Weight, traits::OnInitialize
 };
-use frame_system as system;
+use sp_runtime::{
+	traits::{BlakeTwo256, IdentityLookup}, testing::{Digest, DigestItem, Header}, Perbill,
+};
+use frame_system::{self as system, InitKind};
+use sp_std::collections::btree_map::BTreeMap;
 
 impl_outer_origin! {
 	pub enum Origin for Test {}
@@ -51,13 +55,14 @@ parameter_types! {
 }
 
 type Balance = u128;
+type BlockNumber = u64;
 
 impl system::Trait for Test {
 	type BaseCallFilter = ();
 	type Origin = Origin;
 	type Call = ();
 	type Index = u64;
-	type BlockNumber = u64;
+	type BlockNumber = BlockNumber;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = u64;
@@ -97,10 +102,41 @@ parameter_types! {
 	pub DonationDestination: u64 = 255;
 }
 
+const DOLLARS: Balance = 1;
+const DAYS: BlockNumber = 1;
+
+pub struct GenerateRewardLocks;
+impl crate::GenerateRewardLocks<Test> for GenerateRewardLocks {
+	fn generate_reward_locks(
+		current_block: BlockNumber,
+		total_reward: Balance,
+	) -> BTreeMap<BlockNumber, Balance> {
+		let mut locks = BTreeMap::new();
+		let locked_reward = total_reward.saturating_sub(1 * DOLLARS);
+
+		if locked_reward > 0 {
+			const TOTAL_LOCK_PERIOD: BlockNumber = 100 * DAYS;
+			const DIVIDE: BlockNumber = 10;
+
+			for i in 0..DIVIDE {
+				let one_locked_reward = locked_reward / DIVIDE as u128;
+
+				let estimate_block_number = current_block + (i + 1) * (TOTAL_LOCK_PERIOD / DIVIDE);
+				let actual_block_number = estimate_block_number / DAYS * DAYS;
+
+				locks.insert(actual_block_number, one_locked_reward);
+			}
+		}
+
+		locks
+	}
+}
+
 impl Trait for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
+	type GenerateRewardLocks = GenerateRewardLocks;
 }
 
 pub type System = frame_system::Module<Test>;
@@ -108,7 +144,7 @@ pub type Balances = pallet_balances::Module<Test>;
 pub type Rewards = Module<Test>;
 
 // Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
+pub fn new_test_ext(author: u64) -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	GenesisConfig::<Test> {
 		reward: 60,
@@ -116,6 +152,21 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}.assimilate_storage(&mut t).unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
-	ext.execute_with(|| System::set_block_number(1));
+	ext.execute_with(|| {
+		let current_block = 1;
+		let parent_hash = System::parent_hash();
+		let pre_digest = DigestItem::PreRuntime(sp_consensus_pow::POW_ENGINE_ID, author.encode());
+		System::initialize(
+			&current_block,
+			&parent_hash,
+			&Default::default(),
+			&Digest { logs: vec![pre_digest] },
+			InitKind::Full
+		);
+		System::set_block_number(current_block);
+
+		Balances::on_initialize(current_block);
+		Rewards::on_initialize(current_block);
+	});
 	ext
 }

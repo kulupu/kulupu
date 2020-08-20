@@ -67,9 +67,62 @@ pub fn local_testnet_config() -> ChainSpec {
 	)
 }
 
+pub fn breaknet4_config() -> ChainSpec {
+	ChainSpec::from_genesis(
+		"Kulupu breaknet4",
+		"breaknet4",
+		ChainType::Live,
+		|| breaknet4_genesis(
+			U256::from(2000),
+		),
+		vec![
+			"/ip4/95.217.86.109/tcp/20999/p2p/12D3KooWR1SuQsNhZNUcQQtmSbqQ4JpMq7op5AuLyuQHCKGcTuZQ".parse().unwrap(),
+		],
+		None,
+		Some("kulupubreaknet4"),
+		Some(json!({
+			"ss58Format": 16,
+			"tokenDecimals": 12,
+			"tokenSymbol": "KLPTEST4"
+		}).as_object().expect("Created an object").clone()),
+		None,
+	)
+}
+
 pub fn mainnet_config() -> ChainSpec {
 	ChainSpec::from_json_bytes(&include_bytes!("../res/eras/1/3-swamp-bottom/config.json")[..])
 		.expect("Mainnet config included is valid")
+}
+
+fn breaknet4_genesis(initial_difficulty: U256) -> GenesisConfig {
+	GenesisConfig {
+		system: Some(SystemConfig {
+			code: include_bytes!("../res/breaknet4/kulupu_runtime.compact.wasm").to_vec(),
+			changes_trie_config: Default::default(),
+		}),
+		balances: Some(BalancesConfig {
+			balances: vec![],
+		}),
+		indices: Some(IndicesConfig {
+			indices: vec![],
+		}),
+		difficulty: Some(DifficultyConfig {
+			initial_difficulty,
+		}),
+		collective_Instance1: Some(Default::default()),
+		collective_Instance2: Some(Default::default()),
+		democracy: Some(Default::default()),
+		treasury: Some(Default::default()),
+		elections_phragmen: Some(Default::default()),
+		eras: Some(Default::default()),
+		membership_Instance1: Some(Default::default()),
+		timestamp: Some(Default::default()),
+		vesting: Some(Default::default()),
+		rewards: Some(RewardsConfig {
+			reward: 60 * DOLLARS,
+			taxation: Perbill::from_percent(20),
+		}),
+	}
 }
 
 fn testnet_genesis(initial_difficulty: U256) -> GenesisConfig {

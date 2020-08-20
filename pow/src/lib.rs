@@ -14,8 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::{Arc, Mutex};
-use std::cell::RefCell;
+mod compute;
+
+use std::sync::Arc;
 use codec::{Encode, Decode};
 use sp_core::{U256, H256};
 use sp_api::ProvideRuntimeApi;
@@ -26,82 +27,17 @@ use sp_runtime::traits::{
 use sp_consensus_pow::{Seal as RawSeal, DifficultyApi};
 use sc_consensus_pow::PowAlgorithm;
 use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore};
+use sc_keystore::KeyStorePtr;
 use kulupu_primitives::{Difficulty, AlgorithmApi};
-use lru_cache::LruCache;
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
-use lazy_static::lazy_static;
-use kulupu_randomx as randomx;
-use log::*;
+use crate::compute::{ComputeV1, ComputeV2, SealV1, SealV2};
 
-#[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
-pub struct Seal {
-	pub difficulty: Difficulty,
-	pub nonce: H256,
-}
+pub mod app {
+	use sp_application_crypto::{app_crypto, sr25519};
+	use sp_core::crypto::KeyTypeId;
 
-#[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
-pub struct Calculation {
-	pub pre_hash: H256,
-	pub difficulty: Difficulty,
-	pub nonce: H256,
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub struct Compute {
-	pub key_hash: H256,
-	pub pre_hash: H256,
-	pub difficulty: Difficulty,
-	pub nonce: H256,
-}
-
-lazy_static! {
-	static ref SHARED_CACHES: Arc<Mutex<LruCache<H256, Arc<randomx::FullCache>>>> =
-		Arc::new(Mutex::new(LruCache::new(2)));
-}
-thread_local!(static MACHINES: RefCell<Option<(H256, randomx::FullVM)>> = RefCell::new(None));
-
-impl Compute {
-	pub fn compute(self) -> (Seal, H256) {
-		MACHINES.with(|m| {
-			let mut ms = m.borrow_mut();
-			let calculation = Calculation {
-				difficulty: self.difficulty,
-				pre_hash: self.pre_hash,
-				nonce: self.nonce,
-			};
-
-			let need_new_vm = ms.as_ref().map(|(mkey_hash, _)| {
-				mkey_hash != &self.key_hash
-			}).unwrap_or(true);
-
-			if need_new_vm {
-				let mut shared_caches = SHARED_CACHES.lock().expect("Mutex poisioned");
-
-				if let Some(cache) = shared_caches.get_mut(&self.key_hash) {
-					*ms = Some((self.key_hash, randomx::FullVM::new(cache.clone())));
-				} else {
-					info!("At block boundary, generating new RandomX cache with key hash {} ...",
-						  self.key_hash);
-					let cache = Arc::new(randomx::FullCache::new(&self.key_hash[..]));
-					shared_caches.insert(self.key_hash, cache.clone());
-					*ms = Some((self.key_hash, randomx::FullVM::new(cache)));
-				}
-			}
-
-			let work = ms.as_mut()
-				.map(|(mkey_hash, vm)| {
-					assert_eq!(mkey_hash, &self.key_hash,
-							   "Condition failed checking cached key_hash. This is a bug");
-					vm.calculate(&calculation.encode()[..])
-				})
-				.expect("Local MACHINES always set to Some above; qed");
-
-			(Seal {
-				nonce: self.nonce,
-				difficulty: self.difficulty,
-			}, H256::from(work))
-		})
-	}
+	pub const ID: KeyTypeId = KeyTypeId(*b"klp2");
+	app_crypto!(sr25519, ID);
 }
 
 /// Checks whether the given hash is above difficulty.
@@ -150,19 +86,28 @@ fn key_hash<B, C>(
 	Ok(current.hash())
 }
 
+pub enum RandomXAlgorithmVersion {
+	V1,
+	V2,
+}
+
 pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
+	keystore: Option<KeyStorePtr>,
 }
 
 impl<C> RandomXAlgorithm<C> {
-	pub fn new(client: Arc<C>) -> Self {
-		Self { client }
+	pub fn new(client: Arc<C>, keystore: Option<KeyStorePtr>) -> Self {
+		Self { client, keystore }
 	}
 }
 
 impl<C> Clone for RandomXAlgorithm<C> {
 	fn clone(&self) -> Self {
-		Self { client: self.client.clone() }
+		Self {
+			client: self.client.clone(),
+			keystore: self.keystore.clone(),
+		}
 	}
 }
 
@@ -185,99 +130,184 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		&self,
 		parent: &BlockId<B>,
 		pre_hash: &H256,
+		pre_digest: Option<&[u8]>,
 		seal: &RawSeal,
 		difficulty: Difficulty,
 	) -> Result<bool, sc_consensus_pow::Error<B>> {
-		assert_eq!(
-			self.client.runtime_api().identifier(parent)
-				.map_err(|e| sc_consensus_pow::Error::Environment(
-					format!("Fetching identifier from runtime failed: {:?}", e))
-				)?,
-			kulupu_primitives::ALGORITHM_IDENTIFIER
-		);
+		let version_raw = self.client.runtime_api().identifier(parent)
+			.map_err(|e| sc_consensus_pow::Error::Environment(
+				format!("Fetching identifier from runtime failed: {:?}", e))
+			)?;
+
+		let version = match version_raw {
+			kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => RandomXAlgorithmVersion::V1,
+			kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => RandomXAlgorithmVersion::V2,
+			_ => return Err(sc_consensus_pow::Error::<B>::Other(
+				"Unknown algorithm identifier".to_string(),
+			)),
+		};
 
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
 
-		let seal = match Seal::decode(&mut &seal[..]) {
-			Ok(seal) => seal,
-			Err(_) => return Ok(false),
-		};
+		match version {
+			RandomXAlgorithmVersion::V1 => {
+				let seal = match SealV1::decode(&mut &seal[..]) {
+					Ok(seal) => seal,
+					Err(_) => return Ok(false),
+				};
 
-		let compute = Compute {
-			key_hash,
-			difficulty,
-			pre_hash: *pre_hash,
-			nonce: seal.nonce,
-		};
+				let compute = ComputeV1 {
+					key_hash,
+					difficulty,
+					pre_hash: *pre_hash,
+					nonce: seal.nonce,
+				};
 
-		let (computed_seal, computed_work) = compute.compute();
+				// No pre-digest check is needed for V1 algorithm.
 
-		if computed_seal != seal {
-			return Ok(false)
+				let (computed_seal, computed_work) = compute.seal_and_work();
+
+				if computed_seal != seal {
+					return Ok(false)
+				}
+
+				if !is_valid_hash(&computed_work, difficulty) {
+					return Ok(false)
+				}
+
+				Ok(true)
+			},
+			RandomXAlgorithmVersion::V2 => {
+				let seal = match SealV2::decode(&mut &seal[..]) {
+					Ok(seal) => seal,
+					Err(_) => return Ok(false),
+				};
+
+				let compute = ComputeV2 {
+					key_hash,
+					difficulty,
+					pre_hash: *pre_hash,
+					nonce: seal.nonce,
+				};
+
+				let pre_digest = match pre_digest {
+					Some(pre_digest) => pre_digest,
+					None => return Ok(false),
+				};
+
+				let author = match app::Public::decode(&mut &pre_digest[..]) {
+					Ok(author) => author,
+					Err(_) => return Ok(false),
+				};
+
+				if !compute.verify(&seal.signature, &author) {
+					return Ok(false)
+				}
+
+				let (computed_seal, computed_work) = compute.seal_and_work(
+					seal.signature.clone()
+				);
+
+				if computed_seal != seal {
+					return Ok(false)
+				}
+
+				if !is_valid_hash(&computed_work, difficulty) {
+					return Ok(false)
+				}
+
+				Ok(true)
+			},
 		}
-
-		if !is_valid_hash(&computed_work, difficulty) {
-			return Ok(false)
-		}
-
-		Ok(true)
 	}
 
 	fn mine(
 		&self,
 		parent: &BlockId<B>,
 		pre_hash: &H256,
+		pre_digest: Option<&[u8]>,
 		difficulty: Difficulty,
 		round: u32,
 	) -> Result<Option<RawSeal>, sc_consensus_pow::Error<B>> {
+		let version_raw = self.client.runtime_api().identifier(parent)
+			.map_err(|e| sc_consensus_pow::Error::Environment(
+				format!("Fetching identifier from runtime failed: {:?}", e))
+			)?;
+
+		let version = match version_raw {
+			kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => RandomXAlgorithmVersion::V1,
+			kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => RandomXAlgorithmVersion::V2,
+			_ => return Err(sc_consensus_pow::Error::<B>::Other(
+				"Unknown algorithm identifier".to_string()
+			)),
+		};
+
 		let mut rng = SmallRng::from_rng(&mut thread_rng())
 			.map_err(|e| sc_consensus_pow::Error::Environment(
 				format!("Initialize RNG failed for mining: {:?}", e)
 			))?;
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
 
-		for _ in 0..round {
-			let nonce = H256::random_using(&mut rng);
+		match version {
+			RandomXAlgorithmVersion::V1 => {
+				for _ in 0..round {
+					let nonce = H256::random_using(&mut rng);
 
-			let compute = Compute {
-				key_hash,
-				difficulty,
-				pre_hash: *pre_hash,
-				nonce,
-			};
+					let compute = ComputeV1 {
+						key_hash,
+						difficulty,
+						pre_hash: *pre_hash,
+						nonce,
+					};
 
-			let (seal, work) = compute.compute();
+					let (seal, work) = compute.seal_and_work();
 
-			if is_valid_hash(&work, difficulty) {
-				return Ok(Some(seal.encode()))
-			}
+					if is_valid_hash(&work, difficulty) {
+						return Ok(Some(seal.encode()))
+					}
+				}
+
+				Ok(None)
+			},
+			RandomXAlgorithmVersion::V2 => {
+				let pre_digest = pre_digest.ok_or(sc_consensus_pow::Error::<B>::Other(
+					"Unable to mine: v2 pre-digest not set".to_string(),
+				))?;
+
+				let author = app::Public::decode(&mut &pre_digest[..]).map_err(|_| {
+					sc_consensus_pow::Error::<B>::Other(
+						"Unable to mine: v2 author pre-digest decoding failed".to_string(),
+					)
+				})?;
+
+				let pair = self.keystore.as_ref().ok_or(sc_consensus_pow::Error::<B>::Other(
+					"Unable to mine: v2 keystore not set".to_string(),
+				))?.read().key_pair::<app::Pair>(
+					&author,
+				).map_err(|_| sc_consensus_pow::Error::<B>::Other(
+					"Unable to mine: v2 fetch pair from author failed".to_string(),
+				))?;
+
+				for _ in 0..round {
+					let nonce = H256::random_using(&mut rng);
+
+					let compute = ComputeV2 {
+						key_hash,
+						difficulty,
+						pre_hash: *pre_hash,
+						nonce,
+					};
+
+					let signature = compute.sign(&pair);
+					let (seal, work) = compute.seal_and_work(signature);
+
+					if is_valid_hash(&work, difficulty) {
+						return Ok(Some(seal.encode()))
+					}
+				}
+
+				Ok(None)
+			},
 		}
-
-		Ok(None)
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use sp_core::{H256, U256};
-
-	#[test]
-	fn randomx_len() {
-		assert_eq!(randomx::HASH_SIZE, 32);
-	}
-
-	#[test]
-	fn randomx_collision() {
-		let mut compute = Compute {
-			key_hash: H256::from([210, 164, 216, 149, 3, 68, 116, 1, 239, 110, 111, 48, 180, 102, 53, 180, 91, 84, 242, 90, 101, 12, 71, 70, 75, 83, 17, 249, 214, 253, 71, 89]),
-			pre_hash: H256::default(),
-			difficulty: U256::default(),
-			nonce: H256::default(),
-		};
-		let hash1 = compute.clone().compute();
-		U256::one().to_big_endian(&mut compute.nonce[..]);
-		let hash2 = compute.compute();
-		assert!(hash1 != hash2);
 	}
 }

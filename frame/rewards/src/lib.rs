@@ -24,26 +24,47 @@ mod mock;
 mod tests;
 
 use codec::{Encode, Decode};
-use sp_std::{result, cmp::min, prelude::*};
+use sp_std::{result, cmp::min, prelude::*, collections::btree_map::BTreeMap};
 use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
 use sp_inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
+use sp_consensus_pow::POW_ENGINE_ID;
 #[cfg(feature = "std")]
 use sp_inherents::ProvideInherentData;
 use frame_support::{
 	decl_module, decl_storage, decl_error, decl_event, ensure,
-	traits::{Get, Currency},
+	traits::{Get, Currency, LockIdentifier, LockableCurrency, WithdrawReason},
 	weights::{DispatchClass, Weight},
 };
-use frame_system::{ensure_none, ensure_root};
+use frame_system::{ensure_none, ensure_root, ensure_signed};
+
+/// Trait for generating reward locks.
+pub trait GenerateRewardLocks<T: Trait> {
+	/// Generate reward locks.
+	fn generate_reward_locks(
+		current_block: T::BlockNumber,
+		total_reward: BalanceOf<T>,
+	) -> BTreeMap<T::BlockNumber, BalanceOf<T>>;
+}
+
+impl<T: Trait> GenerateRewardLocks<T> for () {
+	fn generate_reward_locks(
+		_current_block: T::BlockNumber,
+		_total_reward: BalanceOf<T>,
+	) -> BTreeMap<T::BlockNumber, BalanceOf<T>> {
+		Default::default()
+	}
+}
 
 /// Trait for rewards.
 pub trait Trait: frame_system::Trait {
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	/// An implementation of on-chain currency.
-	type Currency: Currency<Self::AccountId>;
+	type Currency: LockableCurrency<Self::AccountId>;
 	/// Donation destination.
 	type DonationDestination: Get<Self::AccountId>;
+	/// Generate reward locks.
+	type GenerateRewardLocks: GenerateRewardLocks<Self>;
 }
 
 /// Type alias for currency balance.
@@ -51,12 +72,10 @@ pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::
 
 decl_error! {
 	pub enum Error for Module<T: Trait> {
-		/// Author already set in block.
-		AuthorAlreadySet,
 		/// Reward set is too low.
 		RewardTooLow,
-		/// Donation already set in block.
-		DonationAlreadySet,
+		/// Author preferences already set.
+		AuthorPrefsAlreadySet,
 	}
 }
 
@@ -70,6 +89,9 @@ decl_storage! {
 		Reward get(fn reward) config(): BalanceOf<T>;
 		/// Taxation rate.
 		Taxation get(fn taxation) config(): Perbill;
+		/// Pending reward locks.
+		RewardLocks get(fn reward_locks):
+			map hasher(twox_64_concat) T::AccountId => BTreeMap<T::BlockNumber, BalanceOf<T>>;
 	}
 }
 
@@ -92,12 +114,16 @@ decl_module! {
 			T::DbWeight::get().reads_writes(2, 2),
 			DispatchClass::Mandatory
 		)]
-		fn set_author(origin, author: T::AccountId, donation: Perbill) {
+		fn note_author_prefs(
+			origin,
+			donation: Perbill,
+		) {
 			ensure_none(origin)?;
-			ensure!(<Self as Store>::Author::get().is_none(), Error::<T>::AuthorAlreadySet);
-			ensure!(<Self as Store>::AuthorDonation::get().is_none(), Error::<T>::DonationAlreadySet);
+			ensure!(
+				<Self as Store>::AuthorDonation::get().is_none(),
+				Error::<T>::AuthorPrefsAlreadySet
+			);
 
-			<Self as Store>::Author::put(author);
 			<Self as Store>::AuthorDonation::put(donation);
 		}
 
@@ -125,6 +151,33 @@ decl_module! {
 			Self::deposit_event(RawEvent::TaxationChanged(taxation));
 		}
 
+		#[weight = T::DbWeight::get().reads_writes(1, 1)]
+		fn update_locks(origin) {
+			let account = ensure_signed(origin)?;
+			let locks = Self::reward_locks(&account);
+
+			Self::do_update_locks(account, locks);
+		}
+
+		fn on_initialize(now: T::BlockNumber) -> Weight {
+			let author = frame_system::Module::<T>::digest()
+				.logs
+				.iter()
+				.filter_map(|s| s.as_pre_runtime())
+				.filter_map(|(id, mut data)| if id == POW_ENGINE_ID {
+					T::AccountId::decode(&mut data).ok()
+				} else {
+					None
+				})
+				.next();
+
+			if let Some(author) = author {
+				<Self as Store>::Author::put(author);
+			}
+
+			0
+		}
+
 		fn on_finalize() {
 			if let Some(author) = <Self as Store>::Author::get() {
 				let treasury_id = T::DonationDestination::get();
@@ -137,24 +190,35 @@ decl_module! {
 					Self::author_donation().map(|dp| dp * reward).unwrap_or(Zero::zero())
 				);
 
-				let miner = reward.saturating_sub(tax);
+				let miner_total = reward.saturating_sub(tax);
 
-				drop(T::Currency::deposit_creating(&author, miner));
+				let current_number = frame_system::Module::<T>::block_number();
+				let miner_reward_locks = T::GenerateRewardLocks::generate_reward_locks(
+					current_number,
+					miner_total
+				);
+
+				drop(T::Currency::deposit_creating(&author, miner_total));
 				drop(T::Currency::deposit_creating(&treasury_id, donate));
+
+				if miner_reward_locks.len() > 0 {
+					let mut locks = Self::reward_locks(&author);
+
+					for (new_lock_number, new_lock_balance) in miner_reward_locks {
+						*locks.entry(new_lock_number).or_default() += new_lock_balance;
+					}
+
+					Self::do_update_locks(author, locks);
+				}
 			}
 
 			<Self as Store>::Author::kill();
 			<Self as Store>::AuthorDonation::kill();
 		}
-
-		// [fixme: should be removed in next runtime upgrade]
-		fn on_runtime_upgrade() -> Weight {
-			Taxation::put(Perbill::zero());
-
-			0
-		}
 	}
 }
+
+const REWARDS_ID: LockIdentifier = *b"rewards ";
 
 impl<T: Trait> Module<T> {
 	fn check_new_reward_taxation(reward: BalanceOf<T>, taxation: Perbill) -> Result<(), Error<T>> {
@@ -164,6 +228,33 @@ impl<T: Trait> Module<T> {
 		ensure!(miner >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
 
 		Ok(())
+	}
+
+	fn do_update_locks(author: T::AccountId, mut locks: BTreeMap<T::BlockNumber, BalanceOf<T>>) {
+		let current_number = frame_system::Module::<T>::block_number();
+		let mut expired = Vec::new();
+		let mut total_locked = Zero::zero();
+
+		for (block_number, locked_balance) in &locks {
+			if block_number <= &current_number {
+				expired.push(*block_number);
+			} else {
+				total_locked += *locked_balance;
+			}
+		}
+
+		for block_number in expired {
+			locks.remove(&block_number);
+		}
+
+		T::Currency::set_lock(
+			REWARDS_ID,
+			&author,
+			total_locked,
+			WithdrawReason::Transfer | WithdrawReason::Reserve,
+		);
+
+		<Self as Store>::RewardLocks::insert(author, locks);
 	}
 }
 
@@ -242,9 +333,9 @@ impl<T: Trait> ProvideInherent for Module<T> {
 
 	fn create_inherent(data: &InherentData) -> Option<Self::Call> {
 		let (author_raw, donation) = data.get_data::<InherentType>(&INHERENT_IDENTIFIER).ok()??;
-		let author = T::AccountId::decode(&mut &author_raw[..]).ok()?;
+		let _author = T::AccountId::decode(&mut &author_raw[..]).ok()?;
 
-		Some(Call::set_author(author, donation))
+		Some(Call::note_author_prefs(donation))
 	}
 
 	fn check_inherent(_call: &Self::Call, _data: &InherentData) -> result::Result<(), Self::Error> {

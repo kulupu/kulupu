@@ -26,7 +26,7 @@ mod fee;
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use sp_std::prelude::*;
+use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 use codec::{Encode, Decode};
 use sp_core::{OpaqueMetadata, u32_trait::{_1, _2, _4, _5}};
 use sp_runtime::{
@@ -110,11 +110,11 @@ pub mod opaque {
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kulupu"),
 	impl_name: create_runtime_str!("kulupu"),
-	authoring_version: 4,
-	spec_version: 7,
+	authoring_version: 5,
+	spec_version: 8,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 4,
+	transaction_version: 5,
 };
 
 /// The version infromation used to identify this runtime when compiled natively.
@@ -321,6 +321,34 @@ impl difficulty::Trait for Runtime {
 
 impl eras::Trait for Runtime { }
 
+pub struct GenerateRewardLocks;
+
+impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
+	fn generate_reward_locks(
+		current_block: BlockNumber,
+		total_reward: Balance,
+	) -> BTreeMap<BlockNumber, Balance> {
+		let mut locks = BTreeMap::new();
+		let locked_reward = total_reward.saturating_sub(1 * DOLLARS);
+
+		if locked_reward > 0 {
+			const TOTAL_LOCK_PERIOD: BlockNumber = 100 * DAYS;
+			const DIVIDE: BlockNumber = 10;
+
+			for i in 0..DIVIDE {
+				let one_locked_reward = locked_reward / DIVIDE as u128;
+
+				let estimate_block_number = current_block + (i + 1) * (TOTAL_LOCK_PERIOD / DIVIDE);
+				let actual_block_number = estimate_block_number / DAYS * DAYS;
+
+				locks.insert(actual_block_number, one_locked_reward);
+			}
+		}
+
+		locks
+	}
+}
+
 parameter_types! {
 	pub DonationDestination: AccountId = Treasury::account_id();
 }
@@ -329,6 +357,7 @@ impl rewards::Trait for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
+	type GenerateRewardLocks = GenerateRewardLocks;
 }
 
 pub struct Author;
@@ -810,7 +839,7 @@ impl_runtime_apis! {
 
 	impl kulupu_primitives::AlgorithmApi<Block> for Runtime {
 		fn identifier() -> [u8; 8] {
-			kulupu_primitives::ALGORITHM_IDENTIFIER
+			kulupu_primitives::ALGORITHM_IDENTIFIER_V2
 		}
 	}
 }
