@@ -4,8 +4,9 @@ use std::path::PathBuf;
 fn main() {
     let target = env::var("TARGET").unwrap();
 
+	println!("cargo:rerun-if-env-changed=RANDOMX_ARCH");
     let mut config = cmake::Config::new("randomx");
-	config.define("ARCH", "native");
+	config.define("ARCH", env::var("RANDOMX_ARCH").unwrap_or("native".to_string()));
 
 	if target.contains("pc-windows-msvc") {
 		config.build_target("ALL_BUILD")
