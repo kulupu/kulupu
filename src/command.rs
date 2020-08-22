@@ -122,7 +122,7 @@ pub fn run() -> sc_cli::Result<()> {
 
 				let pair = keystore.write().insert::<kulupu_pow::app::Pair>(&cmd.suri)
 					.map_err(|e| format!("Registering mining key failed: {:?}", e))?;
-				info!("Registered one mining key.\n\nPublic key: 0x{}",
+				info!("Registered one mining key (public key 0x{}).",
 					  HexDisplay::from(&pair.public().as_ref()));
 
 				Ok(())
@@ -144,8 +144,10 @@ pub fn run() -> sc_cli::Result<()> {
 				let pair = keystore.write().insert::<kulupu_pow::app::Pair>(&phrase)
 					.map_err(|e| format!("Generating mining key failed: {:?}", e))?;
 
-				info!(
-					"Generated one mining key.\n\nPublic key: 0x{}\nSecret seed: {}\nAddress: {}",
+				info!("Generated one mining key.");
+
+				println!(
+					"Public key: 0x{}\nSecret seed: {}\nAddress: {}",
 					HexDisplay::from(&pair.public().as_ref()),
 					phrase,
 					pair.public().to_ss58check_with_version(Ss58AddressFormat::KulupuAccount),
