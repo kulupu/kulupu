@@ -12,9 +12,9 @@ jobs:
     displayName: 'Submodules'
   - script: ./scripts/ci-init.sh
     displayName: 'Rust setup'
-  - script: cargo test --release --all
+  - script: RANDOMX_ARCH=default cargo test --release --all
     displayName: 'Run tests'
-  - script: cargo build --release
+  - script: RANDOMX_ARCH=default cargo build --release
     displayName: 'Build artifacts'
   - task: ArchiveFiles@2
     inputs:
@@ -40,7 +40,7 @@ jobs:
     displayName: 'Rust setup'
   - script: |
       source ~/.cargo/env
-      cargo build --release
+      RANDOMX_ARCH=default cargo build --release
     displayName: 'Build artifacts'
   - task: ArchiveFiles@2
     inputs:
@@ -69,6 +69,7 @@ jobs:
     displayName: 'Rust setup'
   - script: |
       set LIBCLANG_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\Llvm\x64\bin
+      set RANDOMX_ARCH=default
       cargo build --release
     displayName: 'Build artifacts'
   - task: ArchiveFiles@2
