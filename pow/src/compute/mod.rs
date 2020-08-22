@@ -167,9 +167,9 @@ mod tests {
 			difficulty: U256::default(),
 			nonce: H256::default(),
 		};
-		let hash1 = compute.clone().seal_and_work();
+		let hash1 = compute.clone().seal_and_work(ComputeMode::Sync);
 		U256::one().to_big_endian(&mut compute.nonce[..]);
-		let hash2 = compute.seal_and_work();
+		let hash2 = compute.seal_and_work(ComputeMode::Sync);
 		assert!(hash1.1 != hash2.1);
 
 		let mut compute2 = ComputeV2 {
@@ -178,9 +178,9 @@ mod tests {
 			difficulty: U256::default(),
 			nonce: H256::default(),
 		};
-		let hash3 = compute2.clone().seal_and_work(Default::default());
+		let hash3 = compute2.clone().seal_and_work(Default::default(), ComputeMode::Sync);
 		U256::one().to_big_endian(&mut compute2.nonce[..]);
-		let hash4 = compute2.seal_and_work(Default::default());
+		let hash4 = compute2.seal_and_work(Default::default(), ComputeMode::Sync);
 		assert!(hash3.1 != hash4.1);
 		assert!(hash1.1 != hash3.1);
 		assert!(hash2.1 != hash4.1);
