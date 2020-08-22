@@ -55,31 +55,46 @@ pub struct Calculation {
 	pub nonce: H256,
 }
 
+fn need_new_vm<M: randomx::WithCacheMode>(
+	key_hash: &H256,
+	machine: &RefCell<Option<(H256, randomx::VM<M>)>>,
+) -> bool {
+	let ms = machine.borrow();
+
+	let need_new_vm = ms.as_ref().map(|(mkey_hash, _)| {
+		mkey_hash != key_hash
+	}).unwrap_or(true);
+
+	need_new_vm
+}
+
 fn compute_raw_with_cache<M: randomx::WithCacheMode>(
 	key_hash: &H256,
 	input: &[u8],
 	machine: &RefCell<Option<(H256, randomx::VM<M>)>>,
 	shared_caches: &Arc<Mutex<LruCache<H256, Arc<randomx::Cache<M>>>>>,
 ) -> H256 {
-	let mut ms = machine.borrow_mut();
+	if need_new_vm(key_hash, machine) {
+		let mut ms = machine.borrow_mut();
 
-	let need_new_vm = ms.as_ref().map(|(mkey_hash, _)| {
-		mkey_hash != key_hash
-	}).unwrap_or(true);
-
-	if need_new_vm {
 		let mut shared_caches = shared_caches.lock().expect("Mutex poisioned");
 
 		if let Some(cache) = shared_caches.get_mut(key_hash) {
 			*ms = Some((*key_hash, randomx::VM::new(cache.clone())));
 		} else {
-			info!("At block boundary, generating new RandomX cache with key hash {} ...",
-				  key_hash);
+			info!(
+				target: "kulupu-randomx",
+				"At block boundary, generating new RandomX {} cache with key hash {} ...",
+				M::description(),
+				key_hash,
+			);
 			let cache = Arc::new(randomx::Cache::new(&key_hash[..]));
 			shared_caches.insert(*key_hash, cache.clone());
 			*ms = Some((*key_hash, randomx::VM::new(cache)));
 		}
 	}
+
+	let mut ms = machine.borrow_mut();
 
 	let work = ms.as_mut()
 		.map(|(mkey_hash, vm)| {
@@ -104,14 +119,29 @@ fn compute_raw(key_hash: &H256, input: &[u8], mode: ComputeMode) -> H256 {
 				)
 			}),
 		ComputeMode::Sync =>
-			LIGHT_MACHINE.with(|machine| {
-				compute_raw_with_cache::<randomx::WithLightCacheMode>(
-					key_hash,
-					input,
-					machine,
-					&LIGHT_SHARED_CACHES,
-				)
-			}),
+			if let Some(ret) = FULL_MACHINE.with(|machine| {
+				if !need_new_vm::<randomx::WithFullCacheMode>(key_hash, machine) {
+					Some(compute_raw_with_cache::<randomx::WithFullCacheMode>(
+						key_hash,
+						input,
+						machine,
+						&FULL_SHARED_CACHES,
+					))
+				} else {
+					None
+				}
+			}) {
+				ret
+			} else {
+				LIGHT_MACHINE.with(|machine| {
+					compute_raw_with_cache::<randomx::WithLightCacheMode>(
+						key_hash,
+						input,
+						machine,
+						&LIGHT_SHARED_CACHES,
+					)
+				})
+			},
 	}
 }
 

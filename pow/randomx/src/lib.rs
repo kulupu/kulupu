@@ -11,6 +11,7 @@ pub enum CacheMode {
 pub unsafe trait WithCacheMode {
 	fn has_dataset() -> bool;
 	fn randomx_flags() -> sys::randomx_flags;
+	fn description() -> &'static str;
 }
 
 pub enum WithFullCacheMode { }
@@ -21,6 +22,7 @@ unsafe impl WithCacheMode for WithFullCacheMode {
 			| sys::randomx_flags_RANDOMX_FLAG_JIT
 			| sys::randomx_flags_RANDOMX_FLAG_FULL_MEM
 	}
+	fn description() -> &'static str { "full" }
 }
 
 pub enum WithLightCacheMode { }
@@ -30,6 +32,7 @@ unsafe impl WithCacheMode for WithLightCacheMode {
 		sys::randomx_flags_RANDOMX_FLAG_DEFAULT
 			| sys::randomx_flags_RANDOMX_FLAG_JIT
 	}
+	fn description() -> &'static str { "light" }
 }
 
 pub struct Cache<M: WithCacheMode> {
