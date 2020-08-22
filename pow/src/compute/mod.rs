@@ -31,10 +31,22 @@ use kulupu_randomx as randomx;
 use kulupu_primitives::Difficulty;
 
 lazy_static! {
-	static ref SHARED_CACHES: Arc<Mutex<LruCache<H256, Arc<randomx::FullCache>>>> =
+	static ref FULL_SHARED_CACHES: Arc<Mutex<LruCache<H256, Arc<randomx::FullCache>>>> =
 		Arc::new(Mutex::new(LruCache::new(2)));
+	static ref LIGHT_SHARED_CACHES: Arc<Mutex<LruCache<H256, Arc<randomx::LightCache>>>> =
+		Arc::new(Mutex::new(LruCache::new(3)));
 }
-thread_local!(static MACHINES: RefCell<Option<(H256, randomx::FullVM)>> = RefCell::new(None));
+
+thread_local! {
+	static FULL_MACHINE: RefCell<Option<(H256, randomx::FullVM)>> = RefCell::new(None);
+	static LIGHT_MACHINE: RefCell<Option<(H256, randomx::LightVM)>> = RefCell::new(None);
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Encode, Decode, Debug)]
+pub enum ComputeMode {
+	Sync,
+	Mining,
+}
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
 pub struct Calculation {
@@ -43,38 +55,64 @@ pub struct Calculation {
 	pub nonce: H256,
 }
 
-fn compute_raw(key_hash: &H256, input: &[u8]) -> H256 {
-	MACHINES.with(|m| {
-		let mut ms = m.borrow_mut();
+fn compute_raw_with_cache<M: randomx::WithCacheMode>(
+	key_hash: &H256,
+	input: &[u8],
+	machine: &RefCell<Option<(H256, randomx::VM<M>)>>,
+	shared_caches: &Arc<Mutex<LruCache<H256, Arc<randomx::Cache<M>>>>>,
+) -> H256 {
+	let mut ms = machine.borrow_mut();
 
-		let need_new_vm = ms.as_ref().map(|(mkey_hash, _)| {
-			mkey_hash != key_hash
-		}).unwrap_or(true);
+	let need_new_vm = ms.as_ref().map(|(mkey_hash, _)| {
+		mkey_hash != key_hash
+	}).unwrap_or(true);
 
-		if need_new_vm {
-			let mut shared_caches = SHARED_CACHES.lock().expect("Mutex poisioned");
+	if need_new_vm {
+		let mut shared_caches = shared_caches.lock().expect("Mutex poisioned");
 
-			if let Some(cache) = shared_caches.get_mut(key_hash) {
-				*ms = Some((*key_hash, randomx::FullVM::new(cache.clone())));
-			} else {
-				info!("At block boundary, generating new RandomX cache with key hash {} ...",
-					  key_hash);
-				let cache = Arc::new(randomx::FullCache::new(&key_hash[..]));
-				shared_caches.insert(*key_hash, cache.clone());
-				*ms = Some((*key_hash, randomx::FullVM::new(cache)));
-			}
+		if let Some(cache) = shared_caches.get_mut(key_hash) {
+			*ms = Some((*key_hash, randomx::VM::new(cache.clone())));
+		} else {
+			info!("At block boundary, generating new RandomX cache with key hash {} ...",
+				  key_hash);
+			let cache = Arc::new(randomx::Cache::new(&key_hash[..]));
+			shared_caches.insert(*key_hash, cache.clone());
+			*ms = Some((*key_hash, randomx::VM::new(cache)));
 		}
+	}
 
-		let work = ms.as_mut()
-			.map(|(mkey_hash, vm)| {
-				assert_eq!(mkey_hash, key_hash,
-						   "Condition failed checking cached key_hash. This is a bug");
-				vm.calculate(input)
-			})
-			.expect("Local MACHINES always set to Some above; qed");
+	let work = ms.as_mut()
+		.map(|(mkey_hash, vm)| {
+			assert_eq!(mkey_hash, key_hash,
+					   "Condition failed checking cached key_hash. This is a bug");
+			vm.calculate(input)
+		})
+		.expect("Local MACHINES always set to Some above; qed");
 
-		H256::from(work)
-	})
+	H256::from(work)
+}
+
+fn compute_raw(key_hash: &H256, input: &[u8], mode: ComputeMode) -> H256 {
+	match mode {
+		ComputeMode::Mining =>
+			FULL_MACHINE.with(|machine| {
+				compute_raw_with_cache::<randomx::WithFullCacheMode>(
+					key_hash,
+					input,
+					machine,
+					&FULL_SHARED_CACHES,
+				)
+			}),
+		ComputeMode::Sync =>
+			LIGHT_MACHINE.with(|machine| {
+				compute_raw_with_cache::<randomx::WithLightCacheMode>(
+					key_hash,
+					input,
+					machine,
+					&LIGHT_SHARED_CACHES,
+				)
+			}),
+	}
 }
 
 #[cfg(test)]

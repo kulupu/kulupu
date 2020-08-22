@@ -30,7 +30,7 @@ use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore};
 use sc_keystore::KeyStorePtr;
 use kulupu_primitives::{Difficulty, AlgorithmApi};
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
-use crate::compute::{ComputeV1, ComputeV2, SealV1, SealV2};
+use crate::compute::{ComputeV1, ComputeV2, SealV1, SealV2, ComputeMode};
 
 pub mod app {
 	use sp_application_crypto::{app_crypto, sr25519};
@@ -165,7 +165,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 
 				// No pre-digest check is needed for V1 algorithm.
 
-				let (computed_seal, computed_work) = compute.seal_and_work();
+				let (computed_seal, computed_work) = compute.seal_and_work(ComputeMode::Sync);
 
 				if computed_seal != seal {
 					return Ok(false)
@@ -205,7 +205,8 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				}
 
 				let (computed_seal, computed_work) = compute.seal_and_work(
-					seal.signature.clone()
+					seal.signature.clone(),
+					ComputeMode::Sync,
 				);
 
 				if computed_seal != seal {
@@ -260,7 +261,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 						nonce,
 					};
 
-					let (seal, work) = compute.seal_and_work();
+					let (seal, work) = compute.seal_and_work(ComputeMode::Mining);
 
 					if is_valid_hash(&work, difficulty) {
 						return Ok(Some(seal.encode()))
@@ -299,7 +300,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 					};
 
 					let signature = compute.sign(&pair);
-					let (seal, work) = compute.seal_and_work(signature);
+					let (seal, work) = compute.seal_and_work(signature, ComputeMode::Mining);
 
 					if is_valid_hash(&work, difficulty) {
 						return Ok(Some(seal.encode()))
