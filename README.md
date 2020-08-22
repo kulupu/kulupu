@@ -86,7 +86,7 @@ Alternatively, you can also import an existing private key as the mining key,
 using the `import-mining-key` command:
 
 ```bash
-cargo run --release -- import-mining key "<secret seed>"
+cargo run --release -- import-mining-key "<secret seed>"
 ```
 
 #### Pass author argument to node for mining
