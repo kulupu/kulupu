@@ -18,9 +18,12 @@ pub enum WithFullCacheMode { }
 unsafe impl WithCacheMode for WithFullCacheMode {
 	fn has_dataset() -> bool { true }
 	fn randomx_flags() -> sys::randomx_flags {
-		sys::randomx_flags_RANDOMX_FLAG_DEFAULT
-			| sys::randomx_flags_RANDOMX_FLAG_JIT
-			| sys::randomx_flags_RANDOMX_FLAG_FULL_MEM
+		unsafe {
+			sys::randomx_get_flags() |
+			sys::randomx_flags_RANDOMX_FLAG_FULL_MEM |
+			sys::randomx_flags_RANDOMX_FLAG_LARGE_PAGES
+		}
+
 	}
 	fn description() -> &'static str { "full" }
 }
@@ -29,8 +32,7 @@ pub enum WithLightCacheMode { }
 unsafe impl WithCacheMode for WithLightCacheMode {
 	fn has_dataset() -> bool { false }
 	fn randomx_flags() -> sys::randomx_flags {
-		sys::randomx_flags_RANDOMX_FLAG_DEFAULT
-			| sys::randomx_flags_RANDOMX_FLAG_JIT
+		unsafe { sys::randomx_get_flags() }
 	}
 	fn description() -> &'static str { "light" }
 }
