@@ -145,6 +145,10 @@ fn compute_raw(key_hash: &H256, input: &[u8], mode: ComputeMode) -> H256 {
 	}
 }
 
+pub fn compute<T: Encode>(key_hash: &H256, input: &T, mode: ComputeMode) -> H256 {
+	compute_raw(key_hash, &input.encode()[..], mode)
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;

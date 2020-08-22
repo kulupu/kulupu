@@ -41,7 +41,11 @@ impl ComputeV1 {
 			nonce: self.nonce,
 		};
 
-		let work = super::compute_raw(&self.key_hash, &calculation.encode()[..], mode);
+		let work = super::compute::<Calculation>(
+			&self.key_hash,
+			&calculation,
+			mode,
+		);
 
 		(SealV1 {
 			nonce: self.nonce,

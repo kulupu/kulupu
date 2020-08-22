@@ -43,9 +43,9 @@ impl ComputeV2 {
 			nonce: self.nonce,
 		};
 
-		let work = super::compute_raw(
+		let work = super::compute::<(Calculation, app::Signature)>(
 			&self.key_hash,
-			&(calculation, signature.clone()).encode()[..],
+			&(calculation, signature.clone()),
 			mode,
 		);
 
