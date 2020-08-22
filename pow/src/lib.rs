@@ -30,7 +30,7 @@ use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore};
 use sc_keystore::KeyStorePtr;
 use kulupu_primitives::{Difficulty, AlgorithmApi};
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
-use crate::compute::{ComputeV1, ComputeV2, SealV1, SealV2};
+use crate::compute::{ComputeV1, ComputeV2, SealV1, SealV2, ComputeMode};
 
 pub mod app {
 	use sp_application_crypto::{app_crypto, sr25519};
@@ -165,7 +165,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 
 				// No pre-digest check is needed for V1 algorithm.
 
-				let (computed_seal, computed_work) = compute.seal_and_work();
+				let (computed_seal, computed_work) = compute.seal_and_work(ComputeMode::Sync);
 
 				if computed_seal != seal {
 					return Ok(false)
@@ -205,7 +205,8 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				}
 
 				let (computed_seal, computed_work) = compute.seal_and_work(
-					seal.signature.clone()
+					seal.signature.clone(),
+					ComputeMode::Sync,
 				);
 
 				if computed_seal != seal {
@@ -248,6 +249,24 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 			))?;
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
 
+		let pre_digest = pre_digest.ok_or(sc_consensus_pow::Error::<B>::Other(
+			"Unable to mine: pre-digest not set".to_string(),
+		))?;
+
+		let author = app::Public::decode(&mut &pre_digest[..]).map_err(|_| {
+			sc_consensus_pow::Error::<B>::Other(
+				"Unable to mine: author pre-digest decoding failed".to_string(),
+			)
+		})?;
+
+		let pair = self.keystore.as_ref().ok_or(sc_consensus_pow::Error::<B>::Other(
+			"Unable to mine: keystore not set".to_string(),
+		))?.read().key_pair::<app::Pair>(
+			&author,
+		).map_err(|_| sc_consensus_pow::Error::<B>::Other(
+			"Unable to mine: fetch pair from author failed".to_string(),
+		))?;
+
 		match version {
 			RandomXAlgorithmVersion::V1 => {
 				for _ in 0..round {
@@ -260,7 +279,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 						nonce,
 					};
 
-					let (seal, work) = compute.seal_and_work();
+					let (seal, work) = compute.seal_and_work(ComputeMode::Mining);
 
 					if is_valid_hash(&work, difficulty) {
 						return Ok(Some(seal.encode()))
@@ -270,24 +289,6 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				Ok(None)
 			},
 			RandomXAlgorithmVersion::V2 => {
-				let pre_digest = pre_digest.ok_or(sc_consensus_pow::Error::<B>::Other(
-					"Unable to mine: v2 pre-digest not set".to_string(),
-				))?;
-
-				let author = app::Public::decode(&mut &pre_digest[..]).map_err(|_| {
-					sc_consensus_pow::Error::<B>::Other(
-						"Unable to mine: v2 author pre-digest decoding failed".to_string(),
-					)
-				})?;
-
-				let pair = self.keystore.as_ref().ok_or(sc_consensus_pow::Error::<B>::Other(
-					"Unable to mine: v2 keystore not set".to_string(),
-				))?.read().key_pair::<app::Pair>(
-					&author,
-				).map_err(|_| sc_consensus_pow::Error::<B>::Other(
-					"Unable to mine: v2 fetch pair from author failed".to_string(),
-				))?;
-
 				for _ in 0..round {
 					let nonce = H256::random_using(&mut rng);
 
@@ -299,7 +300,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 					};
 
 					let signature = compute.sign(&pair);
-					let (seal, work) = compute.seal_and_work(signature);
+					let (seal, work) = compute.seal_and_work(signature, ComputeMode::Mining);
 
 					if is_valid_hash(&work, difficulty) {
 						return Ok(Some(seal.encode()))

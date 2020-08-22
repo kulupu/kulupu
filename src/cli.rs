@@ -24,6 +24,12 @@ pub enum Subcommand {
 
 	#[structopt(name = "export-builtin-wasm", setting = structopt::clap::AppSettings::Hidden)]
 	ExportBuiltinWasm(ExportBuiltinWasmCommand),
+
+	#[structopt(name = "import-mining-key")]
+	ImportMiningKey(ImportMiningKeyCommand),
+
+	#[structopt(name = "generate-mining-key")]
+	GenerateMiningKey(GenerateMiningKeyCommand),
 }
 
 #[derive(Debug, StructOpt)]
@@ -46,12 +52,45 @@ pub struct Cli {
 	pub no_donate: bool,
 	#[structopt(long)]
 	pub check_inherents_after: Option<u32>,
-	#[structopt(long)]
-	pub register_mining_key: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct ExportBuiltinWasmCommand {
 	#[structopt()]
 	pub folder: String,
+}
+
+#[derive(Debug, StructOpt)]
+pub struct ImportMiningKeyCommand {
+	#[structopt()]
+	pub suri: String,
+
+	#[allow(missing_docs)]
+	#[structopt(flatten)]
+	pub shared_params: sc_cli::SharedParams,
+
+	#[allow(missing_docs)]
+	#[structopt(flatten)]
+	pub keystore_params: sc_cli::KeystoreParams,
+}
+
+impl sc_cli::CliConfiguration for ImportMiningKeyCommand {
+	fn shared_params(&self) -> &sc_cli::SharedParams { &self.shared_params }
+	fn keystore_params(&self) -> Option<&sc_cli::KeystoreParams> { Some(&self.keystore_params) }
+}
+
+#[derive(Debug, StructOpt)]
+pub struct GenerateMiningKeyCommand {
+	#[allow(missing_docs)]
+	#[structopt(flatten)]
+	pub shared_params: sc_cli::SharedParams,
+
+	#[allow(missing_docs)]
+	#[structopt(flatten)]
+	pub keystore_params: sc_cli::KeystoreParams,
+}
+
+impl sc_cli::CliConfiguration for GenerateMiningKeyCommand {
+	fn shared_params(&self) -> &sc_cli::SharedParams { &self.shared_params }
+	fn keystore_params(&self) -> Option<&sc_cli::KeystoreParams> { Some(&self.keystore_params) }
 }

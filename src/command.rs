@@ -16,8 +16,10 @@
 
 use std::{path::PathBuf, fs::File, io::Write};
 use log::info;
+use sp_core::{hexdisplay::HexDisplay, crypto::{Pair, Ss58Codec, Ss58AddressFormat}};
 use sc_cli::{SubstrateCli, ChainSpec, Role, RuntimeVersion};
-use sc_service::PartialComponents;
+use sc_service::{PartialComponents, config::KeystoreConfig};
+use sc_keystore::Store as Keystore;
 use crate::chain_spec;
 use crate::cli::{Cli, Subcommand};
 use crate::service;
@@ -107,6 +109,51 @@ pub fn run() -> sc_cli::Result<()> {
 
 			Ok(())
 		},
+		Some(Subcommand::ImportMiningKey(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.sync_run(|config| {
+				let keystore = match &config.keystore {
+					KeystoreConfig::Path { path, password } => Keystore::open(
+						path.clone(),
+						password.clone()
+					).map_err(|e| format!("Open keystore failed: {:?}", e))?,
+					KeystoreConfig::InMemory => Keystore::new_in_memory(),
+				};
+
+				let pair = keystore.write().insert::<kulupu_pow::app::Pair>(&cmd.suri)
+					.map_err(|e| format!("Registering mining key failed: {:?}", e))?;
+				info!("Registered one mining key.\n\nPublic key: 0x{}",
+					  HexDisplay::from(&pair.public().as_ref()));
+
+				Ok(())
+			})
+		},
+		Some(Subcommand::GenerateMiningKey(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.sync_run(|config| {
+				let keystore = match &config.keystore {
+					KeystoreConfig::Path { path, password } => Keystore::open(
+						path.clone(),
+						password.clone()
+					).map_err(|e| format!("Open keystore failed: {:?}", e))?,
+					KeystoreConfig::InMemory => Keystore::new_in_memory(),
+				};
+
+				let (_, phrase, _) = kulupu_pow::app::Pair::generate_with_phrase(None);
+
+				let pair = keystore.write().insert::<kulupu_pow::app::Pair>(&phrase)
+					.map_err(|e| format!("Generating mining key failed: {:?}", e))?;
+
+				info!(
+					"Generated one mining key.\n\nPublic key: 0x{}\nSecret seed: {}\nAddress: {}",
+					HexDisplay::from(&pair.public().as_ref()),
+					phrase,
+					pair.public().to_ss58check_with_version(Ss58AddressFormat::KulupuAccount),
+				);
+
+				Ok(())
+			})
+		},
 		None => {
 			let runner = cli.create_runner(&cli.run)?;
 			runner.run_node_until_exit(
@@ -124,7 +171,6 @@ pub fn run() -> sc_cli::Result<()> {
 						cli.round.unwrap_or(5000),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
 						!cli.no_donate,
-						cli.register_mining_key.as_ref().map(|k| k.as_str()),
 					)
 				}
 			)
