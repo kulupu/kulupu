@@ -66,23 +66,27 @@ cargo run --release -- purge-chain
 
 ### Mining
 
-#### Generate an address using polkadot.js
+#### Import or generate a mining key
 
-Go to [polkadot.js.org](https://polkadot.js.org/apps), select Kulupu in the
-network dropdown, and generate a new address.
+Kulupu implements signed mining. To mine Kulupu blocks, you have to have the
+coinbase private key stored in the mining software, as a new signature is
+produced for every new nonce. We refer to the private key for signed mining as
+the **mining key**.
 
-#### Generate an address using Subkey
-
-Install `subkey`:
+The eaiest way to get a mining key is to generate a new one using the
+`generate-mining-key` command:
 
 ```bash
-cargo install --force --git https://github.com/paritytech/substrate subkey
+cargo run --release -- generate-mining-key
 ```
 
-Generate an account to use as the target for mining:
+Keep your secret seed in a secure place.
+
+Alternatively, you can also import an existing private key as the mining key,
+using the `import-mining-key` command:
 
 ```bash
-subkey --sr25519 --network=kulupu generate
+cargo run --release -- import-mining key "<secret seed>"
 ```
 
 #### Pass author argument to node for mining
@@ -98,7 +102,8 @@ cargo run --release -- --validator --author 0x7e946b7dd192307b4538d664ead9547406
 
 * **Algorithm**: RandomX
 * **Block time**: 60 seconds
-* **Issurance**: 1 KLP per second (60 KLP per block)
+* **Total issurance**: Governed on-chain, expected to be no more than 210
+  million KLP.
 * No premine
 
 ## Disclaimer
