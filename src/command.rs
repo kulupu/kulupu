@@ -15,7 +15,7 @@
 // along with Kulupu.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{path::PathBuf, fs::File, io::Write};
-use log::info;
+use log::{info, warn};
 use sc_cli::{SubstrateCli, ChainSpec, Role, RuntimeVersion};
 use sc_service::PartialComponents;
 use crate::chain_spec;
@@ -106,6 +106,21 @@ pub fn run() -> sc_cli::Result<()> {
 			}
 
 			Ok(())
+		},
+		Some(Subcommand::ImportMiningKey(cmd)) => {
+			info!("Importing a new mining key ...");
+			let runner = cli.create_runner(cmd)?;
+			runner.sync_run(|config| {
+				let PartialComponents { keystore, .. } =
+					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate)?;
+
+				match keystore.write().insert::<kulupu_pow::app::Pair>(&cmd.suri) {
+					Ok(_) => info!("Registered one mining key"),
+					Err(e) => warn!("Registering key failed: {:?}", e),
+				}
+
+				Ok(())
+			})
 		},
 		None => {
 			let runner = cli.create_runner(&cli.run)?;

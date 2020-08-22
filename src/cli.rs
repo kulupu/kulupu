@@ -24,6 +24,9 @@ pub enum Subcommand {
 
 	#[structopt(name = "export-builtin-wasm", setting = structopt::clap::AppSettings::Hidden)]
 	ExportBuiltinWasm(ExportBuiltinWasmCommand),
+
+	#[structopt(name = "import-mining-key")]
+	ImportMiningKey(ImportMiningKeyCommand),
 }
 
 #[derive(Debug, StructOpt)]
@@ -54,4 +57,18 @@ pub struct Cli {
 pub struct ExportBuiltinWasmCommand {
 	#[structopt()]
 	pub folder: String,
+}
+
+#[derive(Debug, StructOpt)]
+pub struct ImportMiningKeyCommand {
+	#[structopt()]
+	pub suri: String,
+
+	#[allow(missing_docs)]
+	#[structopt(flatten)]
+	pub shared_params: sc_cli::SharedParams,
+}
+
+impl sc_cli::CliConfiguration for ImportMiningKeyCommand {
+	fn shared_params(&self) -> &sc_cli::SharedParams { &self.shared_params }
 }
