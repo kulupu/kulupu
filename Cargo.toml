@@ -20,6 +20,7 @@ jsonrpc-core = "14.0.3"
 
 sc-cli = { path = "vendor/substrate/client/cli" }
 sc-rpc = { path = "vendor/substrate/client/rpc" }
+sc-keystore = { path = "vendor/substrate/client/keystore" }
 sp-core = { path = "vendor/substrate/primitives/core" }
 sp-api = { path = "vendor/substrate/primitives/api" }
 sp-blockchain = { path = "vendor/substrate/primitives/blockchain" }

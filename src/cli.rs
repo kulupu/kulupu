@@ -27,6 +27,9 @@ pub enum Subcommand {
 
 	#[structopt(name = "import-mining-key")]
 	ImportMiningKey(ImportMiningKeyCommand),
+
+	#[structopt(name = "generate-mining-key")]
+	GenerateMiningKey(GenerateMiningKeyCommand),
 }
 
 #[derive(Debug, StructOpt)]
@@ -65,8 +68,29 @@ pub struct ImportMiningKeyCommand {
 	#[allow(missing_docs)]
 	#[structopt(flatten)]
 	pub shared_params: sc_cli::SharedParams,
+
+	#[allow(missing_docs)]
+	#[structopt(flatten)]
+	pub keystore_params: sc_cli::KeystoreParams,
 }
 
 impl sc_cli::CliConfiguration for ImportMiningKeyCommand {
 	fn shared_params(&self) -> &sc_cli::SharedParams { &self.shared_params }
+	fn keystore_params(&self) -> Option<&sc_cli::KeystoreParams> { Some(&self.keystore_params) }
+}
+
+#[derive(Debug, StructOpt)]
+pub struct GenerateMiningKeyCommand {
+	#[allow(missing_docs)]
+	#[structopt(flatten)]
+	pub shared_params: sc_cli::SharedParams,
+
+	#[allow(missing_docs)]
+	#[structopt(flatten)]
+	pub keystore_params: sc_cli::KeystoreParams,
+}
+
+impl sc_cli::CliConfiguration for GenerateMiningKeyCommand {
+	fn shared_params(&self) -> &sc_cli::SharedParams { &self.shared_params }
+	fn keystore_params(&self) -> Option<&sc_cli::KeystoreParams> { Some(&self.keystore_params) }
 }

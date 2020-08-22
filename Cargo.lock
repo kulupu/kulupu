@@ -2423,6 +2423,7 @@ dependencies = [
  "sc-consensus-pow",
  "sc-executor",
  "sc-finality-grandpa",
+ "sc-keystore",
  "sc-network",
  "sc-rpc",
  "sc-rpc-api",
