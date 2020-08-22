@@ -20,8 +20,7 @@ unsafe impl WithCacheMode for WithFullCacheMode {
 	fn randomx_flags() -> sys::randomx_flags {
 		unsafe {
 			sys::randomx_get_flags() |
-			sys::randomx_flags_RANDOMX_FLAG_FULL_MEM |
-			sys::randomx_flags_RANDOMX_FLAG_LARGE_PAGES
+			sys::randomx_flags_RANDOMX_FLAG_FULL_MEM
 		}
 
 	}
