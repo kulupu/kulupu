@@ -25,7 +25,6 @@ use sc_service::{error::{Error as ServiceError}, Configuration, TaskManager};
 use sc_executor::native_executor_instance;
 use sc_client_api::backend::RemoteBackend;
 use kulupu_runtime::{self, opaque::Block, RuntimeApi};
-use log::*;
 
 pub use sc_executor::NativeExecutor;
 
@@ -161,7 +160,6 @@ pub fn new_full(
 	round: u32,
 	check_inherents_after: u32,
 	donate: bool,
-	register_key: Option<&str>,
 ) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client, backend, mut task_manager, import_queue, keystore, select_chain, transaction_pool,
@@ -217,13 +215,6 @@ pub fn new_full(
 		remote_blockchain: None,
 		backend, network_status_sinks, system_rpc_tx, config,
 	})?;
-
-	if let Some(suri) = register_key {
-		match keystore.write().insert::<kulupu_pow::app::Pair>(suri) {
-			Ok(_) => info!("Registered one key"),
-			Err(e) => warn!("Registering key failed: {:?}", e),
-		}
-	}
 
 	if role.is_authority() {
 		let author = decode_author(author);
