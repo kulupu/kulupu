@@ -154,6 +154,17 @@ pub fn run() -> sc_cli::Result<()> {
 				Ok(())
 			})
 		},
+		Some(Subcommand::Benchmark(cmd)) => {
+			if cfg!(feature = "runtime-benchmarks") {
+				let runner = cli.create_runner(cmd)?;
+
+				runner.sync_run(|config| cmd.run::<kulupu_runtime::Block, service::Executor>(config))
+			} else {
+				println!("Benchmarking wasn't enabled when building the node. \
+				You can enable it with `--features runtime-benchmarks`.");
+				Ok(())
+			}
+		},
 		None => {
 			let runner = cli.create_runner(&cli.run)?;
 			runner.run_node_until_exit(
