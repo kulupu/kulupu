@@ -13,7 +13,7 @@ of RandomX.
 The network was launched in September 2019. The first hard fork, code-named
 **Slag Ravine** happened in December 2019, at era 0 block 100,000. The second
 hard fork, code-named **Swamp Bottom** happened at era 0 block 320,000 on 6th
-May 2019.
+May 2020.
 
 The current Kulupu blockchain enabled Substrate's balances and governance pallet
 modules. Smart contract is a planned but not yet enabled feature, due to
