@@ -51,6 +51,11 @@ pallet-transaction-payment-rpc-runtime-api = { default-features = false, path = 
 [build-dependencies]
 wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.5", path = "../vendor/substrate/utils/wasm-builder-runner" }
 
+# benchmarking
+frame-benchmarking = { default-features = false, path = "../vendor/substrate/frame/benchmarking", optional = true }
+frame-system-benchmarking = { default-features = false, path = "../vendor/substrate/frame/system/benchmarking", optional = true }
+hex-literal = { version = "0.3.1", optional = true }
+
 [features]
 default = ["std"]
 std = [
@@ -95,4 +100,26 @@ std = [
 
 	"frame-system-rpc-runtime-api/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
+
+	"frame-benchmarking/std",
+]
+runtime-benchmarks = [
+	"frame-benchmarking",
+	"frame-support/runtime-benchmarks",
+	"system/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"balances/runtime-benchmarks",
+	"collective/runtime-benchmarks",
+	"democracy/runtime-benchmarks",
+	"identity/runtime-benchmarks",
+	"indices/runtime-benchmarks",
+	"multisig/runtime-benchmarks",
+	"proxy/runtime-benchmarks",
+	"scheduler/runtime-benchmarks",
+	"timestamp/runtime-benchmarks",
+	"treasury/runtime-benchmarks",
+	"utility/runtime-benchmarks",
+	"vesting/runtime-benchmarks",
+	"frame-system-benchmarking",
+	"hex-literal",
 ]
