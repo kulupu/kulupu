@@ -27,12 +27,15 @@ use kulupu_runtime::{
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 
-pub fn development_config() -> ChainSpec {
-	ChainSpec::from_genesis(
+pub fn development_config() -> Result<ChainSpec, String> {
+	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
+
+	Ok(ChainSpec::from_genesis(
 		"Development",
 		"dev",
 		ChainType::Development,
-		|| testnet_genesis(
+		move || testnet_genesis(
+			wasm_binary,
 			U256::from(200),
 		),
 		vec![],
@@ -44,15 +47,18 @@ pub fn development_config() -> ChainSpec {
 			"tokenSymbol": "KLPD"
 		}).as_object().expect("Created an object").clone()),
 		None,
-	)
+	))
 }
 
-pub fn local_testnet_config() -> ChainSpec {
-	ChainSpec::from_genesis(
+pub fn local_testnet_config() -> Result<ChainSpec, String> {
+	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
+
+	Ok(ChainSpec::from_genesis(
 		"Local Testnet",
 		"local",
 		ChainType::Local,
-		|| testnet_genesis(
+		move || testnet_genesis(
+			wasm_binary,
 			U256::from(200),
 		),
 		vec![],
@@ -64,7 +70,7 @@ pub fn local_testnet_config() -> ChainSpec {
 			"tokenSymbol": "KLPD"
 		}).as_object().expect("Created an object").clone()),
 		None,
-	)
+	))
 }
 
 pub fn breaknet4_config() -> ChainSpec {
@@ -125,10 +131,10 @@ fn breaknet4_genesis(initial_difficulty: U256) -> GenesisConfig {
 	}
 }
 
-fn testnet_genesis(initial_difficulty: U256) -> GenesisConfig {
+fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256) -> GenesisConfig {
 	GenesisConfig {
 		system: Some(SystemConfig {
-			code: WASM_BINARY.to_vec(),
+			code: wasm_binary.to_vec(),
 			changes_trie_config: Default::default(),
 		}),
 		balances: Some(BalancesConfig {

@@ -48,13 +48,13 @@ difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", defa
 frame-system-rpc-runtime-api = { default-features = false, path = "../vendor/substrate/frame/system/rpc/runtime-api/" }
 pallet-transaction-payment-rpc-runtime-api = { default-features = false, path = "../vendor/substrate/frame/transaction-payment/rpc/runtime-api/" }
 
-[build-dependencies]
-wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.5", path = "../vendor/substrate/utils/wasm-builder-runner" }
-
 # benchmarking
 frame-benchmarking = { default-features = false, path = "../vendor/substrate/frame/benchmarking", optional = true }
 frame-system-benchmarking = { default-features = false, path = "../vendor/substrate/frame/system/benchmarking", optional = true }
-hex-literal = { version = "0.3.1", optional = true }
+hex-literal = { version = "0.2.1", optional = true }
+
+[build-dependencies]
+wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.5", path = "../vendor/substrate/utils/wasm-builder-runner" }
 
 [features]
 default = ["std"]

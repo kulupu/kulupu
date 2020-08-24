@@ -57,8 +57,8 @@ impl SubstrateCli for Cli {
 	fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
 		Ok(match id {
 			"" | "kulupu" | "mainnet" => Box::new(chain_spec::mainnet_config()),
-			"local" => Box::new(chain_spec::local_testnet_config()),
-			"dev" => Box::new(chain_spec::development_config()),
+			"local" => Box::new(chain_spec::local_testnet_config()?),
+			"dev" => Box::new(chain_spec::development_config()?),
 			"breaknet4" => Box::new(chain_spec::breaknet4_config()),
 			path => Box::new(chain_spec::ChainSpec::from_json_file(
 				std::path::PathBuf::from(path),
@@ -88,14 +88,17 @@ pub fn run() -> sc_cli::Result<()> {
 			})
 		},
 		Some(Subcommand::ExportBuiltinWasm(cmd)) => {
-			info!("Exporting builtin wasm binary to folder: {}", cmd.folder);
-			let folder = PathBuf::from(cmd.folder.clone());
+			let wasm_binary_bloaty = kulupu_runtime::WASM_BINARY_BLOATY.ok_or("Wasm binary not available".to_string())?;
+			let wasm_binary = kulupu_runtime::WASM_BINARY.ok_or("Compact Wasm binary not available".to_string())?;
 
+			info!("Exporting builtin wasm binary to folder: {}", cmd.folder);
+
+			let folder = PathBuf::from(cmd.folder.clone());
 			{
 				let mut path = folder.clone();
 				path.push("kulupu_runtime.compact.wasm");
 				let mut file = File::create(path)?;
-				file.write_all(&kulupu_runtime::WASM_BINARY)?;
+				file.write_all(&wasm_binary)?;
 				file.flush()?;
 			}
 
@@ -103,7 +106,7 @@ pub fn run() -> sc_cli::Result<()> {
 				let mut path = folder.clone();
 				path.push("kulupu_runtime.wasm");
 				let mut file = File::create(path)?;
-				file.write_all(&kulupu_runtime::WASM_BINARY_BLOATY)?;
+				file.write_all(&wasm_binary_bloaty)?;
 				file.flush()?;
 			}
 
