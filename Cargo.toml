@@ -51,8 +51,8 @@ kulupu-runtime = { path = "runtime" }
 kulupu-primitives = { path = "primitives" }
 
 # benchmarking
-frame-benchmarking = { path = "vendor/substrate/frame/benchmarking/" }
-frame-benchmarking-cli = { path = "vendor/substrate/utils/frame/benchmarking-cli/" }
+frame-benchmarking = { path = "vendor/substrate/frame/benchmarking" }
+frame-benchmarking-cli = { path = "vendor/substrate/utils/frame/benchmarking-cli" }
 
 [build-dependencies]
 substrate-build-script-utils = { path = "vendor/substrate/utils/build-script-utils" }

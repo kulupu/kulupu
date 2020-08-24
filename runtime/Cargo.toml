@@ -100,8 +100,6 @@ std = [
 
 	"frame-system-rpc-runtime-api/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
-
-	"frame-benchmarking/std",
 ]
 runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
