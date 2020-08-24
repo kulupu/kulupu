@@ -50,6 +50,10 @@ kulupu-pow = { path = "pow" }
 kulupu-runtime = { path = "runtime" }
 kulupu-primitives = { path = "primitives" }
 
+# benchmarking
+frame-benchmarking = { path = "vendor/substrate/frame/benchmarking" }
+frame-benchmarking-cli = { path = "vendor/substrate/utils/frame/benchmarking-cli" }
+
 [build-dependencies]
 substrate-build-script-utils = { path = "vendor/substrate/utils/build-script-utils" }
 
@@ -59,6 +63,9 @@ wasmtime = [
 	"sc-executor/wasmtime",
 	"sc-cli/wasmtime",
 	"sc-service/wasmtime",
+]
+runtime-benchmarks = [
+	"kulupu-runtime/runtime-benchmarks",
 ]
 
 [workspace]

@@ -30,6 +30,13 @@ pub enum Subcommand {
 
 	#[structopt(name = "generate-mining-key")]
 	GenerateMiningKey(GenerateMiningKeyCommand),
+
+	/// The custom benchmark subcommmand benchmarking runtime pallets.
+	#[structopt(
+		name = "benchmark",
+		about = "Benchmark runtime pallets."
+	)]
+	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 }
 
 #[derive(Debug, StructOpt)]

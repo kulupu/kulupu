@@ -33,6 +33,7 @@ native_executor_instance!(
 	pub Executor,
 	kulupu_runtime::api::dispatch,
 	kulupu_runtime::native_version,
+	frame_benchmarking::benchmarking::HostFunctions,
 );
 
 pub fn decode_author(

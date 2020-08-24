@@ -1383,6 +1383,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "frame-benchmarking-cli"
+version = "2.0.0-rc5"
+dependencies = [
+ "frame-benchmarking",
+ "parity-scale-codec",
+ "sc-cli",
+ "sc-client-db",
+ "sc-executor",
+ "sc-service",
+ "sp-core",
+ "sp-externalities",
+ "sp-runtime",
+ "sp-state-machine",
+ "structopt",
+]
+
+[[package]]
 name = "frame-executive"
 version = "2.0.0-rc5"
 dependencies = [
@@ -1473,6 +1490,19 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "sp-version",
+]
+
+[[package]]
+name = "frame-system-benchmarking"
+version = "2.0.0-rc5"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -2406,6 +2436,8 @@ dependencies = [
 name = "kulupu"
 version = "2.0.0"
 dependencies = [
+ "frame-benchmarking",
+ "frame-benchmarking-cli",
  "futures 0.3.5",
  "jsonrpc-core",
  "kulupu-pow",
@@ -2499,10 +2531,13 @@ dependencies = [
 name = "kulupu-runtime"
 version = "2.0.0"
 dependencies = [
+ "frame-benchmarking",
  "frame-executive",
  "frame-support",
  "frame-system",
+ "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
+ "hex-literal",
  "kulupu-primitives",
  "pallet-balances",
  "pallet-collective",
@@ -3456,6 +3491,7 @@ dependencies = [
 name = "pallet-collective"
 version = "2.0.0-rc5"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
@@ -3538,6 +3574,7 @@ dependencies = [
 name = "pallet-indices"
 version = "2.0.0-rc5"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
@@ -3566,6 +3603,7 @@ dependencies = [
 name = "pallet-multisig"
 version = "2.0.0-rc5"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
@@ -3580,6 +3618,7 @@ dependencies = [
 name = "pallet-proxy"
 version = "2.0.0-rc5"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
@@ -3644,6 +3683,7 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-inherents",
+ "sp-io",
  "sp-runtime",
  "sp-std",
  "sp-timestamp",
@@ -3698,6 +3738,7 @@ dependencies = [
 name = "pallet-treasury"
 version = "2.0.0-rc5"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "pallet-balances",
@@ -3711,6 +3752,7 @@ dependencies = [
 name = "pallet-utility"
 version = "2.0.0-rc5"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
@@ -3726,6 +3768,7 @@ name = "pallet-vesting"
 version = "2.0.0-rc5"
 dependencies = [
  "enumflags2",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
