@@ -24,7 +24,7 @@ RUN RUSTUP_TOOLCHAIN=stable cargo install --git https://github.com/alexcrichton/
 
 # BUILD RUNTIME AND BINARY
 RUN rustup target add wasm32-unknown-unknown --toolchain nightly
-RUN cd /rustbuilder/kulupu && RUSTUP_TOOLCHAIN=stable cargo build --$PROFILE
+RUN cd /rustbuilder/kulupu && RUSTUP_TOOLCHAIN=stable RANDOMX_ARCH=default cargo build --$PROFILE
 # ===== END FIRST STAGE ======
 
 # ===== START SECOND STAGE ======
