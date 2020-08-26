@@ -152,11 +152,11 @@ decl_module! {
 		}
 
 		#[weight = T::DbWeight::get().reads_writes(1, 1)]
-		fn update_locks(origin) {
-			let account = ensure_signed(origin)?;
-			let locks = Self::reward_locks(&account);
+		fn unlock(origin, target: T::AccountId) {
+			ensure_signed(origin)?;
 
-			Self::do_update_locks(account, locks);
+			let locks = Self::reward_locks(&target);
+			Self::do_update_locks(target, locks);
 		}
 
 		fn on_initialize(now: T::BlockNumber) -> Weight {

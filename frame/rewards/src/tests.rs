@@ -140,7 +140,7 @@ fn reward_locks_work() {
 		// 10 blocks later (10 days)
 		System::set_block_number(11);
 		// User update locks
-		assert_ok!(Rewards::update_locks(Origin::signed(1)));
+		assert_ok!(Rewards::unlock(Origin::signed(1), 1));
 		// Locks updated
 		expected_locks.remove(&11);
 		assert_eq!(Rewards::reward_locks(1), expected_locks);
@@ -170,11 +170,11 @@ fn reward_locks_work() {
 
 		// 20 more is unlocked on block 21
 		System::set_block_number(21);
-		assert_ok!(Rewards::update_locks(Origin::signed(1)));
+		assert_ok!(Rewards::unlock(Origin::signed(1), 1));
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 20));
 		// 10 more unlocked on block 22
 		System::set_block_number(22);
-		assert_ok!(Rewards::update_locks(Origin::signed(1)));
+		assert_ok!(Rewards::unlock(Origin::signed(1), 1));
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 10));
 
 		// Cannot transfer more
