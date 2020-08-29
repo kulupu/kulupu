@@ -715,6 +715,16 @@ construct_runtime!(
 	}
 );
 
+// FIXME: remove in the next runtime upgrade.
+struct CustomOnRuntimeUpgrade;
+impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		scheduler::Module::<Runtime>::migrate_v1_to_t2();
+
+		0
+	}
+}
+
 /// The address format for describing accounts.
 pub type Address = <Indices as StaticLookup>::Source;
 /// Block header type as expected by this runtime.
@@ -742,7 +752,7 @@ pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
-pub type Executive = frame_executive::Executive<Runtime, Block, system::ChainContext<Runtime>, Runtime, AllModules>;
+pub type Executive = frame_executive::Executive<Runtime, Block, system::ChainContext<Runtime>, Runtime, AllModules, CustomOnRuntimeUpgrade>;
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
