@@ -121,7 +121,7 @@ impl crate::GenerateRewardLocks<Test> for GenerateRewardLocks {
 			for i in 0..DIVIDE {
 				let one_locked_reward = locked_reward / DIVIDE as u128;
 
-				let estimate_block_number = current_block + (i + 1) * (TOTAL_LOCK_PERIOD / DIVIDE);
+				let estimate_block_number = current_block.saturating_add((i + 1) * (TOTAL_LOCK_PERIOD / DIVIDE));
 				let actual_block_number = estimate_block_number / DAYS * DAYS;
 
 				locks.insert(actual_block_number, one_locked_reward);
@@ -130,6 +130,11 @@ impl crate::GenerateRewardLocks<Test> for GenerateRewardLocks {
 
 		locks
 	}
+
+	fn max_locks() -> u32 {
+		// Max locks when one unlocks everyday for the `TOTAL_LOCK_PERIOD`.
+		100
+	}
 }
 
 impl Trait for Test {
@@ -137,6 +142,7 @@ impl Trait for Test {
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
+	type WeightInfo = ();
 }
 
 pub type System = frame_system::Module<Test>;

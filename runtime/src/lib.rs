@@ -21,6 +21,7 @@
 #![recursion_limit="256"]
 
 mod fee;
+mod weights;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -338,7 +339,7 @@ impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
 			for i in 0..DIVIDE {
 				let one_locked_reward = locked_reward / DIVIDE as u128;
 
-				let estimate_block_number = current_block + (i + 1) * (TOTAL_LOCK_PERIOD / DIVIDE);
+				let estimate_block_number = current_block.saturating_add((i + 1) * (TOTAL_LOCK_PERIOD / DIVIDE));
 				let actual_block_number = estimate_block_number / DAYS * DAYS;
 
 				locks.insert(actual_block_number, one_locked_reward);
@@ -346,6 +347,11 @@ impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
 		}
 
 		locks
+	}
+
+	fn max_locks() -> u32 {
+		// Max locks when for 10 consecutive days, 10 incremental locks are created.
+		100
 	}
 }
 
@@ -358,6 +364,7 @@ impl rewards::Trait for Runtime {
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
+	type WeightInfo = weights::rewards::WeightInfo;
 }
 
 pub struct Author;
@@ -853,36 +860,32 @@ impl_runtime_apis! {
 	#[cfg(feature = "runtime-benchmarks")]
 	impl frame_benchmarking::Benchmark<Block> for Runtime {
 		fn dispatch_benchmark(
-			pallet: Vec<u8>,
-			benchmark: Vec<u8>,
-			lowest_range_values: Vec<u32>,
-			highest_range_values: Vec<u32>,
-			steps: Vec<u32>,
-			repeat: u32,
-			extra: bool,
+			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark};
+			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 			use frame_system_benchmarking::Module as SystemBench;
 
 			impl frame_system_benchmarking::Trait for Runtime {}
 
-			let whitelist: Vec<Vec<u8>> = vec![
+			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec(),
+				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec().into(),
 				// Total Issuance
-				hex_literal::hex!("c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80").to_vec(),
+				hex_literal::hex!("c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80").to_vec().into(),
 				// Execution Phase
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7ff553b5a9862a516939d82b3d3d8661a").to_vec(),
+				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7ff553b5a9862a516939d82b3d3d8661a").to_vec().into(),
 				// Event Count
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850").to_vec(),
+				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850").to_vec().into(),
 				// System Events
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec(),
+				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec().into(),
+				// System Digest
+				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef799e7f93fc6a98f0874fd057f111c4d2d").to_vec().into(),
 				// Treasury Account
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da95ecffd7b6c0f78751baa9d281e0bfa3a6d6f646c70792f74727372790000000000000000000000000000000000000000").to_vec(),
+				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da95ecffd7b6c0f78751baa9d281e0bfa3a6d6f646c70792f74727372790000000000000000000000000000000000000000").to_vec().into(),
 			];
 
 			let mut batches = Vec::<BenchmarkBatch>::new();
-			let params = (&pallet, &benchmark, &lowest_range_values, &highest_range_values, &steps, repeat, &whitelist, extra);
+			let params = (&config, &whitelist);
 
 			add_benchmark!(params, batches, balances, Balances);
 			add_benchmark!(params, batches, collective, Council);
@@ -897,6 +900,8 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, treasury, Treasury);
 			add_benchmark!(params, batches, utility, Utility);
 			add_benchmark!(params, batches, vesting, Vesting);
+
+			add_benchmark!(params, batches, rewards, Rewards);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)

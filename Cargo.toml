@@ -65,6 +65,7 @@ wasmtime = [
 	"sc-service/wasmtime",
 ]
 runtime-benchmarks = [
+	"wasmtime",
 	"kulupu-runtime/runtime-benchmarks",
 ]
 

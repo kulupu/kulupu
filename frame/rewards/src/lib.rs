@@ -22,6 +22,9 @@
 mod mock;
 #[cfg(test)]
 mod tests;
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+mod default_weights;
 
 use codec::{Encode, Decode};
 use sp_std::{result, cmp::min, prelude::*, collections::btree_map::BTreeMap};
@@ -44,6 +47,8 @@ pub trait GenerateRewardLocks<T: Trait> {
 		current_block: T::BlockNumber,
 		total_reward: BalanceOf<T>,
 	) -> BTreeMap<T::BlockNumber, BalanceOf<T>>;
+
+	fn max_locks() -> u32;
 }
 
 impl<T: Trait> GenerateRewardLocks<T> for () {
@@ -53,6 +58,19 @@ impl<T: Trait> GenerateRewardLocks<T> for () {
 	) -> BTreeMap<T::BlockNumber, BalanceOf<T>> {
 		Default::default()
 	}
+
+	fn max_locks() -> u32 {
+		0
+	}
+}
+
+pub trait WeightInfo {
+	fn note_author_prefs() -> Weight;
+	fn set_reward() -> Weight;
+	fn set_taxation() -> Weight;
+	fn unlock() -> Weight;
+	fn on_initialize() -> Weight;
+	fn on_finalize() -> Weight;
 }
 
 /// Trait for rewards.
@@ -65,6 +83,8 @@ pub trait Trait: frame_system::Trait {
 	type DonationDestination: Get<Self::AccountId>;
 	/// Generate reward locks.
 	type GenerateRewardLocks: GenerateRewardLocks<Self>;
+	/// Weights for this pallet.
+	type WeightInfo: WeightInfo;
 }
 
 /// Type alias for currency balance.
@@ -111,7 +131,7 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = (
-			T::DbWeight::get().reads_writes(2, 2),
+			T::WeightInfo::note_author_prefs(),
 			DispatchClass::Mandatory
 		)]
 		fn note_author_prefs(
@@ -128,7 +148,7 @@ decl_module! {
 		}
 
 		#[weight = (
-			T::DbWeight::get().reads_writes(1, 1),
+			T::WeightInfo::set_reward(),
 			DispatchClass::Operational
 		)]
 		fn set_reward(origin, reward: BalanceOf<T>) {
@@ -140,7 +160,7 @@ decl_module! {
 		}
 
 		#[weight = (
-			T::DbWeight::get().reads_writes(1, 1),
+			T::WeightInfo::set_taxation(),
 			DispatchClass::Operational
 		)]
 		fn set_taxation(origin, taxation: Perbill) {
@@ -151,12 +171,13 @@ decl_module! {
 			Self::deposit_event(RawEvent::TaxationChanged(taxation));
 		}
 
-		#[weight = T::DbWeight::get().reads_writes(1, 1)]
+		#[weight = T::WeightInfo::unlock()]
 		fn unlock(origin, target: T::AccountId) {
 			ensure_signed(origin)?;
 
 			let locks = Self::reward_locks(&target);
-			Self::do_update_locks(target, locks);
+			let current_number = frame_system::Module::<T>::block_number();
+			Self::do_update_locks(&target, locks, current_number);
 		}
 
 		fn on_initialize(now: T::BlockNumber) -> Weight {
@@ -175,41 +196,13 @@ decl_module! {
 				<Self as Store>::Author::put(author);
 			}
 
-			0
+			T::WeightInfo::on_initialize().saturating_add(T::WeightInfo::on_finalize())
 		}
 
-		fn on_finalize() {
+		fn on_finalize(now: T::BlockNumber) {
 			if let Some(author) = <Self as Store>::Author::get() {
-				let treasury_id = T::DonationDestination::get();
-
 				let reward = Reward::<T>::get();
-
-				let tax = Self::taxation() * reward;
-				let donate = min(
-					tax,
-					Self::author_donation().map(|dp| dp * reward).unwrap_or(Zero::zero())
-				);
-
-				let miner_total = reward.saturating_sub(tax);
-
-				let current_number = frame_system::Module::<T>::block_number();
-				let miner_reward_locks = T::GenerateRewardLocks::generate_reward_locks(
-					current_number,
-					miner_total
-				);
-
-				drop(T::Currency::deposit_creating(&author, miner_total));
-				drop(T::Currency::deposit_creating(&treasury_id, donate));
-
-				if miner_reward_locks.len() > 0 {
-					let mut locks = Self::reward_locks(&author);
-
-					for (new_lock_number, new_lock_balance) in miner_reward_locks {
-						*locks.entry(new_lock_number).or_default() += new_lock_balance;
-					}
-
-					Self::do_update_locks(author, locks);
-				}
+				Self::do_reward(&author, reward, now);
 			}
 
 			<Self as Store>::Author::kill();
@@ -230,16 +223,50 @@ impl<T: Trait> Module<T> {
 		Ok(())
 	}
 
-	fn do_update_locks(author: T::AccountId, mut locks: BTreeMap<T::BlockNumber, BalanceOf<T>>) {
-		let current_number = frame_system::Module::<T>::block_number();
+	fn do_reward(author: &T::AccountId, reward: BalanceOf<T>, when: T::BlockNumber) {
+		let treasury_id = T::DonationDestination::get();
+		let tax = Self::taxation() * reward;
+		let donate = min(
+			tax,
+			Self::author_donation().map(|dp| dp * reward).unwrap_or(Zero::zero())
+		);
+
+		let miner_total = reward.saturating_sub(tax);
+
+		let miner_reward_locks = T::GenerateRewardLocks::generate_reward_locks(
+			when,
+			miner_total
+		);
+
+		drop(T::Currency::deposit_creating(&author, miner_total));
+		drop(T::Currency::deposit_creating(&treasury_id, donate));
+
+		if miner_reward_locks.len() > 0 {
+			let mut locks = Self::reward_locks(&author);
+
+			for (new_lock_number, new_lock_balance) in miner_reward_locks {
+				let old_balance = *locks.get(&new_lock_number).unwrap_or(&BalanceOf::<T>::default());
+				let new_balance = old_balance.saturating_add(new_lock_balance);
+				locks.insert(new_lock_number, new_balance);
+			}
+
+			Self::do_update_locks(&author, locks, when);
+		}
+	}
+
+	fn do_update_locks(
+		author: &T::AccountId,
+		mut locks: BTreeMap<T::BlockNumber, BalanceOf<T>>,
+		current_number: T::BlockNumber
+	) {
 		let mut expired = Vec::new();
-		let mut total_locked = Zero::zero();
+		let mut total_locked: BalanceOf<T> = Zero::zero();
 
 		for (block_number, locked_balance) in &locks {
 			if block_number <= &current_number {
 				expired.push(*block_number);
 			} else {
-				total_locked += *locked_balance;
+				total_locked = total_locked.saturating_add(*locked_balance);
 			}
 		}
 
