@@ -187,11 +187,10 @@ decl_module! {
 			0
 		}
 
-		fn on_finalize() {
+		fn on_finalize(now: T::BlockNumber) {
 			if let Some(author) = <Self as Store>::Author::get() {
 				let reward = Reward::<T>::get();
-				let current_number = frame_system::Module::<T>::block_number();
-				Self::do_reward(&author, reward, current_number);
+				Self::do_reward(&author, reward, now);
 			}
 
 			<Self as Store>::Author::kill();
