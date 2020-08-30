@@ -120,4 +120,6 @@ runtime-benchmarks = [
 	"proxy/runtime-benchmarks",
 	"vesting/runtime-benchmarks",
 	"multisig/runtime-benchmarks",
+	# Kulupu specific pallets
+	"rewards/runtime-benchmarks",
 ]

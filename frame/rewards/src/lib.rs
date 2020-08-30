@@ -22,6 +22,8 @@
 mod mock;
 #[cfg(test)]
 mod tests;
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 
 use codec::{Encode, Decode};
 use sp_std::{result, cmp::min, prelude::*, collections::btree_map::BTreeMap};

@@ -4009,6 +4009,7 @@ dependencies = [
 name = "pallet-rewards"
 version = "2.1.0"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "pallet-balances",

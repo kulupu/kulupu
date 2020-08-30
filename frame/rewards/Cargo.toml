@@ -14,6 +14,9 @@ sp-consensus-pow = { path = "../../vendor/substrate/primitives/consensus/pow", d
 frame-support = { path = "../../vendor/substrate/frame/support", default-features = false }
 frame-system = { path = "../../vendor/substrate/frame/system", default-features = false }
 
+# Benchmarking
+frame-benchmarking = { path = "../../vendor/substrate/frame/benchmarking", default-features = false, optional = true }
+
 [dev-dependencies]
 sp-core = { path = "../../vendor/substrate/primitives/core", default-features = false }
 sp-io = { path = "../../vendor/substrate/primitives/io", default-features = false }
@@ -30,4 +33,8 @@ std = [
 	"sp-consensus-pow/std",
 	"frame-support/std",
 	"frame-system/std",
+]
+runtime-benchmarks = [
+	"frame-benchmarking",
+	"frame-support/runtime-benchmarks",
 ]
