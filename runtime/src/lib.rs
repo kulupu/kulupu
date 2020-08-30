@@ -21,6 +21,7 @@
 #![recursion_limit="256"]
 
 mod fee;
+mod weights;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -363,6 +364,7 @@ impl rewards::Trait for Runtime {
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
+	type WeightInfo = weights::rewards::WeightInfo;
 }
 
 pub struct Author;
@@ -876,6 +878,8 @@ impl_runtime_apis! {
 				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850").to_vec().into(),
 				// System Events
 				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec().into(),
+				// System Digest
+				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef799e7f93fc6a98f0874fd057f111c4d2d").to_vec().into(),
 				// Treasury Account
 				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da95ecffd7b6c0f78751baa9d281e0bfa3a6d6f646c70792f74727372790000000000000000000000000000000000000000").to_vec().into(),
 			];

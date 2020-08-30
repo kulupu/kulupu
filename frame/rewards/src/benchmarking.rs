@@ -80,6 +80,10 @@ benchmarks! {
 		let author: T::AccountId = account("author", 0, 0);
 		let author_digest = DigestItemOf::<T>::PreRuntime(sp_consensus_pow::POW_ENGINE_ID, author.encode());
 		frame_system::Module::<T>::deposit_log(author_digest);
+
+		// Whitelist transient storage items
+		frame_benchmarking::benchmarking::add_to_whitelist(Author::<T>::hashed_key().to_vec().into());
+
 		let block_number = frame_system::Module::<T>::block_number();
 	}: { crate::Module::<T>::on_initialize(block_number); }
 	verify {
@@ -107,6 +111,10 @@ benchmarks! {
 		// Move to a point where all locks would unlock.
 		frame_system::Module::<T>::set_block_number(max_locks.into());
 		assert_eq!(RewardLocks::<T>::get(&author).iter().count() as u32, max_locks);
+
+		// Whitelist transient storage items
+		frame_benchmarking::benchmarking::add_to_whitelist(Author::<T>::hashed_key().to_vec().into());
+		frame_benchmarking::benchmarking::add_to_whitelist(AuthorDonation::hashed_key().to_vec().into());
 
 		let block_number = frame_system::Module::<T>::block_number();
 	}: { crate::Module::<T>::on_finalize(block_number); }

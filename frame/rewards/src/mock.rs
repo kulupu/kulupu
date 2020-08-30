@@ -142,6 +142,7 @@ impl Trait for Test {
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
+	type WeightInfo = ();
 }
 
 pub type System = frame_system::Module<Test>;

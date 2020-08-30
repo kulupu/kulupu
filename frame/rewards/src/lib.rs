@@ -24,6 +24,7 @@ mod mock;
 mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+mod default_weights;
 
 use codec::{Encode, Decode};
 use sp_std::{result, cmp::min, prelude::*, collections::btree_map::BTreeMap};
@@ -63,6 +64,15 @@ impl<T: Trait> GenerateRewardLocks<T> for () {
 	}
 }
 
+pub trait WeightInfo {
+	fn note_author_prefs() -> Weight;
+	fn set_reward() -> Weight;
+	fn set_taxation() -> Weight;
+	fn unlock() -> Weight;
+	fn on_initialize() -> Weight;
+	fn on_finalize() -> Weight;
+}
+
 /// Trait for rewards.
 pub trait Trait: frame_system::Trait {
 	/// The overarching event type.
@@ -73,6 +83,8 @@ pub trait Trait: frame_system::Trait {
 	type DonationDestination: Get<Self::AccountId>;
 	/// Generate reward locks.
 	type GenerateRewardLocks: GenerateRewardLocks<Self>;
+	/// Weights for this pallet.
+	type WeightInfo: WeightInfo;
 }
 
 /// Type alias for currency balance.
@@ -119,7 +131,7 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = (
-			T::DbWeight::get().reads_writes(2, 2),
+			T::WeightInfo::note_author_prefs(),
 			DispatchClass::Mandatory
 		)]
 		fn note_author_prefs(
@@ -136,7 +148,7 @@ decl_module! {
 		}
 
 		#[weight = (
-			T::DbWeight::get().reads_writes(1, 1),
+			T::WeightInfo::set_reward(),
 			DispatchClass::Operational
 		)]
 		fn set_reward(origin, reward: BalanceOf<T>) {
@@ -148,7 +160,7 @@ decl_module! {
 		}
 
 		#[weight = (
-			T::DbWeight::get().reads_writes(1, 1),
+			T::WeightInfo::set_taxation(),
 			DispatchClass::Operational
 		)]
 		fn set_taxation(origin, taxation: Perbill) {
@@ -159,7 +171,7 @@ decl_module! {
 			Self::deposit_event(RawEvent::TaxationChanged(taxation));
 		}
 
-		#[weight = T::DbWeight::get().reads_writes(1, 1)]
+		#[weight = T::WeightInfo::unlock()]
 		fn unlock(origin, target: T::AccountId) {
 			ensure_signed(origin)?;
 
@@ -184,7 +196,7 @@ decl_module! {
 				<Self as Store>::Author::put(author);
 			}
 
-			0
+			T::WeightInfo::on_initialize().saturating_add(T::WeightInfo::on_finalize())
 		}
 
 		fn on_finalize(now: T::BlockNumber) {
