@@ -45,11 +45,13 @@ fn create_locks<T: Trait>(who: &T::AccountId, num_of_locks: u32) {
 benchmarks! {
 	_ { }
 
+	// Constant time
 	note_author_prefs { }: _(RawOrigin::None, Perbill::from_percent(50))
 	verify {
 		assert!(AuthorDonation::exists());
 	}
 
+	// Constant time
 	set_reward {
 		let new_reward = BalanceOf::<T>::max_value();
 	}: _(RawOrigin::Root, new_reward)
@@ -57,6 +59,7 @@ benchmarks! {
 		assert_last_event::<T>(Event::<T>::RewardChanged(new_reward).into());
 	}
 
+	// Constant time
 	set_taxation {
 		let new_taxation = Perbill::from_percent(50);
 	}: _(RawOrigin::Root, new_taxation)
@@ -64,6 +67,7 @@ benchmarks! {
 		assert_last_event::<T>(Event::<T>::TaxationChanged(new_taxation).into());
 	}
 
+	// Worst case: Target user has `max_locks` which are all unlocked during this call.
 	unlock {
 		let miner = account("miner", 0, 0);
 		let max_locks = T::GenerateRewardLocks::max_locks();
@@ -76,6 +80,7 @@ benchmarks! {
 		assert_eq!(RewardLocks::<T>::get(&miner).iter().count(), 0);
 	}
 
+	// Worst case: Author info is in digest.
 	on_initialize {
 		let author: T::AccountId = account("author", 0, 0);
 		let author_digest = DigestItemOf::<T>::PreRuntime(sp_consensus_pow::POW_ENGINE_ID, author.encode());

@@ -350,7 +350,7 @@ impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
 	}
 
 	fn max_locks() -> u32 {
-		// Max locks when one unlocks everyday for `TOTAL_LOCK_PERIOD`.
+		// Max locks when for 10 consecutive days, 10 incremental locks are created.
 		100
 	}
 }
