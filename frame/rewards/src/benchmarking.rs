@@ -29,8 +29,16 @@ fn assert_last_event<T: Trait>(generic_event: <T as Trait>::Event) {
 	assert_eq!(event, &system_event);
 }
 
-fn create_locks<T: Trait>(who: T::AccountId, num_of_locks: u32) {
+// This function creates a new lock on `who` every block for `num_of_locks`
+// starting at block zero.
+fn create_locks<T: Trait>(who: &T::AccountId, num_of_locks: u32) {
+	let mut locks: BTreeMap<T::BlockNumber, BalanceOf<T>> = BTreeMap::new();
+	let reward = T::Currency::minimum_balance();
+	for i in 0 .. num_of_locks {
+		locks.insert(i.into(), reward);
+	}
 
+	RewardLocks::<T>::insert(who, locks);
 }
 
 benchmarks! {
@@ -55,11 +63,17 @@ benchmarks! {
 		assert_last_event::<T>(Event::<T>::TaxationChanged(new_taxation).into());
 	}
 
-	// unlock {
-	// 	let miner = caller("miner", 0, 0);
-	// 	let MAX_LOCKS = 1000;
-	// 	create_locks::<T>(miner, MAX_LOCKS);
-	// }
+	unlock {
+		let miner = account("miner", 0, 0);
+		let max_locks = T::GenerateRewardLocks::max_locks();
+		create_locks::<T>(&miner, max_locks);
+		let caller = whitelisted_caller();
+		frame_system::Module::<T>::set_block_number(T::BlockNumber::max_value());
+		assert_eq!(RewardLocks::<T>::get(&miner).iter().count() as u32, max_locks);
+	}: _(RawOrigin::Signed(caller), miner.clone())
+	verify {
+		assert_eq!(RewardLocks::<T>::get(&miner).iter().count(), 0);
+	}
 }
 
 #[cfg(test)]
@@ -74,6 +88,7 @@ mod tests {
 			assert_ok!(test_benchmark_note_author_prefs::<Test>());
 			assert_ok!(test_benchmark_set_reward::<Test>());
 			assert_ok!(test_benchmark_set_taxation::<Test>());
+			assert_ok!(test_benchmark_unlock::<Test>());
 		});
 	}
 }

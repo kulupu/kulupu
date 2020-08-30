@@ -347,6 +347,11 @@ impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
 
 		locks
 	}
+
+	fn max_locks() -> u32 {
+		// Max locks when one unlocks everyday for `TOTAL_LOCK_PERIOD`.
+		100
+	}
 }
 
 parameter_types! {

@@ -130,6 +130,11 @@ impl crate::GenerateRewardLocks<Test> for GenerateRewardLocks {
 
 		locks
 	}
+
+	fn max_locks() -> u32 {
+		// Max locks when one unlocks everyday for the `TOTAL_LOCK_PERIOD`.
+		100
+	}
 }
 
 impl Trait for Test {
