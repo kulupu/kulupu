@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu.  If not, see <http://www.gnu.org/licenses/>.
 
-mod compute;
+pub mod compute;
 
 use std::sync::Arc;
 use codec::{Encode, Decode};
@@ -41,14 +41,14 @@ pub mod app {
 }
 
 /// Checks whether the given hash is above difficulty.
-fn is_valid_hash(hash: &H256, difficulty: Difficulty) -> bool {
+pub fn is_valid_hash(hash: &H256, difficulty: Difficulty) -> bool {
 	let num_hash = U256::from(&hash[..]);
 	let (_, overflowed) = num_hash.overflowing_mul(difficulty);
 
 	!overflowed
 }
 
-fn key_hash<B, C>(
+pub fn key_hash<B, C>(
 	client: &C,
 	parent: &BlockId<B>
 ) -> Result<H256, sc_consensus_pow::Error<B>> where
@@ -58,7 +58,7 @@ fn key_hash<B, C>(
 	const PERIOD: u64 = 4096; // ~2.8 days
 	const OFFSET: u64 = 128;  // 2 hours
 
-	let parent_header = client.header(parent.clone())
+	let parent_header = client.header(*parent)
 		.map_err(|e| sc_consensus_pow::Error::Environment(
 			format!("Client execution error: {:?}", e)
 		))?
@@ -259,7 +259,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 			)
 		})?;
 
-		let pair = self.keystore.as_ref().ok_or(sc_consensus_pow::Error::<B>::Other(
+		let pair = self.keystore.as_ref().ok_or_else(|| sc_consensus_pow::Error::<B>::Other(
 			"Unable to mine: keystore not set".to_string(),
 		))?.read().key_pair::<app::Pair>(
 			&author,
