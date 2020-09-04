@@ -48,6 +48,12 @@ pub enum ComputeMode {
 	Mining,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Encode, Decode, Debug)]
+pub enum Loop<R> {
+	Continue,
+	Break(R),
+}
+
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
 pub struct Calculation {
 	pub pre_hash: H256,
@@ -68,12 +74,17 @@ fn need_new_vm<M: randomx::WithCacheMode>(
 	need_new_vm
 }
 
-fn compute_raw_with_cache<M: randomx::WithCacheMode>(
+fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
 	key_hash: &H256,
-	input: &[u8],
 	machine: &RefCell<Option<(H256, randomx::VM<M>)>>,
 	shared_caches: &Arc<Mutex<LruCache<H256, Arc<randomx::Cache<M>>>>>,
-) -> H256 {
+	mut f_pre: FPre,
+	f_validate: FValidate,
+	round: usize,
+) -> Option<R> where
+	FPre: FnMut() -> (Vec<u8>, I),
+	FValidate: Fn(H256, I) -> Loop<Option<R>>,
+{
 	if need_new_vm(key_hash, machine) {
 		let mut ms = machine.borrow_mut();
 
@@ -96,57 +107,131 @@ fn compute_raw_with_cache<M: randomx::WithCacheMode>(
 
 	let mut ms = machine.borrow_mut();
 
-	let work = ms.as_mut()
+	let ret = ms.as_mut()
 		.map(|(mkey_hash, vm)| {
 			assert_eq!(mkey_hash, key_hash,
 					   "Condition failed checking cached key_hash. This is a bug");
-			vm.calculate(input)
+
+			let mut ret = None;
+
+			match round {
+				0 => (),
+				1 => {
+					let (pre, int) = f_pre();
+					let hash = H256::from(vm.calculate(&pre[..]));
+					let validate = f_validate(hash, int);
+
+					match validate {
+						Loop::Continue => (),
+						Loop::Break(b) => {
+							ret = b;
+						},
+					}
+				},
+				_ => {
+					let (prev_pre, mut prev_int) = f_pre();
+					let mut vmn = vm.begin(&prev_pre[..]);
+
+					for _ in 1..round {
+						let (pre, int) = f_pre();
+						let prev_hash = H256::from(vmn.next(&pre[..]));
+						let prev_validate = f_validate(prev_hash, prev_int);
+
+						prev_int = int;
+
+						match prev_validate {
+							Loop::Continue => (),
+							Loop::Break(b) => {
+								ret = b;
+								break
+							},
+						}
+					}
+
+					let prev_hash = H256::from(vmn.finish());
+					let prev_validate = f_validate(prev_hash, prev_int);
+
+					match prev_validate {
+						Loop::Continue => (),
+						Loop::Break(b) => {
+							ret = b;
+						},
+					}
+				}
+			}
+
+			ret
 		})
 		.expect("Local MACHINES always set to Some above; qed");
 
-	H256::from(work)
+	ret
 }
 
-fn compute_raw(key_hash: &H256, input: &[u8], mode: ComputeMode) -> H256 {
+pub fn loop_raw<FPre, I, FValidate, R>(
+	key_hash: &H256,
+	mode: ComputeMode,
+	f_pre: FPre,
+	f_validate: FValidate,
+	round: usize,
+) -> Option<R> where
+	FPre: FnMut() -> (Vec<u8>, I),
+	FValidate: Fn(H256, I) -> Loop<Option<R>>,
+{
 	match mode {
 		ComputeMode::Mining =>
 			FULL_MACHINE.with(|machine| {
-				compute_raw_with_cache::<randomx::WithFullCacheMode>(
+				loop_raw_with_cache::<randomx::WithFullCacheMode, _, _, _, _>(
 					key_hash,
-					input,
 					machine,
 					&FULL_SHARED_CACHES,
+					f_pre,
+					f_validate,
+					round,
 				)
 			}),
-		ComputeMode::Sync =>
-			if let Some(ret) = FULL_MACHINE.with(|machine| {
+		ComputeMode::Sync => {
+			let full_ret = FULL_MACHINE.with(|machine| {
 				if !need_new_vm::<randomx::WithFullCacheMode>(key_hash, machine) {
-					Some(compute_raw_with_cache::<randomx::WithFullCacheMode>(
+					Ok(loop_raw_with_cache::<randomx::WithFullCacheMode, _, _, _, _>(
 						key_hash,
-						input,
 						machine,
 						&FULL_SHARED_CACHES,
+						f_pre,
+						f_validate,
+						round,
 					))
 				} else {
-					None
+					Err((f_pre, f_validate))
 				}
-			}) {
-				ret
-			} else {
-				LIGHT_MACHINE.with(|machine| {
-					compute_raw_with_cache::<randomx::WithLightCacheMode>(
-						key_hash,
-						input,
-						machine,
-						&LIGHT_SHARED_CACHES,
-					)
-				})
-			},
+			});
+
+			match full_ret {
+				Ok(ret) => ret,
+				Err((f_pre, f_validate)) => {
+					LIGHT_MACHINE.with(|machine| {
+						loop_raw_with_cache::<randomx::WithLightCacheMode, _, _, _, _>(
+							key_hash,
+							machine,
+							&LIGHT_SHARED_CACHES,
+							f_pre,
+							f_validate,
+							round,
+						)
+					})
+				}
+			}
+		},
 	}
 }
 
 pub fn compute<T: Encode>(key_hash: &H256, input: &T, mode: ComputeMode) -> H256 {
-	compute_raw(key_hash, &input.encode()[..], mode)
+	loop_raw(
+		key_hash,
+		mode,
+		|| (input.encode(), ()),
+		|hash, ()| Loop::Break(Some(hash)),
+		1,
+	).expect("Loop break always returns Some; qed")
 }
 
 #[cfg(test)]

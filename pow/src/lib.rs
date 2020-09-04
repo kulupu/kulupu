@@ -269,45 +269,60 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 
 		match version {
 			RandomXAlgorithmVersion::V1 => {
-				for _ in 0..round {
-					let nonce = H256::random_using(&mut rng);
+				Ok(compute::loop_raw(
+					&key_hash,
+					ComputeMode::Mining,
+					|| {
+						let nonce = H256::random_using(&mut rng);
 
-					let compute = ComputeV1 {
-						key_hash,
-						difficulty,
-						pre_hash: *pre_hash,
-						nonce,
-					};
+						let compute = ComputeV1 {
+							key_hash,
+							difficulty,
+							pre_hash: *pre_hash,
+							nonce,
+						};
 
-					let (seal, work) = compute.seal_and_work(ComputeMode::Mining);
-
-					if is_valid_hash(&work, difficulty) {
-						return Ok(Some(seal.encode()))
-					}
-				}
-
-				Ok(None)
+						(compute.input().encode(), compute)
+					},
+					|work, compute| {
+						if is_valid_hash(&work, compute.difficulty) {
+							let seal = compute.seal();
+							compute::Loop::Break(Some(seal.encode()))
+						} else {
+							compute::Loop::Continue
+						}
+					},
+					round as usize,
+				))
 			},
 			RandomXAlgorithmVersion::V2 => {
-				for _ in 0..round {
-					let nonce = H256::random_using(&mut rng);
+				Ok(compute::loop_raw(
+					&key_hash,
+					ComputeMode::Mining,
+					|| {
+						let nonce = H256::random_using(&mut rng);
 
-					let compute = ComputeV2 {
-						key_hash,
-						difficulty,
-						pre_hash: *pre_hash,
-						nonce,
-					};
+						let compute = ComputeV2 {
+							key_hash,
+							difficulty,
+							pre_hash: *pre_hash,
+							nonce,
+						};
 
-					let signature = compute.sign(&pair);
-					let (seal, work) = compute.seal_and_work(signature, ComputeMode::Mining);
+						let signature = compute.sign(&pair);
 
-					if is_valid_hash(&work, difficulty) {
-						return Ok(Some(seal.encode()))
-					}
-				}
-
-				Ok(None)
+						(compute.input(signature.clone()).encode(), (compute, signature))
+					},
+					|work, (compute, signature)| {
+						if is_valid_hash(&work, difficulty) {
+							let seal = compute.seal(signature);
+							compute::Loop::Break(Some(seal.encode()))
+						} else {
+							compute::Loop::Continue
+						}
+					},
+					round as usize,
+				))
 			},
 		}
 	}
