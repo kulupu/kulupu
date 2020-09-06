@@ -1,11 +1,27 @@
-# Originally developed by Polkasource, licensed under Apache-2.
+# Copyright (c) 2019-2020 Wei Tang.
+# Copyright (c) 2019 Polkasource.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # ===== START FIRST STAGE ======
 FROM phusion/baseimage:0.11 as builder
-LABEL maintainer "hi@that.world"
+LABEL maintainer "wei@that.world"
 LABEL description="Kulupu builder."
 
 ARG PROFILE=release
+ARG STABLE=1.45.2
+ARG NIGHTLY=nightly-2020-07-31
 WORKDIR /rustbuilder
 COPY . /rustbuilder/kulupu
 
@@ -17,19 +33,19 @@ RUN apt-get update && \
 # UPDATE RUST DEPENDENCIES
 ENV RUSTUP_HOME "/rustbuilder/.rustup"
 ENV CARGO_HOME "/rustbuilder/.cargo"
-RUN curl -sSf https://sh.rustup.rs | sh -s -- -y
+RUN curl -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
 ENV PATH "$PATH:/rustbuilder/.cargo/bin"
-RUN rustup update nightly
-RUN RUSTUP_TOOLCHAIN=stable cargo install --git https://github.com/alexcrichton/wasm-gc
+RUN rustup update $STABLE
+RUN rustup update $NIGHTLY
 
 # BUILD RUNTIME AND BINARY
-RUN rustup target add wasm32-unknown-unknown --toolchain nightly
-RUN cd /rustbuilder/kulupu && RUSTUP_TOOLCHAIN=stable RANDOMX_ARCH=default cargo build --$PROFILE
+RUN rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY
+RUN cd /rustbuilder/kulupu && RUSTUP_TOOLCHAIN=$STABLE WASM_BUILD_TOOLCHAIN=$NIGHTLY RANDOMX_ARCH=default cargo build --$PROFILE
 # ===== END FIRST STAGE ======
 
 # ===== START SECOND STAGE ======
 FROM phusion/baseimage:0.11
-LABEL maintainer "hi@that.world"
+LABEL maintainer "wei@that.world"
 LABEL description="Kulupu binary."
 ARG PROFILE=release
 COPY --from=builder /rustbuilder/kulupu/target/$PROFILE/kulupu /usr/local/bin
