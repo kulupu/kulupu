@@ -27,7 +27,6 @@ COPY . /rustbuilder/kulupu
 
 # PREPARE OPERATING SYSTEM & BUILDING ENVIRONMENT
 RUN apt-get update && \
-	apt-get upgrade -y && \
 	apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev
 
 # UPDATE RUST DEPENDENCIES
