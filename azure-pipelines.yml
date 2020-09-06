@@ -29,6 +29,20 @@ jobs:
   - task: PublishBuildArtifacts@1
     displayName: 'Publish artifacts'
 
+- job: WebAssembly
+  pool:
+    vmImage: 'ubuntu-latest'
+  timeoutInMinutes: 0
+  steps:
+  - script: git submodule update --init --recursive
+    displayName: 'Submodules'
+  - script: docker build --tag kulupu-wasm-build:ci --no-cache --pull .
+    displayName: 'Build docker'
+  - script: |
+      docker run kulupu-wasm-build:ci kulupu export-builtin-wasm $(Build.ArtifactStagingDirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish artifacts'
+
 - job: MacOS
   pool:
     vmImage: 'macOS-latest'
