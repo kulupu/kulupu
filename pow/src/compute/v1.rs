@@ -34,16 +34,22 @@ pub struct ComputeV1 {
 }
 
 impl ComputeV1 {
-	pub fn seal_and_work(&self, mode: super::ComputeMode) -> (SealV1, H256) {
+	pub fn input(&self) -> Calculation {
 		let calculation = Calculation {
 			difficulty: self.difficulty,
 			pre_hash: self.pre_hash,
 			nonce: self.nonce,
 		};
 
+		calculation
+	}
+
+	pub fn seal_and_work(&self, mode: super::ComputeMode) -> (SealV1, H256) {
+		let input = self.input();
+
 		let work = super::compute::<Calculation>(
 			&self.key_hash,
-			&calculation,
+			&input,
 			mode,
 		);
 
@@ -51,5 +57,12 @@ impl ComputeV1 {
 			nonce: self.nonce,
 			difficulty: self.difficulty,
 		}, work)
+	}
+
+	pub fn seal(&self) -> SealV1 {
+		SealV1 {
+			nonce: self.nonce,
+			difficulty: self.difficulty,
+		}
 	}
 }

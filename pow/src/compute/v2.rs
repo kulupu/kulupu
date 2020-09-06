@@ -36,16 +36,22 @@ pub struct ComputeV2 {
 }
 
 impl ComputeV2 {
-	pub fn seal_and_work(&self, signature: app::Signature, mode: super::ComputeMode) -> (SealV2, H256) {
+	pub fn input(&self, signature: app::Signature) -> (Calculation, app::Signature) {
 		let calculation = Calculation {
 			difficulty: self.difficulty,
 			pre_hash: self.pre_hash,
 			nonce: self.nonce,
 		};
 
+		(calculation, signature)
+	}
+
+	pub fn seal_and_work(&self, signature: app::Signature, mode: super::ComputeMode) -> (SealV2, H256) {
+		let input = self.input(signature.clone());
+
 		let work = super::compute::<(Calculation, app::Signature)>(
 			&self.key_hash,
-			&(calculation, signature.clone()),
+			&input,
 			mode,
 		);
 
@@ -54,6 +60,14 @@ impl ComputeV2 {
 			difficulty: self.difficulty,
 			signature,
 		}, work)
+	}
+
+	pub fn seal(&self, signature: app::Signature) -> SealV2 {
+		SealV2 {
+			nonce: self.nonce,
+			difficulty: self.difficulty,
+			signature,
+		}
 	}
 
 	fn signing_message(&self) -> [u8; 32] {

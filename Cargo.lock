@@ -2603,7 +2603,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu"
-version = "2.1.0"
+version = "2.1.1-nightly"
 dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -2649,7 +2649,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-pow"
-version = "2.1.0"
+version = "2.1.1-nightly"
 dependencies = [
  "kulupu-primitives",
  "kulupu-randomx",
@@ -2673,7 +2673,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-primitives"
-version = "2.1.0"
+version = "2.1.1-nightly"
 dependencies = [
  "parity-scale-codec",
  "sp-api",
@@ -2682,7 +2682,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-randomx"
-version = "2.1.0"
+version = "2.1.1-nightly"
 dependencies = [
  "criterion",
  "kulupu-randomx-sys",
@@ -2690,7 +2690,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-randomx-sys"
-version = "2.1.0"
+version = "2.1.1-nightly"
 dependencies = [
  "bindgen 0.49.4",
  "cmake",
@@ -2698,7 +2698,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-runtime"
-version = "2.1.0"
+version = "2.1.1-nightly"
 dependencies = [
  "frame-benchmarking",
  "frame-executive",
@@ -3882,7 +3882,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-difficulty"
-version = "2.1.0"
+version = "2.1.1-nightly"
 dependencies = [
  "frame-support",
  "kulupu-primitives",
@@ -3910,7 +3910,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-eras"
-version = "2.1.0"
+version = "2.1.1-nightly"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4007,7 +4007,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-rewards"
-version = "2.1.0"
+version = "2.1.1-nightly"
 dependencies = [
  "frame-benchmarking",
  "frame-support",

@@ -129,6 +129,20 @@ impl<M: WithCacheMode> VM<M> {
 
 		ret
 	}
+
+	pub fn begin<'a>(&'a mut self, input: &[u8]) -> Next<'a, M> {
+		unsafe {
+			sys::randomx_calculate_hash_first(
+				self.ptr,
+				input.as_ptr() as *const std::ffi::c_void,
+				input.len(),
+			);
+		}
+
+		Next {
+			inner: self,
+		}
+	}
 }
 
 impl<M: WithCacheMode> Drop for VM<M> {
@@ -136,6 +150,40 @@ impl<M: WithCacheMode> Drop for VM<M> {
 		unsafe {
 			sys::randomx_destroy_vm(self.ptr);
 		}
+	}
+}
+
+pub struct Next<'a, M: WithCacheMode> {
+	inner: &'a mut VM<M>,
+}
+
+impl<'a, M: WithCacheMode> Next<'a, M> {
+	pub fn next(&mut self, input: &[u8]) -> [u8; HASH_SIZE] {
+		let ret = [0u8; HASH_SIZE];
+
+		unsafe {
+			sys::randomx_calculate_hash_next(
+				self.inner.ptr,
+				input.as_ptr() as *const std::ffi::c_void,
+				input.len(),
+				ret.as_ptr() as *mut std::ffi::c_void,
+			);
+		}
+
+		ret
+	}
+
+	pub fn finish(self) -> [u8; HASH_SIZE] {
+		let ret = [0u8; HASH_SIZE];
+
+		unsafe {
+			sys::randomx_calculate_hash_last(
+				self.inner.ptr,
+				ret.as_ptr() as *mut std::ffi::c_void,
+			);
+		}
+
+		ret
 	}
 }
 
