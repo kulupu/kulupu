@@ -21,7 +21,7 @@ LABEL description="Kulupu builder."
 
 ARG PROFILE=release
 ARG STABLE=1.45.2
-ARG NIGHTLY=nightly-2020-07-31
+ARG NIGHTLY=nightly-2020-08-29
 WORKDIR /rustbuilder
 COPY . /rustbuilder/kulupu
 
