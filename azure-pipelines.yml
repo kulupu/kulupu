@@ -39,7 +39,7 @@ jobs:
   - script: docker build --tag kulupu-wasm-build:ci --no-cache --pull .
     displayName: 'Build docker'
   - script: |
-      docker run kulupu-wasm-build:ci kulupu export-builtin-wasm $(Build.ArtifactStagingDirectory)
+      docker run kulupu-wasm-build:ci --volume=$(Build.ArtifactStagingDirectory):/wasm export-builtin-wasm /wasm
   - task: PublishBuildArtifacts@1
     displayName: 'Publish artifacts'
 
