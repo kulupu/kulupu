@@ -40,6 +40,7 @@ jobs:
     displayName: 'Build docker'
   - script: |
       docker run kulupu-wasm-build:ci --volume=$(Build.ArtifactStagingDirectory):/wasm export-builtin-wasm /wasm
+    displayName: 'Generate wasm'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish artifacts'
 
