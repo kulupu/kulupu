@@ -9,5 +9,5 @@ edition = "2018"
 [dependencies]
 
 [build-dependencies]
-bindgen = "0.49"
+bindgen = "0.54"
 cmake = "0.1"

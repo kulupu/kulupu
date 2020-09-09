@@ -18,13 +18,17 @@
 
 use std::sync::Arc;
 use std::str::FromStr;
+use std::time::Duration;
+use std::thread;
+use parking_lot::Mutex;
 use codec::Encode;
-use sp_runtime::{Perbill, traits::Bounded};
+use sp_runtime::{Perbill, generic::BlockId, traits::Bounded};
 use sp_core::{H256, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
 use sc_service::{error::{Error as ServiceError}, Configuration, TaskManager};
 use sc_executor::native_executor_instance;
 use sc_client_api::backend::RemoteBackend;
 use kulupu_runtime::{self, opaque::Block, RuntimeApi};
+use log::*;
 
 pub use sc_executor::NativeExecutor;
 
@@ -124,7 +128,7 @@ pub fn new_partial(
 		client.clone(),
 	);
 
-	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone(), None);
+	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
 
 	let pow_block_import = sc_consensus_pow::PowBlockImport::new(
 		client.clone(),
@@ -221,29 +225,63 @@ pub fn new_full(
 		let author = decode_author(author);
 		let algorithm = kulupu_pow::RandomXAlgorithm::new(
 			client.clone(),
-			Some(keystore.clone()),
 		);
 
-		for _ in 0..threads {
-			let proposer = sc_basic_authorship::ProposerFactory::new(
-				client.clone(),
-				transaction_pool.clone(),
-				None,
-			);
+		let proposer = sc_basic_authorship::ProposerFactory::new(
+			client.clone(),
+			transaction_pool.clone(),
+			None,
+		);
 
-			sc_consensus_pow::start_mine(
-				Box::new(pow_block_import.clone()),
-				client.clone(),
-				algorithm.clone(),
-				proposer,
-				author.clone().map(|a| a.encode()),
-				round,
-				network.clone(),
-				std::time::Duration::new(2, 0),
-				Some(select_chain.clone()),
-				inherent_data_providers.clone(),
-				sp_consensus::AlwaysCanAuthor,
-			);
+		let (worker, worker_task) = sc_consensus_pow::start_mining_worker(
+			Box::new(pow_block_import.clone()),
+			client.clone(),
+			select_chain.clone(),
+			algorithm,
+			proposer,
+			network.clone(),
+			author.clone().map(|a| a.encode()),
+			inherent_data_providers.clone(),
+			Duration::new(10, 0),
+			Duration::new(10, 0),
+			sp_consensus::AlwaysCanAuthor,
+		);
+		task_manager.spawn_essential_handle().spawn_blocking("pow", worker_task);
+
+		let stats = Arc::new(Mutex::new(kulupu_pow::Stats::new()));
+
+		for _ in 0..threads {
+			let worker = worker.clone();
+			let client = client.clone();
+			let keystore = keystore.clone();
+			let stats = stats.clone();
+
+			thread::spawn(move || {
+				loop {
+					if let Some(metadata) = worker.lock().metadata() {
+						match kulupu_pow::mine(
+							client.as_ref(),
+							&keystore,
+							&BlockId::Hash(metadata.best_hash),
+							&metadata.pre_hash,
+							metadata.pre_runtime.as_ref().map(|v| &v[..]),
+							metadata.difficulty,
+							round,
+							&stats
+						) {
+							Ok(Some(seal)) => {
+								let _ = worker.lock().submit(seal);
+							},
+							Ok(None) => (),
+							Err(err) => {
+								warn!("Mining failed: {:?}", err);
+							},
+						}
+					} else {
+						thread::sleep(Duration::new(1, 0));
+					}
+				}
+			});
 		}
 	}
 
@@ -273,7 +311,7 @@ pub fn new_light(
 
 	let inherent_data_providers = kulupu_inherent_data_providers(decode_author(author), donate)?;
 
-	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone(), None);
+	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
 
 	let pow_block_import = sc_consensus_pow::PowBlockImport::new(
 		client.clone(),
