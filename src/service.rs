@@ -273,8 +273,8 @@ pub fn new_full(
 							Ok(Some(seal)) => {
 								let mut worker = worker.lock();
 								let current_metadata = worker.metadata();
-								if current_metadata == metadata {
-									let _ = worker.lock().submit(seal);
+								if current_metadata == Some(metadata) {
+									let _ = worker.submit(seal);
 								}
 							},
 							Ok(None) => (),
