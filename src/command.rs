@@ -25,6 +25,7 @@ use crate::cli::{Cli, Subcommand};
 use crate::service;
 
 const DEFAULT_CHECK_INHERENTS_AFTER: u32 = 152650;
+const DEFAULT_ROUND: u32 = 1000;
 
 /// URL for the telemetry server. Disabled by default.
 pub const POLKADOT_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -224,7 +225,7 @@ pub fn run() -> sc_cli::Result<()> {
 						config,
 						cli.author.as_ref().map(|s| s.as_str()),
 						cli.threads.unwrap_or(1),
-						cli.round.unwrap_or(5000),
+						cli.round.unwrap_or(DEFAULT_ROUND),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
 						!cli.no_donate,
 					)
