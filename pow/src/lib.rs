@@ -359,7 +359,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 
 			if display {
 				stats.last_display = now;
-				ret = Some((duration, round));
+				ret = Some((duration, stats.round));
 			}
 
 			if clear {
