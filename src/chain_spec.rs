@@ -36,7 +36,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		ChainType::Development,
 		move || testnet_genesis(
 			wasm_binary,
-			U256::from(200),
+			U256::from(200000),
 		),
 		vec![],
 		None,

@@ -10,6 +10,8 @@ log = "0.4"
 lru-cache = "0.1"
 rand = { version = "0.7", features = ["small_rng"] }
 lazy_static = "1.4"
+parking_lot = "0.10.0"
+humantime = "2.0.1"
 sp-consensus = { path = "../vendor/substrate/primitives/consensus/common" }
 sp-consensus-pow = { path = "../vendor/substrate/primitives/consensus/pow" }
 sp-runtime = { path = "../vendor/substrate/primitives/runtime" }
