@@ -258,7 +258,8 @@ pub fn new_full(
 
 			thread::spawn(move || {
 				loop {
-					if let Some(metadata) = worker.lock().metadata() {
+					let metadata = worker.lock().metadata();
+					if let Some(metadata) = metadata {
 						match kulupu_pow::mine(
 							client.as_ref(),
 							&keystore,
