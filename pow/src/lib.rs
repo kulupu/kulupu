@@ -16,7 +16,8 @@
 
 pub mod compute;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::{Duration, Instant}};
+use parking_lot::Mutex;
 use codec::{Encode, Decode};
 use sp_core::{U256, H256};
 use sp_api::ProvideRuntimeApi;
@@ -30,6 +31,8 @@ use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore};
 use sc_keystore::KeyStorePtr;
 use kulupu_primitives::{Difficulty, AlgorithmApi};
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
+use log::*;
+
 use crate::compute::{ComputeV1, ComputeV2, SealV1, SealV2, ComputeMode};
 
 pub mod app {
@@ -91,14 +94,29 @@ pub enum RandomXAlgorithmVersion {
 	V2,
 }
 
+pub struct Stats {
+	last_clear: Instant,
+	last_display: Instant,
+	round: u32,
+}
+
 pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
 	keystore: Option<KeyStorePtr>,
+	stats: Arc<Mutex<Stats>>,
 }
 
 impl<C> RandomXAlgorithm<C> {
 	pub fn new(client: Arc<C>, keystore: Option<KeyStorePtr>) -> Self {
-		Self { client, keystore }
+		Self {
+			client,
+			keystore,
+			stats: Arc::new(Mutex::new(Stats {
+				last_clear: Instant::now(),
+				last_display: Instant::now(),
+				round: 0,
+			})),
+		}
 	}
 }
 
@@ -107,6 +125,7 @@ impl<C> Clone for RandomXAlgorithm<C> {
 		Self {
 			client: self.client.clone(),
 			keystore: self.keystore.clone(),
+			stats: self.stats.clone(),
 		}
 	}
 }
@@ -267,9 +286,9 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 			"Unable to mine: fetch pair from author failed".to_string(),
 		))?;
 
-		match version {
+		let maybe_seal = match version {
 			RandomXAlgorithmVersion::V1 => {
-				Ok(compute::loop_raw(
+				compute::loop_raw(
 					&key_hash,
 					ComputeMode::Mining,
 					|| {
@@ -293,10 +312,10 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 						}
 					},
 					round as usize,
-				))
+				)
 			},
 			RandomXAlgorithmVersion::V2 => {
-				Ok(compute::loop_raw(
+				compute::loop_raw(
 					&key_hash,
 					ComputeMode::Mining,
 					|| {
@@ -322,8 +341,50 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 						}
 					},
 					round as usize,
-				))
+				)
 			},
+		};
+
+		let now = Instant::now();
+
+		let maybe_display = {
+			let mut stats = self.stats.lock();
+			let mut ret = None;
+
+			stats.round += round;
+			let duration = now.duration_since(stats.last_clear);
+
+			let clear = duration >= Duration::new(600, 0);
+			let display = clear || now.duration_since(stats.last_display) >= Duration::new(1, 0);
+
+			if display {
+				stats.last_display = now;
+				ret = Some((duration, stats.round));
+			}
+
+			if clear {
+				stats.last_clear = now;
+				stats.round = 0;
+			}
+
+			ret
+		};
+
+		if let Some((duration, round)) = maybe_display {
+			let hashrate = round / duration.as_secs() as u32;
+			let network_hashrate = difficulty / U256::from(60);
+			let every: u32 = (network_hashrate / U256::from(hashrate)).unique_saturated_into();
+			let every_duration = Duration::new(60, 0) * every;
+			info!(
+				target: "kulupu-pow",
+				"Local hashrate: {} H/s, network hashrate: {} H/s, expected one block every {} ({} blocks)",
+				hashrate,
+				network_hashrate,
+				humantime::format_duration(every_duration).to_string(),
+				every,
+			);
 		}
+
+		Ok(maybe_seal)
 	}
 }
