@@ -271,7 +271,11 @@ pub fn new_full(
 							&stats
 						) {
 							Ok(Some(seal)) => {
-								let _ = worker.lock().submit(seal);
+								let mut worker = worker.lock();
+								let current_metadata = worker.metadata();
+								if current_metadata == metadata {
+									let _ = worker.lock().submit(seal);
+								}
 							},
 							Ok(None) => (),
 							Err(err) => {
