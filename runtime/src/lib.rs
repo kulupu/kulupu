@@ -261,6 +261,7 @@ impl timestamp::Trait for Runtime {
 
 parameter_types! {
 	pub const ExistentialDeposit: u128 = 10 * MICROCENTS;
+	pub const MaxLocks: u32 = 50;
 }
 
 impl balances::Trait for Runtime {
@@ -271,6 +272,7 @@ impl balances::Trait for Runtime {
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
+	type MaxLocks = MaxLocks;
 	type WeightInfo = ();
 }
 
@@ -445,6 +447,7 @@ impl collective::Trait<CouncilCollective> for Runtime {
 	type MotionDuration = CouncilMotionDuration;
 	type MaxProposals = CouncilMaxProposals;
 	type MaxMembers = CouncilMaxMembers;
+	type DefaultVote = collective::PrimeDefaultVote;
 	type WeightInfo = ();
 }
 
@@ -520,6 +523,7 @@ impl collective::Trait<TechnicalCollective> for Runtime {
 	type MotionDuration = TechnicalMotionDuration;
 	type MaxProposals = TechnicalMaxProposals;
 	type MaxMembers = TechnicalMaxMembers;
+	type DefaultVote = collective::PrimeDefaultVote;
 	type WeightInfo = ();
 }
 

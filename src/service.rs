@@ -135,7 +135,7 @@ pub fn new_partial(
 		client.clone(),
 		algorithm.clone(),
 		check_inherents_after,
-		Some(select_chain.clone()),
+		select_chain.clone(),
 		inherent_data_providers.clone(),
 		sp_consensus::AlwaysCanAuthor,
 	);
@@ -323,7 +323,7 @@ pub fn new_light(
 		client.clone(),
 		algorithm.clone(),
 		check_inherents_after,
-		Some(select_chain),
+		select_chain,
 		inherent_data_providers.clone(),
 		sp_consensus::AlwaysCanAuthor,
 	);
