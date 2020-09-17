@@ -2575,6 +2575,7 @@ dependencies = [
  "sc-keystore",
  "sp-api",
  "sp-application-crypto",
+ "sp-blockchain",
  "sp-consensus",
  "sp-consensus-pow",
  "sp-core",

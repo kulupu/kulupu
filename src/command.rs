@@ -88,7 +88,7 @@ pub fn run() -> sc_cli::Result<()> {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
 				let PartialComponents { client, task_manager, import_queue, .. } =
-					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate)?;
+					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate, !cli.disable_weak_subjectivity)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
 		},
@@ -96,7 +96,7 @@ pub fn run() -> sc_cli::Result<()> {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
 				let PartialComponents { client, task_manager, .. } =
-					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate)?;
+					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate, !cli.disable_weak_subjectivity)?;
 				Ok((cmd.run(client, config.database), task_manager))
 			})
 		},
@@ -104,7 +104,7 @@ pub fn run() -> sc_cli::Result<()> {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
 				let PartialComponents { client, task_manager, .. } =
-					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate)?;
+					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate, !cli.disable_weak_subjectivity)?;
 				Ok((cmd.run(client, config.chain_spec), task_manager))
 			})
 		},
@@ -112,7 +112,7 @@ pub fn run() -> sc_cli::Result<()> {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
 				let PartialComponents { client, task_manager, import_queue, .. } =
-					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate)?;
+					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate, !cli.disable_weak_subjectivity)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
 		},
@@ -124,7 +124,7 @@ pub fn run() -> sc_cli::Result<()> {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
 				let PartialComponents { client, backend, task_manager, .. } =
-					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate)?;
+					crate::service::new_partial(&config, None, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate, !cli.disable_weak_subjectivity)?;
 				Ok((cmd.run(client, backend), task_manager))
 			})
 		},
@@ -220,6 +220,7 @@ pub fn run() -> sc_cli::Result<()> {
 						cli.author.as_ref().map(|s| s.as_str()),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
 						!cli.no_donate,
+						!cli.disable_weak_subjectivity,
 					),
 					_ => service::new_full(
 						config,
@@ -228,6 +229,7 @@ pub fn run() -> sc_cli::Result<()> {
 						cli.round.unwrap_or(DEFAULT_ROUND),
 						cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
 						!cli.no_donate,
+						!cli.disable_weak_subjectivity,
 					)
 				}
 			)

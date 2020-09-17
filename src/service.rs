@@ -104,11 +104,12 @@ pub fn new_partial(
 	author: Option<&str>,
 	check_inherents_after: u32,
 	donate: bool,
+	enable_weak_subjectivity: bool,
 ) -> Result<sc_service::PartialComponents<
 	FullClient, FullBackend, FullSelectChain,
 	sp_consensus::DefaultImportQueue<Block, FullClient>,
 	sc_transaction_pool::FullPool<Block, FullClient>,
-	sc_consensus_pow::PowBlockImport<Block, Arc<FullClient>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, sp_consensus::AlwaysCanAuthor>,
+	kulupu_pow::weak_sub::WeakSubjectiveBlockImport<Block, sc_consensus_pow::PowBlockImport<Block, Arc<FullClient>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, sp_consensus::AlwaysCanAuthor>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm>,
 >, ServiceError> {
 	let inherent_data_providers = crate::service::kulupu_inherent_data_providers(
 		decode_author(author),
@@ -140,8 +141,17 @@ pub fn new_partial(
 		sp_consensus::AlwaysCanAuthor,
 	);
 
+	let weak_sub_block_import = kulupu_pow::weak_sub::WeakSubjectiveBlockImport::new(
+		pow_block_import,
+		client.clone(),
+		algorithm.clone(),
+		kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm(30, 1.1),
+		select_chain.clone(),
+		enable_weak_subjectivity,
+	);
+
 	let import_queue = sc_consensus_pow::import_queue(
-		Box::new(pow_block_import.clone()),
+		Box::new(weak_sub_block_import.clone()),
 		None,
 		None,
 		algorithm.clone(),
@@ -153,7 +163,7 @@ pub fn new_partial(
 	Ok(sc_service::PartialComponents {
 		client, backend, task_manager, import_queue, keystore, select_chain, transaction_pool,
 		inherent_data_providers,
-		other: pow_block_import,
+		other: weak_sub_block_import,
 	})
 }
 
@@ -165,11 +175,12 @@ pub fn new_full(
 	round: u32,
 	check_inherents_after: u32,
 	donate: bool,
+	enable_weak_subjectivity: bool,
 ) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client, backend, mut task_manager, import_queue, keystore, select_chain, transaction_pool,
-		inherent_data_providers, other: pow_block_import,
-	} = new_partial(&config, author, check_inherents_after, donate)?;
+		inherent_data_providers, other: weak_sub_block_import,
+	} = new_partial(&config, author, check_inherents_after, donate, enable_weak_subjectivity)?;
 
 	let (network, network_status_sinks, system_rpc_tx, network_starter) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
@@ -234,7 +245,7 @@ pub fn new_full(
 		);
 
 		let (worker, worker_task) = sc_consensus_pow::start_mining_worker(
-			Box::new(pow_block_import.clone()),
+			Box::new(weak_sub_block_import.clone()),
 			client.clone(),
 			select_chain.clone(),
 			algorithm,
@@ -300,6 +311,7 @@ pub fn new_light(
 	author: Option<&str>,
 	check_inherents_after: u32,
 	donate: bool,
+	enable_weak_subjectivity: bool,
 ) -> Result<TaskManager, ServiceError> {
 	let (client, backend, keystore, mut task_manager, on_demand) =
 		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(&config)?;
@@ -323,13 +335,22 @@ pub fn new_light(
 		client.clone(),
 		algorithm.clone(),
 		check_inherents_after,
-		select_chain,
+		select_chain.clone(),
 		inherent_data_providers.clone(),
 		sp_consensus::AlwaysCanAuthor,
 	);
 
+	let weak_sub_block_import = kulupu_pow::weak_sub::WeakSubjectiveBlockImport::new(
+		pow_block_import,
+		client.clone(),
+		algorithm.clone(),
+		kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm(30, 1.1),
+		select_chain.clone(),
+		enable_weak_subjectivity,
+	);
+
 	let import_queue = sc_consensus_pow::import_queue(
-		Box::new(pow_block_import.clone()),
+		Box::new(weak_sub_block_import.clone()),
 		None,
 		None,
 		algorithm.clone(),
