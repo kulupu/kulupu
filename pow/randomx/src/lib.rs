@@ -57,7 +57,7 @@ impl<M: WithCacheMode> Cache<M> {
 			sys::randomx_init_cache(
 				ptr,
 				key.as_ptr() as *const std::ffi::c_void,
-				key.len()
+				key.len() as u64
 			);
 
 			ptr
@@ -122,7 +122,7 @@ impl<M: WithCacheMode> VM<M> {
 			sys::randomx_calculate_hash(
 				self.ptr,
 				input.as_ptr() as *const std::ffi::c_void,
-				input.len(),
+				input.len() as u64,
 				ret.as_ptr() as *mut std::ffi::c_void,
 			);
 		}
@@ -135,7 +135,7 @@ impl<M: WithCacheMode> VM<M> {
 			sys::randomx_calculate_hash_first(
 				self.ptr,
 				input.as_ptr() as *const std::ffi::c_void,
-				input.len(),
+				input.len() as u64,
 			);
 		}
 
@@ -165,7 +165,7 @@ impl<'a, M: WithCacheMode> Next<'a, M> {
 			sys::randomx_calculate_hash_next(
 				self.inner.ptr,
 				input.as_ptr() as *const std::ffi::c_void,
-				input.len(),
+				input.len() as u64,
 				ret.as_ptr() as *mut std::ffi::c_void,
 			);
 		}

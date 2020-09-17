@@ -94,28 +94,14 @@ pub enum RandomXAlgorithmVersion {
 	V2,
 }
 
-pub struct Stats {
-	last_clear: Instant,
-	last_display: Instant,
-	round: u32,
-}
-
 pub struct RandomXAlgorithm<C> {
 	client: Arc<C>,
-	keystore: Option<KeyStorePtr>,
-	stats: Arc<Mutex<Stats>>,
 }
 
 impl<C> RandomXAlgorithm<C> {
-	pub fn new(client: Arc<C>, keystore: Option<KeyStorePtr>) -> Self {
+	pub fn new(client: Arc<C>) -> Self {
 		Self {
 			client,
-			keystore,
-			stats: Arc::new(Mutex::new(Stats {
-				last_clear: Instant::now(),
-				last_display: Instant::now(),
-				round: 0,
-			})),
 		}
 	}
 }
@@ -124,8 +110,6 @@ impl<C> Clone for RandomXAlgorithm<C> {
 	fn clone(&self) -> Self {
 		Self {
 			client: self.client.clone(),
-			keystore: self.keystore.clone(),
-			stats: self.stats.clone(),
 		}
 	}
 }
@@ -240,151 +224,171 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 			},
 		}
 	}
+}
 
-	fn mine(
-		&self,
-		parent: &BlockId<B>,
-		pre_hash: &H256,
-		pre_digest: Option<&[u8]>,
-		difficulty: Difficulty,
-		round: u32,
-	) -> Result<Option<RawSeal>, sc_consensus_pow::Error<B>> {
-		let version_raw = self.client.runtime_api().identifier(parent)
-			.map_err(|e| sc_consensus_pow::Error::Environment(
-				format!("Fetching identifier from runtime failed: {:?}", e))
-			)?;
+pub struct Stats {
+	last_clear: Instant,
+	last_display: Instant,
+	round: u32,
+}
 
-		let version = match version_raw {
-			kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => RandomXAlgorithmVersion::V1,
-			kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => RandomXAlgorithmVersion::V2,
-			_ => return Err(sc_consensus_pow::Error::<B>::Other(
-				"Unknown algorithm identifier".to_string()
-			)),
-		};
+impl Stats {
+	pub fn new() -> Stats {
+		Self {
+			last_clear: Instant::now(),
+			last_display: Instant::now(),
+			round: 0,
+		}
+	}
+}
 
-		let mut rng = SmallRng::from_rng(&mut thread_rng())
-			.map_err(|e| sc_consensus_pow::Error::Environment(
-				format!("Initialize RNG failed for mining: {:?}", e)
-			))?;
-		let key_hash = key_hash(self.client.as_ref(), parent)?;
+pub fn mine<B, C>(
+	client: &C,
+	keystore: &KeyStorePtr,
+	parent: &BlockId<B>,
+	pre_hash: &H256,
+	pre_digest: Option<&[u8]>,
+	difficulty: Difficulty,
+	round: u32,
+	stats: &Arc<Mutex<Stats>>,
+) -> Result<Option<RawSeal>, sc_consensus_pow::Error<B>> where
+	B: BlockT<Hash=H256>,
+	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi<B>,
+	C::Api: DifficultyApi<B, Difficulty> + AlgorithmApi<B>,
+{
+	let version_raw = client.runtime_api().identifier(parent)
+		.map_err(|e| sc_consensus_pow::Error::Environment(
+			format!("Fetching identifier from runtime failed: {:?}", e))
+		)?;
 
-		let pre_digest = pre_digest.ok_or(sc_consensus_pow::Error::<B>::Other(
-			"Unable to mine: pre-digest not set".to_string(),
+	let version = match version_raw {
+		kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => RandomXAlgorithmVersion::V1,
+		kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => RandomXAlgorithmVersion::V2,
+		_ => return Err(sc_consensus_pow::Error::<B>::Other(
+			"Unknown algorithm identifier".to_string()
+		)),
+	};
+
+	let mut rng = SmallRng::from_rng(&mut thread_rng())
+		.map_err(|e| sc_consensus_pow::Error::Environment(
+			format!("Initialize RNG failed for mining: {:?}", e)
 		))?;
+	let key_hash = key_hash(client, parent)?;
 
-		let author = app::Public::decode(&mut &pre_digest[..]).map_err(|_| {
-			sc_consensus_pow::Error::<B>::Other(
-				"Unable to mine: author pre-digest decoding failed".to_string(),
+	let pre_digest = pre_digest.ok_or(sc_consensus_pow::Error::<B>::Other(
+		"Unable to mine: pre-digest not set".to_string(),
+	))?;
+
+	let author = app::Public::decode(&mut &pre_digest[..]).map_err(|_| {
+		sc_consensus_pow::Error::<B>::Other(
+			"Unable to mine: author pre-digest decoding failed".to_string(),
+		)
+	})?;
+
+	let pair = keystore.read().key_pair::<app::Pair>(
+		&author,
+	).map_err(|_| sc_consensus_pow::Error::<B>::Other(
+		"Unable to mine: fetch pair from author failed".to_string(),
+	))?;
+
+	let maybe_seal = match version {
+		RandomXAlgorithmVersion::V1 => {
+			compute::loop_raw(
+				&key_hash,
+				ComputeMode::Mining,
+				|| {
+					let nonce = H256::random_using(&mut rng);
+
+					let compute = ComputeV1 {
+						key_hash,
+						difficulty,
+						pre_hash: *pre_hash,
+						nonce,
+					};
+
+					(compute.input().encode(), compute)
+				},
+				|work, compute| {
+					if is_valid_hash(&work, compute.difficulty) {
+						let seal = compute.seal();
+						compute::Loop::Break(Some(seal.encode()))
+					} else {
+						compute::Loop::Continue
+					}
+				},
+				round as usize,
 			)
-		})?;
+		},
+		RandomXAlgorithmVersion::V2 => {
+			compute::loop_raw(
+				&key_hash,
+				ComputeMode::Mining,
+				|| {
+					let nonce = H256::random_using(&mut rng);
 
-		let pair = self.keystore.as_ref().ok_or_else(|| sc_consensus_pow::Error::<B>::Other(
-			"Unable to mine: keystore not set".to_string(),
-		))?.read().key_pair::<app::Pair>(
-			&author,
-		).map_err(|_| sc_consensus_pow::Error::<B>::Other(
-			"Unable to mine: fetch pair from author failed".to_string(),
-		))?;
+					let compute = ComputeV2 {
+						key_hash,
+						difficulty,
+						pre_hash: *pre_hash,
+						nonce,
+					};
 
-		let maybe_seal = match version {
-			RandomXAlgorithmVersion::V1 => {
-				compute::loop_raw(
-					&key_hash,
-					ComputeMode::Mining,
-					|| {
-						let nonce = H256::random_using(&mut rng);
+					let signature = compute.sign(&pair);
 
-						let compute = ComputeV1 {
-							key_hash,
-							difficulty,
-							pre_hash: *pre_hash,
-							nonce,
-						};
+					(compute.input(signature.clone()).encode(), (compute, signature))
+				},
+				|work, (compute, signature)| {
+					if is_valid_hash(&work, difficulty) {
+						let seal = compute.seal(signature);
+						compute::Loop::Break(Some(seal.encode()))
+					} else {
+						compute::Loop::Continue
+					}
+				},
+				round as usize,
+			)
+		},
+	};
 
-						(compute.input().encode(), compute)
-					},
-					|work, compute| {
-						if is_valid_hash(&work, compute.difficulty) {
-							let seal = compute.seal();
-							compute::Loop::Break(Some(seal.encode()))
-						} else {
-							compute::Loop::Continue
-						}
-					},
-					round as usize,
-				)
-			},
-			RandomXAlgorithmVersion::V2 => {
-				compute::loop_raw(
-					&key_hash,
-					ComputeMode::Mining,
-					|| {
-						let nonce = H256::random_using(&mut rng);
+	let now = Instant::now();
 
-						let compute = ComputeV2 {
-							key_hash,
-							difficulty,
-							pre_hash: *pre_hash,
-							nonce,
-						};
+	let maybe_display = {
+		let mut stats = stats.lock();
+		let mut ret = None;
 
-						let signature = compute.sign(&pair);
+		stats.round += round;
+		let duration = now.duration_since(stats.last_clear);
 
-						(compute.input(signature.clone()).encode(), (compute, signature))
-					},
-					|work, (compute, signature)| {
-						if is_valid_hash(&work, difficulty) {
-							let seal = compute.seal(signature);
-							compute::Loop::Break(Some(seal.encode()))
-						} else {
-							compute::Loop::Continue
-						}
-					},
-					round as usize,
-				)
-			},
-		};
+		let clear = duration >= Duration::new(600, 0);
+		let display = clear || now.duration_since(stats.last_display) >= Duration::new(1, 0);
 
-		let now = Instant::now();
-
-		let maybe_display = {
-			let mut stats = self.stats.lock();
-			let mut ret = None;
-
-			stats.round += round;
-			let duration = now.duration_since(stats.last_clear);
-
-			let clear = duration >= Duration::new(600, 0);
-			let display = clear || now.duration_since(stats.last_display) >= Duration::new(1, 0);
-
-			if display {
-				stats.last_display = now;
-				ret = Some((duration, stats.round));
-			}
-
-			if clear {
-				stats.last_clear = now;
-				stats.round = 0;
-			}
-
-			ret
-		};
-
-		if let Some((duration, round)) = maybe_display {
-			let hashrate = round / duration.as_secs() as u32;
-			let network_hashrate = difficulty / U256::from(60);
-			let every: u32 = (network_hashrate / U256::from(hashrate)).unique_saturated_into();
-			let every_duration = Duration::new(60, 0) * every;
-			info!(
-				target: "kulupu-pow",
-				"Local hashrate: {} H/s, network hashrate: {} H/s, expected one block every {} ({} blocks)",
-				hashrate,
-				network_hashrate,
-				humantime::format_duration(every_duration).to_string(),
-				every,
-			);
+		if display {
+			stats.last_display = now;
+			ret = Some((duration, stats.round));
 		}
 
-		Ok(maybe_seal)
+		if clear {
+			stats.last_clear = now;
+			stats.round = 0;
+		}
+
+		ret
+	};
+
+	if let Some((duration, round)) = maybe_display {
+		let hashrate = round / duration.as_secs() as u32;
+		let network_hashrate = difficulty / U256::from(60);
+		let every: u32 = (network_hashrate / U256::from(hashrate)).unique_saturated_into();
+		let every_duration = Duration::new(60, 0) * every;
+		info!(
+			target: "kulupu-pow",
+			"Local hashrate: {} H/s, network hashrate: {} H/s, expected one block every {} ({} blocks)",
+			hashrate,
+			network_hashrate,
+			humantime::format_duration(every_duration).to_string(),
+			every,
+		);
 	}
+
+	Ok(maybe_seal)
 }

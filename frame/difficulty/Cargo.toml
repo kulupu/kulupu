@@ -12,6 +12,7 @@ sp-std = { path = "../../vendor/substrate/primitives/std", default-features = fa
 sp-core = { path = "../../vendor/substrate/primitives/core", default-features = false }
 sp-runtime = { path = "../../vendor/substrate/primitives/runtime", default-features = false }
 sp-timestamp = { path = "../../vendor/substrate/primitives/timestamp", default-features = false }
+frame-system = { path = "../../vendor/substrate/frame/system", default-features = false }
 frame-support = { path = "../../vendor/substrate/frame/support", default-features = false }
 pallet-timestamp = { path = "../../vendor/substrate/frame/timestamp", default-features = false }
 kulupu-primitives = { path = "../../primitives", default-features = false }
@@ -25,6 +26,7 @@ std = [
 	"sp-core/std",
 	"sp-runtime/std",
 	"sp-timestamp/std",
+	"frame-system/std",
 	"frame-support/std",
 	"pallet-timestamp/std",
 	"kulupu-primitives/std",

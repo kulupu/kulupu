@@ -2,6 +2,10 @@ trigger:
 - master
 - refs/tags/*
 
+variables:
+  RUST_STABLE: 1.45.2
+  RUST_NIGHTLY: nightly-2020-08-29
+
 jobs:
 - job: Linux
   pool:
@@ -10,11 +14,20 @@ jobs:
   steps:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
-  - script: ./scripts/ci-init.sh
+  - script: |
+      curl -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+      source ~/.cargo/env
+      rustup update $(RUST_STABLE)
+      rustup update $(RUST_NIGHTLY)
+      rustup target add wasm32-unknown-unknown --toolchain $(RUST_NIGHTLY)
     displayName: 'Rust setup'
-  - script: RANDOMX_ARCH=default cargo test --release --all
+  - script: |
+      source ~/.cargo/env
+      RANDOMX_ARCH=default RUSTUP_TOOLCHAIN=$(RUST_STABLE) WASM_BUILD_TOOLCHAIN=$(RUST_NIGHTLY) cargo test --release --all
     displayName: 'Run tests'
-  - script: RANDOMX_ARCH=default cargo build --release
+  - script: |
+      source ~/.cargo/env
+      RANDOMX_ARCH=default RUSTUP_TOOLCHAIN=$(RUST_STABLE) WASM_BUILD_TOOLCHAIN=$(RUST_NIGHTLY) cargo build --release
     displayName: 'Build artifacts'
   - task: ArchiveFiles@2
     inputs:
@@ -51,11 +64,16 @@ jobs:
   steps:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
-  - script: ./scripts/ci-init.sh
+  - script: |
+      curl -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+      source ~/.cargo/env
+      rustup update $(RUST_STABLE)
+      rustup update $(RUST_NIGHTLY)
+      rustup target add wasm32-unknown-unknown --toolchain $(RUST_NIGHTLY)
     displayName: 'Rust setup'
   - script: |
       source ~/.cargo/env
-      RANDOMX_ARCH=default cargo build --release
+      RANDOMX_ARCH=default RUSTUP_TOOLCHAIN=$(RUST_STABLE) WASM_BUILD_TOOLCHAIN=$(RUST_NIGHTLY) cargo build --release
     displayName: 'Build artifacts'
   - task: ArchiveFiles@2
     inputs:
@@ -78,13 +96,15 @@ jobs:
   - script: git submodule update --init --recursive
     displayName: 'Submodules'
   - script: |
-      rustup update --no-self-update nightly
-      rustup update --no-self-update stable
-      rustup target add wasm32-unknown-unknown --toolchain nightly
+      rustup update --no-self-update $(RUST_NIGHTLY)
+      rustup update --no-self-update $(RUST_STABLE)
+      rustup target add wasm32-unknown-unknown --toolchain $(RUST_NIGHTLY)
     displayName: 'Rust setup'
   - script: |
       set LIBCLANG_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\Llvm\x64\bin
       set RANDOMX_ARCH=default
+      set RUSTUP_TOOLCHAIN=$(RUST_STABLE)
+      set WASM_BUILD_TOOLCHAIN=$(RUST_NIGHTLY)
       cargo build --release
     displayName: 'Build artifacts'
   - task: ArchiveFiles@2
