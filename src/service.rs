@@ -104,6 +104,7 @@ pub fn new_partial(
 	author: Option<&str>,
 	check_inherents_after: u32,
 	donate: bool,
+	enable_weak_subjectivity: bool,
 ) -> Result<sc_service::PartialComponents<
 	FullClient, FullBackend, FullSelectChain,
 	sp_consensus::DefaultImportQueue<Block, FullClient>,
@@ -146,7 +147,7 @@ pub fn new_partial(
 		algorithm.clone(),
 		kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm(30, 1.1),
 		select_chain.clone(),
-		true,
+		enable_weak_subjectivity,
 	);
 
 	let import_queue = sc_consensus_pow::import_queue(
@@ -174,11 +175,12 @@ pub fn new_full(
 	round: u32,
 	check_inherents_after: u32,
 	donate: bool,
+	enable_weak_subjectivity: bool,
 ) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client, backend, mut task_manager, import_queue, keystore, select_chain, transaction_pool,
 		inherent_data_providers, other: weak_sub_block_import,
-	} = new_partial(&config, author, check_inherents_after, donate)?;
+	} = new_partial(&config, author, check_inherents_after, donate, enable_weak_subjectivity)?;
 
 	let (network, network_status_sinks, system_rpc_tx, network_starter) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
@@ -309,6 +311,7 @@ pub fn new_light(
 	author: Option<&str>,
 	check_inherents_after: u32,
 	donate: bool,
+	enable_weak_subjectivity: bool,
 ) -> Result<TaskManager, ServiceError> {
 	let (client, backend, keystore, mut task_manager, on_demand) =
 		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(&config)?;
@@ -343,7 +346,7 @@ pub fn new_light(
 		algorithm.clone(),
 		kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm(30, 1.1),
 		select_chain.clone(),
-		true,
+		enable_weak_subjectivity,
 	);
 
 	let import_queue = sc_consensus_pow::import_queue(
