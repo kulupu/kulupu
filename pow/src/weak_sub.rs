@@ -31,6 +31,7 @@ use sp_consensus::{
 	SelectChain, ForkChoiceStrategy,
 };
 use sc_consensus_pow::{PowAlgorithm, PowAux};
+use log::*;
 
 /// Parameters passed to decision function of whether to block the reorg.
 pub struct WeakSubjectiveParams {
@@ -222,6 +223,13 @@ impl<B, I, C, S, Pow, Reorg> BlockImport<B> for WeakSubjectiveBlockImport<B, I, 
 
 			match self.reorg_algorithm.weak_subjective_decide(params) {
 				WeakSubjectiveDecision::BlockReorg => {
+					warn!(
+						target: "kulupu-pow",
+						"Weak subjectivity blocked a deep chain reorg. Retracted len: {}, current head total difficulty: {}, reorg total difficulty: {}",
+						retracted_len,
+						best_total_difficulty,
+						new_total_difficulty,
+					);
 					block.fork_choice = Some(ForkChoiceStrategy::Custom(false));
 				},
 				WeakSubjectiveDecision::Continue => (),
