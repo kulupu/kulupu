@@ -55,6 +55,10 @@ jobs:
     displayName: 'Rust setup'
   - script: |
       source ~/.cargo/env
+      rustc --version
+      cargo --version
+      rustc +nightly --version
+      cargo +nightly --version
       RANDOMX_ARCH=default cargo build --release
     displayName: 'Build artifacts'
   - task: ArchiveFiles@2
