@@ -15,6 +15,7 @@
 // along with Kulupu.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod compute;
+pub mod weak_sub;
 
 use std::{sync::Arc, time::{Duration, Instant}};
 use parking_lot::Mutex;
