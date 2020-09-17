@@ -1,6 +1,6 @@
 [package]
 name = "kulupu"
-version = "2.1.1-nightly"
+version = "2.2.0"
 authors = ["Wei Tang <wei@that.world>"]
 build = "build.rs"
 edition = "2018"
