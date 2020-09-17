@@ -355,25 +355,39 @@ pub fn mine<B, C>(
 
 	let maybe_display = {
 		let mut stats = stats.lock();
-		let mut ret = None;
+		let since_last_clear = now.checked_duration_since(stats.last_clear);
+		let since_last_display = now.checked_duration_since(stats.last_display);
 
-		stats.round += round;
-		let duration = now.duration_since(stats.last_clear);
+		if let (Some(since_last_clear), Some(since_last_display)) =
+			(since_last_clear, since_last_display)
+		{
+			let mut ret = None;
 
-		let clear = duration >= Duration::new(600, 0);
-		let display = clear || now.duration_since(stats.last_display) >= Duration::new(1, 0);
+			stats.round += round;
+			let duration = since_last_clear;
 
-		if display {
-			stats.last_display = now;
-			ret = Some((duration, stats.round));
+			let clear = duration >= Duration::new(600, 0);
+			let display = clear || since_last_display >= Duration::new(2, 0);
+
+			if display {
+				stats.last_display = now;
+				ret = Some((duration, stats.round));
+			}
+
+			if clear {
+				stats.last_clear = now;
+				stats.round = 0;
+			}
+
+			ret
+		} else {
+			warn!(
+				target: "kulupu-pow",
+				"Calculating duration failed, the system time may have changed and the hashrate calculation may be temporarily inaccurate."
+			);
+
+			None
 		}
-
-		if clear {
-			stats.last_clear = now;
-			stats.round = 0;
-		}
-
-		ret
 	};
 
 	if let Some((duration, round)) = maybe_display {
