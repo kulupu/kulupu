@@ -91,7 +91,7 @@ impl WeakSubjectiveAlgorithm for ExponentialWeakSubjectiveAlgorithm {
 		let left = (new_diff.as_u128() as f64) / (best_diff.as_u128() as f64);
 		let right = self.1.powi(params.retracted_len.saturating_sub(self.0) as i32);
 
-		if left > right {
+		if left >= right {
 			WeakSubjectiveDecision::Continue
 		} else {
 			WeakSubjectiveDecision::BlockReorg
