@@ -45,6 +45,7 @@ pub struct WeakSubjectiveParams {
 }
 
 /// Deccision of weak subjectivity.
+#[derive(Clone, Debug, Eq, PartialEq, Copy)]
 pub enum WeakSubjectiveDecision {
 	/// Block the reorg.
 	BlockReorg,
@@ -228,5 +229,36 @@ impl<B, I, C, S, Pow, Reorg> BlockImport<B> for WeakSubjectiveBlockImport<B, I, 
 		}
 
 		self.inner.import_block(block, new_cache).map_err(Into::into)
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use WeakSubjectiveDecision::*;
+
+	fn check(best_diff: U256, new_diff: U256, retracted_len: usize, decision: WeakSubjectiveDecision) {
+		let algorithm = ExponentialWeakSubjectiveAlgorithm(30, 1.1);
+		let params = WeakSubjectiveParams {
+			best_total_difficulty: best_diff + U256::from(1000),
+			common_total_difficulty: U256::from(1000),
+			new_total_difficulty: new_diff + U256::from(1000),
+			retracted_len,
+		};
+
+		assert_eq!(decision, algorithm.weak_subjective_decide(params));
+	}
+
+	#[test]
+	fn less_than_30_block_should_not_be_affected() {
+		check(U256::from(7000), U256::from(8000), 20, Continue);
+		check(U256::from(7000), U256::from(7001), 30, Continue);
+	}
+
+	#[test]
+	fn more_than_30_block_should_be_panelized() {
+		check(U256::from(7000), U256::from(7001), 31, BlockReorg);
+		check(U256::from(7000), U256::from(8000), 31, Continue);
+		check(U256::from(7000), U256::from(8000), 40, BlockReorg);
 	}
 }
