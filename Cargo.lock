@@ -1468,6 +1468,7 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "serde",
+ "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -4941,27 +4942,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rental"
-version = "0.5.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8545debe98b2b139fb04cad8618b530e9b07c152d99a5de83c860b877d67847f"
-dependencies = [
- "rental-impl",
- "stable_deref_trait",
-]
-
-[[package]]
-name = "rental-impl"
-version = "0.5.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "475e68978dc5b743f2f40d8e0a8fdc83f1c5e78cbf4b8fa5e74e73beebc340de"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "retain_mut"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5195,7 +5175,6 @@ dependencies = [
  "bip39",
  "chrono",
  "derive_more",
- "env_logger",
  "fdlimit",
  "futures 0.3.5",
  "hex",
@@ -5230,6 +5209,9 @@ dependencies = [
  "substrate-prometheus-endpoint",
  "time",
  "tokio 0.2.22",
+ "tracing",
+ "tracing-log",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -5721,6 +5703,7 @@ dependencies = [
  "sp-runtime",
  "sp-session",
  "sp-state-machine",
+ "sp-tracing",
  "sp-transaction-pool",
  "sp-trie",
  "sp-utils",
@@ -5778,6 +5761,7 @@ dependencies = [
  "slog",
  "sp-tracing",
  "tracing",
+ "tracing-core",
  "tracing-subscriber",
 ]
 
@@ -6472,6 +6456,8 @@ dependencies = [
  "sp-tracing",
  "sp-trie",
  "sp-wasm-interface",
+ "tracing",
+ "tracing-core",
 ]
 
 [[package]]
@@ -6660,8 +6646,11 @@ name = "sp-tracing"
 version = "2.0.0-rc6"
 dependencies = [
  "log",
- "rental",
+ "parity-scale-codec",
+ "sp-std",
  "tracing",
+ "tracing-core",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -7380,9 +7369,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.15"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f0e00789804e99b20f12bc7003ca416309d28a6f495d6af58d1e2c2842461b5"
+checksum = "5bcf46c1f1f06aeea2d6b81f3c863d0930a596c86ad1920d4e5bad6dd1d7119a"
 dependencies = [
  "lazy_static",
 ]

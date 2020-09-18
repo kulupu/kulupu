@@ -548,7 +548,13 @@ parameter_types! {
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
 	pub const TipReportDepositBase: Balance = 1 * DOLLARS;
-	pub const TipReportDepositPerByte: Balance = 10 * MILLICENTS;
+	pub const DataDepositPerByte: Balance = 1 * CENTS;
+	pub const BountyDepositBase: Balance = 1 * DOLLARS;
+	pub const BountyDepositPayoutDelay: BlockNumber = 8 * DAYS;
+	pub const BountyUpdatePeriod: BlockNumber = 90 * DAYS;
+	pub const MaximumReasonLength: u32 = 16384;
+	pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
+	pub const BountyValueMinimum: Balance = 10 * DOLLARS;
 }
 
 impl treasury::Trait for Runtime {
@@ -559,13 +565,19 @@ impl treasury::Trait for Runtime {
 	type TipCountdown = TipCountdown;
 	type TipFindersFee = TipFindersFee;
 	type TipReportDepositBase = TipReportDepositBase;
-	type TipReportDepositPerByte = TipReportDepositPerByte;
+	type DataDepositPerByte = DataDepositPerByte;
 	type Event = Event;
-	type ProposalRejection = Treasury;
+	type OnSlash = Treasury;
 	type ProposalBond = ProposalBond;
 	type ProposalBondMinimum = ProposalBondMinimum;
 	type SpendPeriod = SpendPeriod;
 	type Burn = Burn;
+	type BountyDepositBase = BountyDepositBase;
+	type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
+	type BountyUpdatePeriod = BountyUpdatePeriod;
+	type MaximumReasonLength = MaximumReasonLength;
+	type BountyCuratorDeposit = BountyCuratorDeposit;
+	type BountyValueMinimum = BountyValueMinimum;
 	type BurnDestination = ();
 	type ModuleId = TreasuryModuleId;
 	type WeightInfo = ();
