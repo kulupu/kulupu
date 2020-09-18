@@ -1,7 +1,7 @@
 [package]
 name = "kulupu-randomx-sys"
 description = "FFI bindings for RandomX"
-license = "BSD-3-Clause"
+license = "GPL-3.0-or-later"
 version = "2.2.0"
 authors = ["Wei Tang <wei@that.world>"]
 edition = "2018"
