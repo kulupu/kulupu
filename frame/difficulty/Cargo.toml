@@ -2,6 +2,7 @@
 name = "pallet-difficulty"
 version = "2.2.0"
 authors = ["Wei Tang <wei@that.world>"]
+license = "GPL-3.0-or-later"
 edition = "2018"
 description = "Difficulty adjustment module for Kulupu."
 
