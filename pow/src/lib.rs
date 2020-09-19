@@ -22,7 +22,7 @@ pub mod weak_sub;
 use std::{sync::Arc, time::{Duration, Instant}};
 use parking_lot::Mutex;
 use codec::{Encode, Decode};
-use sp_core::{U256, H256};
+use sp_core::{U256, H256, blake2_256};
 use sp_api::ProvideRuntimeApi;
 use sp_runtime::generic::BlockId;
 use sp_runtime::traits::{
@@ -130,6 +130,14 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 			));
 
 		difficulty
+	}
+
+	fn break_tie(
+		&self,
+		own_seal: &RawSeal,
+		new_seal: &RawSeal,
+	) -> bool {
+		blake2_256(&own_seal[..]) > blake2_256(&new_seal[..])
 	}
 
 	fn verify(
