@@ -449,7 +449,7 @@ impl collective::Trait<CouncilCollective> for Runtime {
 	type MotionDuration = CouncilMotionDuration;
 	type MaxProposals = CouncilMaxProposals;
 	type MaxMembers = CouncilMaxMembers;
-	type DefaultVote = collective::PrimeDefaultVote;
+	type DefaultVote = collective::MoreThanMajorityThenPrimeDefaultVote;
 	type WeightInfo = ();
 }
 
@@ -561,8 +561,8 @@ parameter_types! {
 
 impl treasury::Trait for Runtime {
 	type Currency = Balances;
-	type ApproveOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _5, AccountId, CouncilCollective>;
+	type ApproveOrigin = collective::EnsureProportionMoreThan<_4, _5, AccountId, CouncilCollective>;
+	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 	type Tippers = ElectionsPhragmen;
 	type TipCountdown = TipCountdown;
 	type TipFindersFee = TipFindersFee;
