@@ -29,8 +29,8 @@ mod benchmarking;
 mod default_weights;
 
 use codec::{Encode, Decode};
-use sp_std::{result, cmp::min, prelude::*, collections::btree_map::BTreeMap};
-use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
+use sp_std::{result, cmp::min, prelude::*, collections::{btree_map::BTreeMap, btree_set::BTreeSet}};
+use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero, UniqueSaturatedInto}};
 use sp_inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
 use sp_consensus_pow::POW_ENGINE_ID;
 #[cfg(feature = "std")]
@@ -81,16 +81,24 @@ pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	/// An implementation of on-chain currency.
 	type Currency: LockableCurrency<Self::AccountId>;
-	/// Donation destination.
-	type DonationDestination: Get<Self::AccountId>;
 	/// Generate reward locks.
 	type GenerateRewardLocks: GenerateRewardLocks<Self>;
 	/// Weights for this pallet.
 	type WeightInfo: WeightInfo;
+
+	/// Donation destination for V1 inherent.
+	type V1InherentDonationDestination: Get<Self::AccountId>;
 }
+
+/// The maximum number of destinations allowed per block.
+pub const MAXIMUM_DESTINATIONS: usize = 16;
 
 /// Type alias for currency balance.
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
+/// Type for donation weight.
+pub type DonationWeight = u16;
+/// Type for donation weight total.
+pub type DonationWeightTotal = u32;
 
 decl_error! {
 	pub enum Error for Module<T: Trait> {
@@ -98,6 +106,10 @@ decl_error! {
 		RewardTooLow,
 		/// Author preferences already set.
 		AuthorPrefsAlreadySet,
+		/// Invalid taxation destination.
+		InvalidTaxationDestination,
+		/// Maximum destinations exceeded.
+		MaximumDestinationsExceeded,
 	}
 }
 
@@ -106,11 +118,16 @@ decl_storage! {
 		/// Current block author.
 		Author get(fn author): Option<T::AccountId>;
 		/// Current block donation.
-		AuthorDonation get(fn author_donation): Option<Perbill>;
+		AuthorDestinations: Option<Vec<(Option<T::AccountId>, DonationWeight)>>;
+
 		/// Current block reward.
 		Reward get(fn reward) config(): BalanceOf<T>;
 		/// Taxation rate.
 		Taxation get(fn taxation) config(): Perbill;
+		/// Taxation destinations.
+		TaxationDestinations get(fn taxation_destinations) config(): BTreeSet<Option<T::AccountId>>;
+		/// Taxation default destination.
+		TaxationDefaultDestination get(fn taxation_default_destination) config(): Option<T::AccountId>;
 		/// Pending reward locks.
 		RewardLocks get(fn reward_locks):
 			map hasher(twox_64_concat) T::AccountId => BTreeMap<T::BlockNumber, BalanceOf<T>>;
@@ -138,15 +155,28 @@ decl_module! {
 		)]
 		fn note_author_prefs(
 			origin,
-			donation: Perbill,
+			destinations: Vec<(Option<T::AccountId>, DonationWeight)>,
 		) {
 			ensure_none(origin)?;
 			ensure!(
-				<Self as Store>::AuthorDonation::get().is_none(),
-				Error::<T>::AuthorPrefsAlreadySet
+				<Self as Store>::AuthorDestinations::get().is_none(),
+				Error::<T>::AuthorPrefsAlreadySet,
 			);
 
-			<Self as Store>::AuthorDonation::put(donation);
+			ensure!(
+				destinations.len() <= MAXIMUM_DESTINATIONS,
+				Error::<T>::MaximumDestinationsExceeded,
+			);
+
+			let valid_destinations = <Self as Store>::TaxationDestinations::get();
+			for (destination, _) in &destinations {
+				ensure!(
+					valid_destinations.contains(&destination),
+					Error::<T>::InvalidTaxationDestination,
+				);
+			}
+
+			<Self as Store>::AuthorDestinations::put(destinations);
 		}
 
 		#[weight = (
@@ -203,12 +233,14 @@ decl_module! {
 
 		fn on_finalize(now: T::BlockNumber) {
 			if let Some(author) = <Self as Store>::Author::get() {
-				let reward = Reward::<T>::get();
-				Self::do_reward(&author, reward, now);
+				let reward = <Self as Store>::Reward::get();
+				let destinations = Self::author_destinations();
+
+				Self::do_reward(&author, reward, destinations, now);
 			}
 
 			<Self as Store>::Author::kill();
-			<Self as Store>::AuthorDonation::kill();
+			<Self as Store>::AuthorDestinations::kill();
 		}
 	}
 }
@@ -216,6 +248,16 @@ decl_module! {
 const REWARDS_ID: LockIdentifier = *b"rewards ";
 
 impl<T: Trait> Module<T> {
+	/// Get the author destinations or the default destination.
+	pub fn author_destinations() -> Vec<(Option<T::AccountId>, DonationWeight)> {
+		let mut ret = <Self as Store>::AuthorDestinations::get().unwrap_or_default();
+		if ret.len() == 0 {
+			ret.push((<Self as Store>::TaxationDefaultDestination::get(), 1));
+		}
+
+		ret
+	}
+
 	fn check_new_reward_taxation(reward: BalanceOf<T>, taxation: Perbill) -> Result<(), Error<T>> {
 		let tax = taxation * reward;
 		let miner = reward.saturating_sub(tax);
@@ -225,13 +267,20 @@ impl<T: Trait> Module<T> {
 		Ok(())
 	}
 
-	fn do_reward(author: &T::AccountId, reward: BalanceOf<T>, when: T::BlockNumber) {
-		let treasury_id = T::DonationDestination::get();
+	fn do_reward(
+		author: &T::AccountId,
+		reward: BalanceOf<T>,
+		destinations: Vec<(Option<T::AccountId>, DonationWeight)>,
+		when: T::BlockNumber,
+	) {
+		// We have already checked valid destinations in
+		// `note_author_prefs`. The re-check below is for extra sanity in case
+		// of logic errors.
+		let valid_destinations = <Self as Store>::TaxationDestinations::get();
+
 		let tax = Self::taxation() * reward;
-		let donate = min(
-			tax,
-			Self::author_donation().map(|dp| dp * reward).unwrap_or(Zero::zero())
-		);
+		let weight_total = destinations.iter()
+			.fold(0, |acc, (_, w)| acc + *w as DonationWeightTotal);
 
 		let miner_total = reward.saturating_sub(tax);
 
@@ -241,7 +290,15 @@ impl<T: Trait> Module<T> {
 		);
 
 		drop(T::Currency::deposit_creating(&author, miner_total));
-		drop(T::Currency::deposit_creating(&treasury_id, donate));
+
+		for (destination, weight) in destinations {
+			let value = tax * weight.unique_saturated_into() / weight_total.unique_saturated_into();
+			if valid_destinations.contains(&destination) {
+				if let Some(destination) = destination {
+					drop(T::Currency::deposit_creating(&destination, value));
+				}
+			}
+		}
 
 		if miner_reward_locks.len() > 0 {
 			let mut locks = Self::reward_locks(&author);
