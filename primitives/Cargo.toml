@@ -1,6 +1,6 @@
 [package]
 name = "kulupu-primitives"
-version = "2.2.0"
+version = "2.2.1"
 authors = ["Wei Tang <wei@that.world>"]
 license = "GPL-3.0-or-later"
 edition = "2018"
