@@ -27,7 +27,6 @@ use sp_block_builder::BlockBuilder;
 pub use sc_rpc_api::DenyUnsafe;
 use sp_transaction_pool::TransactionPool;
 
-
 /// Full client dependencies.
 pub struct FullDeps<C, P> {
 	/// The client instance to use.
