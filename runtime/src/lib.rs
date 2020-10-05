@@ -417,7 +417,7 @@ impl democracy::Trait for Runtime {
 	/// A super-majority can have the next scheduled referendum be a straight
 	/// majority-carries vote.
 	type ExternalMajorityOrigin = system::EnsureOneOf<AccountId,
-		collective::EnsureProportionAtLeast<_4, _5, AccountId, CouncilCollective>,
+		collective::EnsureProportionMoreThan<_4, _5, AccountId, CouncilCollective>,
 		system::EnsureRoot<AccountId>,
 	>;
 	/// A unanimous council can have the next scheduled referendum be a straight
