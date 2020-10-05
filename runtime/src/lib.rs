@@ -407,7 +407,7 @@ impl democracy::Trait for Runtime {
 	type ExternalOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 	/// A super-majority can have the next scheduled referendum be a straight
 	/// majority-carries vote.
-	type ExternalMajorityOrigin = collective::EnsureProportionAtLeast<_4, _5, AccountId, CouncilCollective>;
+	type ExternalMajorityOrigin = collective::EnsureProportionMoreThan<_4, _5, AccountId, CouncilCollective>;
 	/// A unanimous council can have the next scheduled referendum be a straight
 	/// default-carries (NTB) vote.
 	type ExternalDefaultOrigin = collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
@@ -449,7 +449,7 @@ impl collective::Trait<CouncilCollective> for Runtime {
 	type MotionDuration = CouncilMotionDuration;
 	type MaxProposals = CouncilMaxProposals;
 	type MaxMembers = CouncilMaxMembers;
-	type DefaultVote = collective::PrimeDefaultVote;
+	type DefaultVote = collective::MoreThanMajorityThenPrimeDefaultVote;
 	type WeightInfo = ();
 }
 
@@ -561,8 +561,8 @@ parameter_types! {
 
 impl treasury::Trait for Runtime {
 	type Currency = Balances;
-	type ApproveOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _5, AccountId, CouncilCollective>;
+	type ApproveOrigin = collective::EnsureProportionMoreThan<_4, _5, AccountId, CouncilCollective>;
+	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 	type Tippers = ElectionsPhragmen;
 	type TipCountdown = TipCountdown;
 	type TipFindersFee = TipFindersFee;
