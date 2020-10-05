@@ -114,7 +114,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kulupu"),
 	impl_name: create_runtime_str!("kulupu"),
 	authoring_version: 5,
-	spec_version: 10,
+	spec_version: 11,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 6,
@@ -734,6 +734,40 @@ impl vesting::Trait for Runtime {
 	type WeightInfo = ();
 }
 
+pub struct CustomOnRuntimeUpgrade;
+impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		// Update scheduler origin usage
+		#[derive(Encode, Decode)]
+		#[allow(non_camel_case_types)]
+		pub enum OldOriginCaller {
+			system(system::Origin<Runtime>),
+			collective_Instance1(
+				collective::Origin<Runtime, collective::Instance1>
+			),
+			collective_Instance2(
+				collective::Origin<Runtime, collective::Instance2>
+			),
+		}
+
+		impl Into<OriginCaller> for OldOriginCaller {
+			fn into(self) -> OriginCaller {
+				match self {
+					OldOriginCaller::system(o) => OriginCaller::system(o),
+					OldOriginCaller::collective_Instance1(o) =>
+						OriginCaller::collective_Instance1(o),
+					OldOriginCaller::collective_Instance2(o) =>
+						OriginCaller::collective_Instance2(o),
+				}
+			}
+		}
+
+		scheduler::Module::<Runtime>::migrate_origin::<OldOriginCaller>();
+
+		<Runtime as system::Trait>::MaximumBlockWeight::get()
+	}
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -741,35 +775,35 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		// Basic stuff.
-		System: system::{Module, Call, Storage, Config, Event<T>},
-		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
-		Timestamp: timestamp::{Module, Call, Storage, Inherent, Config},
-		Indices: indices::{Module, Call, Storage, Config<T>, Event<T>},
-		Balances: balances::{Module, Call, Storage, Config<T>, Event<T>},
-		TransactionPayment: transaction_payment::{Module, Storage},
+		System: system::{Module, Call, Storage, Config, Event<T>} = 0,
+		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage} = 17,
+		Timestamp: timestamp::{Module, Call, Storage, Inherent, Config} = 1,
+		Indices: indices::{Module, Call, Storage, Config<T>, Event<T>} = 2,
+		Balances: balances::{Module, Call, Storage, Config<T>, Event<T>} = 3,
+		TransactionPayment: transaction_payment::{Module, Storage} = 18,
 
 		// PoW consensus and era support.
-		Difficulty: difficulty::{Module, Call, Storage, Config},
-		Eras: eras::{Module, Call, Storage, Config<T>},
-		Rewards: rewards::{Module, Call, Inherent, Storage, Event<T>, Config<T>},
+		Difficulty: difficulty::{Module, Call, Storage, Config} = 19,
+		Eras: eras::{Module, Call, Storage, Config<T>} = 20,
+		Rewards: rewards::{Module, Call, Inherent, Storage, Event<T>, Config<T>} = 4,
 
 		// Governance.
-		Democracy: democracy::{Module, Call, Storage, Config, Event<T>},
-		Council: collective::<Instance1>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>},
-		TechnicalCommittee: collective::<Instance2>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>},
-		ElectionsPhragmen: elections_phragmen::{Module, Call, Storage, Event<T>, Config<T>},
-		TechnicalMembership: membership::<Instance1>::{Module, Call, Storage, Event<T>, Config<T>},
-		Treasury: treasury::{Module, Call, Storage, Event<T>, Config},
+		Democracy: democracy::{Module, Call, Storage, Config, Event<T>} = 5,
+		Council: collective::<Instance1>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>} = 6,
+		TechnicalCommittee: collective::<Instance2>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>} = 7,
+		ElectionsPhragmen: elections_phragmen::{Module, Call, Storage, Event<T>, Config<T>} = 8,
+		TechnicalMembership: membership::<Instance1>::{Module, Call, Storage, Event<T>, Config<T>} = 9,
+		Treasury: treasury::{Module, Call, Storage, Event<T>, Config} = 10,
 
 		// Identity.
-		Identity: identity::{Module, Call, Storage, Event<T>},
+		Identity: identity::{Module, Call, Storage, Event<T>} = 11,
 
 		// Utility module.
-		Utility: utility::{Module, Call, Event},
-		Scheduler: scheduler::{Module, Call, Storage, Event<T>},
-		Multisig: multisig::{Module, Call, Storage, Event<T>},
-		Proxy: proxy::{Module, Call, Storage, Event<T>},
-		Vesting: vesting::{Module, Call, Storage, Event<T>, Config<T>},
+		Utility: utility::{Module, Call, Event} = 12,
+		Scheduler: scheduler::{Module, Call, Storage, Event<T>} = 13,
+		Multisig: multisig::{Module, Call, Storage, Event<T>} = 14,
+		Proxy: proxy::{Module, Call, Storage, Event<T>} = 15,
+		Vesting: vesting::{Module, Call, Storage, Event<T>, Config<T>} = 16,
 	}
 );
 
@@ -800,7 +834,14 @@ pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
-pub type Executive = frame_executive::Executive<Runtime, Block, system::ChainContext<Runtime>, Runtime, AllModules>;
+pub type Executive = frame_executive::Executive<
+	Runtime,
+	Block,
+	system::ChainContext<Runtime>,
+	Runtime,
+	AllModules,
+	CustomOnRuntimeUpgrade,
+>;
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
