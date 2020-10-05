@@ -1,6 +1,6 @@
 [package]
 name = "pallet-difficulty"
-version = "2.2.1"
+version = "2.3.0"
 authors = ["Wei Tang <wei@that.world>"]
 license = "GPL-3.0-or-later"
 edition = "2018"
