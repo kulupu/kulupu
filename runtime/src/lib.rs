@@ -398,6 +398,7 @@ parameter_types! {
 	pub const PreimageByteDeposit: Balance = 10 * MILLICENTS;
 	pub const InstantAllowed: bool = false;
 	pub const MaxVotes: u32 = 100;
+	pub const MaxProposals: u32 = 100;
 }
 
 impl democracy::Trait for Runtime {
@@ -409,24 +410,46 @@ impl democracy::Trait for Runtime {
 	type VotingPeriod = VotingPeriod;
 	type MinimumDeposit = MinimumDeposit;
 	/// A straight majority of the council can decide what their next motion is.
-	type ExternalOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type ExternalOrigin = system::EnsureOneOf<AccountId,
+		collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
+		system::EnsureRoot<AccountId>,
+	>;
 	/// A super-majority can have the next scheduled referendum be a straight
 	/// majority-carries vote.
-	type ExternalMajorityOrigin = collective::EnsureProportionAtLeast<_4, _5, AccountId, CouncilCollective>;
+	type ExternalMajorityOrigin = system::EnsureOneOf<AccountId,
+		collective::EnsureProportionAtLeast<_4, _5, AccountId, CouncilCollective>,
+		system::EnsureRoot<AccountId>,
+	>;
 	/// A unanimous council can have the next scheduled referendum be a straight
 	/// default-carries (NTB) vote.
-	type ExternalDefaultOrigin = collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
+	type ExternalDefaultOrigin = system::EnsureOneOf<AccountId,
+		collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
+		system::EnsureRoot<AccountId>,
+	>;
 	/// Full of the technical committee can have an
 	/// ExternalMajority/ExternalDefault vote be tabled immediately and with a
 	/// shorter voting/enactment period.
-	type FastTrackOrigin = collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>;
+	type FastTrackOrigin = system::EnsureOneOf<AccountId,
+		collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
+		system::EnsureRoot<AccountId>,
+	>;
 	type InstantOrigin = system::EnsureNever<AccountId>;
 	type InstantAllowed = InstantAllowed;
 	type FastTrackVotingPeriod = FastTrackVotingPeriod;
 	/// To cancel a proposal which has been passed, all of the council must
 	/// agree to it.
-	type CancellationOrigin = collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
+	type CancellationOrigin = system::EnsureOneOf<AccountId,
+		collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
+		system::EnsureRoot<AccountId>,
+	>;
 	type OperationalPreimageOrigin = collective::EnsureMember<AccountId, CouncilCollective>;
+	/// To cancel a proposal before it has been passed, the technical committee must be unanimous or
+	/// Root must agree.
+	type CancelProposalOrigin = system::EnsureOneOf<AccountId,
+		collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
+		EnsureRoot<AccountId>,
+	>;
+	type BlacklistOrigin = EnsureRoot<AccountId>;
 	/// Any single technical committee member may veto a coming council
 	/// proposal, however they can only do it once and it lasts only for the
 	/// cooloff period.
@@ -438,6 +461,7 @@ impl democracy::Trait for Runtime {
 	type MaxVotes = MaxVotes;
 	type PalletsOrigin = OriginCaller;
 	type WeightInfo = ();
+	type MaxProposals = MaxProposals;
 }
 
 parameter_types! {
@@ -454,7 +478,7 @@ impl collective::Trait<CouncilCollective> for Runtime {
 	type MotionDuration = CouncilMotionDuration;
 	type MaxProposals = CouncilMaxProposals;
 	type MaxMembers = CouncilMaxMembers;
-	type DefaultVote = collective::PrimeDefaultVote;
+	type DefaultVote = collective::MoreThanMajorityThenPrimeDefaultVote;
 	type WeightInfo = ();
 }
 
@@ -566,8 +590,8 @@ parameter_types! {
 
 impl treasury::Trait for Runtime {
 	type Currency = Balances;
-	type ApproveOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _5, AccountId, CouncilCollective>;
+	type ApproveOrigin = collective::EnsureProportionMoreThan<_4, _5, AccountId, CouncilCollective>;
+	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 	type Tippers = ElectionsPhragmen;
 	type TipCountdown = TipCountdown;
 	type TipFindersFee = TipFindersFee;
