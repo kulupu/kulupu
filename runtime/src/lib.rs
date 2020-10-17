@@ -769,7 +769,7 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
 }
 
 parameter_types! {
-	pub const UpdateFrequency: BlockNumber = 10_000;
+	pub const UpdateFrequency: BlockNumber = 7 * DAYS;
 }
 
 impl reward_curve::Trait for Runtime {

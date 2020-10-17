@@ -29,7 +29,6 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup}, testing::{Digest, DigestItem, Header}, Perbill,
 };
 use frame_system::{self as system, InitKind};
-use sp_std::collections::btree_map::BTreeMap;
 
 impl_outer_origin! {
 	pub enum Origin for Test {}
@@ -104,54 +103,16 @@ impl pallet_balances::Trait for Test {
 	type WeightInfo = ();
 }
 
-parameter_types! {
-	pub DonationDestination: u64 = 255;
-}
-
-const DOLLARS: Balance = 1;
-const DAYS: BlockNumber = 1;
-
-pub struct GenerateRewardLocks;
-impl pallet_rewards::GenerateRewardLocks<Test> for GenerateRewardLocks {
-	fn generate_reward_locks(
-		current_block: BlockNumber,
-		total_reward: Balance,
-	) -> BTreeMap<BlockNumber, Balance> {
-		let mut locks = BTreeMap::new();
-		let locked_reward = total_reward.saturating_sub(1 * DOLLARS);
-
-		if locked_reward > 0 {
-			const TOTAL_LOCK_PERIOD: BlockNumber = 100 * DAYS;
-			const DIVIDE: BlockNumber = 10;
-
-			for i in 0..DIVIDE {
-				let one_locked_reward = locked_reward / DIVIDE as u128;
-
-				let estimate_block_number = current_block.saturating_add((i + 1) * (TOTAL_LOCK_PERIOD / DIVIDE));
-				let actual_block_number = estimate_block_number / DAYS * DAYS;
-
-				locks.insert(actual_block_number, one_locked_reward);
-			}
-		}
-
-		locks
-	}
-
-	fn max_locks() -> u32 {
-		// Max locks when one unlocks everyday for the `TOTAL_LOCK_PERIOD`.
-		100
-	}
-}
-
 impl pallet_rewards::Trait for Test {
 	type Event = Event;
 	type Currency = Balances;
-	type DonationDestination = DonationDestination;
-	type GenerateRewardLocks = GenerateRewardLocks;
+	type DonationDestination = ();
+	type GenerateRewardLocks = ();
 	type WeightInfo = ();
 }
 
 parameter_types! {
+	// Check every block for changes to the curve.
 	pub const UpdateFrequency: u64 = 1;
 }
 
