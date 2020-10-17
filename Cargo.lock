@@ -2542,6 +2542,7 @@ dependencies = [
  "kulupu-runtime",
  "log",
  "pallet-eras",
+ "pallet-reward-curve",
  "pallet-rewards",
  "pallet-transaction-payment-rpc",
  "parity-scale-codec",
@@ -2652,6 +2653,7 @@ dependencies = [
  "pallet-multisig",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
+ "pallet-reward-curve",
  "pallet-rewards",
  "pallet-scheduler",
  "pallet-timestamp",
@@ -3926,6 +3928,19 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "safe-mix",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-reward-curve"
+version = "2.3.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-rewards",
+ "parity-scale-codec",
+ "serde",
  "sp-runtime",
  "sp-std",
 ]

@@ -47,6 +47,7 @@ substrate-frame-rpc-system = { path = "vendor/substrate/utils/frame/rpc/system" 
 pallet-transaction-payment-rpc = { path = "vendor/substrate/frame/transaction-payment/rpc/" }
 
 pallet-rewards = { path = "frame/rewards" }
+pallet-reward-curve = { path = "frame/reward-curve" }
 pallet-eras = { path = "frame/eras" }
 kulupu-pow = { path = "pow" }
 kulupu-runtime = { path = "runtime" }

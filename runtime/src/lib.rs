@@ -768,6 +768,17 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
 	}
 }
 
+parameter_types! {
+	pub const UpdateFrequency: BlockNumber = 10_000;
+}
+
+impl reward_curve::Trait for Runtime {
+	type Currency = Balances;
+	type UpdateFrequency = UpdateFrequency;
+	type UpdateOrigin = EnsureRoot<AccountId>;
+	type SetReward = Rewards;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -786,6 +797,7 @@ construct_runtime!(
 		Difficulty: difficulty::{Module, Call, Storage, Config} = 19,
 		Eras: eras::{Module, Call, Storage, Config<T>} = 20,
 		Rewards: rewards::{Module, Call, Inherent, Storage, Event<T>, Config<T>} = 4,
+		RewardCurve: reward_curve::{Module, Call, Storage} = 21,
 
 		// Governance.
 		Democracy: democracy::{Module, Call, Storage, Config, Event<T>} = 5,

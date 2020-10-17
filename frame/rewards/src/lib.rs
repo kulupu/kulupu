@@ -155,10 +155,7 @@ decl_module! {
 		)]
 		fn set_reward(origin, reward: BalanceOf<T>) {
 			ensure_root(origin)?;
-			Self::check_new_reward_taxation(reward, Taxation::get())?;
-
-			Reward::<T>::put(reward);
-			Self::deposit_event(RawEvent::RewardChanged(reward));
+			Self::set_reward_impl(reward)?;
 		}
 
 		#[weight = (
@@ -216,6 +213,13 @@ decl_module! {
 const REWARDS_ID: LockIdentifier = *b"rewards ";
 
 impl<T: Trait> Module<T> {
+	fn set_reward_impl(reward: BalanceOf<T>) -> Result<(), Error<T>> {
+		Self::check_new_reward_taxation(reward, Taxation::get())?;
+		Reward::<T>::put(reward);
+		Self::deposit_event(RawEvent::RewardChanged(reward));
+		Ok(())
+	}
+
 	fn check_new_reward_taxation(reward: BalanceOf<T>, taxation: Perbill) -> Result<(), Error<T>> {
 		let tax = taxation * reward;
 		let miner = reward.saturating_sub(tax);
@@ -284,6 +288,16 @@ impl<T: Trait> Module<T> {
 		);
 
 		<Self as Store>::RewardLocks::insert(author, locks);
+	}
+}
+
+pub trait SetReward<Balance> {
+	fn set_reward(reward: Balance) -> Result<(), ()>;
+}
+
+impl<T: Trait> SetReward<BalanceOf<T>> for Module<T> {
+	fn set_reward(reward: BalanceOf<T>) -> Result<(), ()> {
+		Self::set_reward_impl(reward).map_err(|_| ())
 	}
 }
 
