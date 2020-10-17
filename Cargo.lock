@@ -3938,9 +3938,13 @@ version = "2.3.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "pallet-balances",
  "pallet-rewards",
  "parity-scale-codec",
  "serde",
+ "sp-consensus-pow",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]

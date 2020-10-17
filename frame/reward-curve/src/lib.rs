@@ -22,12 +22,19 @@
 
 use codec::{Encode, Decode};
 use sp_std::prelude::*;
-use sp_runtime::traits::{Bounded, Zero};
-use frame_support::{decl_storage, decl_module, decl_error, ensure, weights::Weight};
+use sp_runtime::traits::Zero;
+use frame_support::{decl_storage, decl_module, decl_error, decl_event, ensure, weights::Weight};
 use frame_support::traits::{Currency, LockableCurrency, Get, EnsureOrigin};
 use pallet_rewards::SetReward;
 
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
+
 pub trait Trait: frame_system::Trait {
+	/// The overarching event type.
+	type Event: From<Event> + Into<<Self as frame_system::Trait>::Event>;
 	/// An implementation of on-chain currency.
 	type Currency: LockableCurrency<Self::AccountId>;
 	/// How often to check to update the reward curve.
@@ -43,18 +50,25 @@ pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::
 
 #[derive(Encode, Decode, Clone, PartialEq, Debug)]
 pub struct RewardPoint<BlockNumber, Balance> {
-	end: BlockNumber,
+	start: BlockNumber,
 	reward: Balance,
 }
 
 decl_error! {
 	pub enum Error for Module<T: Trait> {
-		/// Reward curve is empty.
-		Empty,
 		/// Reward curve is not sorted.
 		NotSorted,
-		/// Reward curve does not capture all blocks.
-		NotComplete,
+	}
+}
+
+decl_event! {
+	pub enum Event {
+		/// A new reward curve was set.
+		RewardCurveSet,
+		/// Reward updated successfully.
+		UpdateSuccessful,
+		/// Reward failed to update.
+		UpdateFailed,
 	}
 }
 
@@ -67,15 +81,21 @@ decl_storage! {
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		fn on_initialize(n: T::BlockNumber) -> Weight {
-			if n % T::UpdateFrequency::get() == Zero::zero() {
+		fn deposit_event() = default;
+
+		fn on_initialize(current_block: T::BlockNumber) -> Weight {
+			if current_block % T::UpdateFrequency::get() == Zero::zero() {
 				let _ = RewardCurve::<T>::try_mutate(|curve| -> Result<(), ()>{
-					ensure!(curve.len() > 1, ());
-					ensure!(curve.first().expect("We checked curve was not empty; QED").end < n, ());
-					curve.remove(0);
-					let new_reward = curve.first().expect("We checked curve had at least two elements").reward;
+					ensure!(!curve.is_empty(), ());
+					ensure!(curve.first().expect("We checked curve was not empty; QED").start <= current_block, ());
+					let point = curve.remove(0);
+					let new_reward = point.reward;
 					// Not much we can do if this fails.
-					let _ = T::SetReward::set_reward(new_reward);
+					let result = T::SetReward::set_reward(new_reward);
+					match result {
+						Ok(..) => Self::deposit_event(Event::UpdateSuccessful),
+						Err(..) => Self::deposit_event(Event::UpdateFailed),
+					}
 					Ok(())
 				});
 			}
@@ -85,20 +105,17 @@ decl_module! {
 		#[weight = 0]
 		fn set_reward_curve(origin, curve: Vec<RewardPoint<T::BlockNumber, BalanceOf<T>>>) {
 			T::UpdateOrigin::ensure_origin(origin)?;
-			Self::ensure_sorted_and_complete(&curve)?;
+			Self::ensure_sorted(&curve)?;
 			RewardCurve::<T>::put(curve);
+			Self::deposit_event(Event::RewardCurveSet);
 		}
 	}
 }
 
 impl<T: Trait> Module<T> {
-	fn ensure_sorted_and_complete(curve: &[RewardPoint<T::BlockNumber, BalanceOf<T>>]) -> Result<(), Error<T>> {
-		// Check curve is not empty
-		ensure!(curve.len() > 0, Error::<T>::Empty);
+	fn ensure_sorted(curve: &[RewardPoint<T::BlockNumber, BalanceOf<T>>]) -> Result<(), Error<T>> {
 		// Check curve is sorted
-		ensure!(curve.windows(2).all(|w| w[0].end < w[1].end), Error::<T>::NotSorted);
-		// Check curve goes all the way to the last block
-		ensure!(curve.last().expect("We checked curve was not empty; QED").end == T::BlockNumber::max_value(), Error::<T>::NotComplete);
+		ensure!(curve.windows(2).all(|w| w[0].start < w[1].start), Error::<T>::NotSorted);
 		Ok(())
 	}
 }

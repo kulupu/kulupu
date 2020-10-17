@@ -773,6 +773,7 @@ parameter_types! {
 }
 
 impl reward_curve::Trait for Runtime {
+	type Event = Event;
 	type Currency = Balances;
 	type UpdateFrequency = UpdateFrequency;
 	type UpdateOrigin = EnsureRoot<AccountId>;

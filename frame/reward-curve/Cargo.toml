@@ -15,6 +15,12 @@ frame-system = { path = "../../vendor/substrate/frame/system", default-features 
 frame-support = { path = "../../vendor/substrate/frame/support", default-features = false }
 pallet-rewards = { path = "../rewards", default-features = false }
 
+[dev-dependencies]
+sp-core = { path = "../../vendor/substrate/primitives/core", default-features = false }
+sp-io = { path = "../../vendor/substrate/primitives/io", default-features = false }
+pallet-balances = { path = "../../vendor/substrate/frame/balances", default-features = false }
+sp-consensus-pow = { path = "../../vendor/substrate/primitives/consensus/pow", default-features = false }
+
 [features]
 default = ["std"]
 std = [
