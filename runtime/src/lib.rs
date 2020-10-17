@@ -798,7 +798,7 @@ construct_runtime!(
 		Difficulty: difficulty::{Module, Call, Storage, Config} = 19,
 		Eras: eras::{Module, Call, Storage, Config<T>} = 20,
 		Rewards: rewards::{Module, Call, Inherent, Storage, Event<T>, Config<T>} = 4,
-		RewardCurve: reward_curve::{Module, Call, Storage} = 21,
+		RewardCurve: reward_curve::{Module, Call, Storage, Event} = 21,
 
 		// Governance.
 		Democracy: democracy::{Module, Call, Storage, Config, Event<T>} = 5,

@@ -87,12 +87,16 @@ fn reward_curve_works() {
 		assert_eq!(last_event(), mock::Event::pallet_reward_curve(crate::Event::UpdateSuccessful));
 		run_to_block(20, 1);
 		assert_eq!(Rewards::reward(), 50);
+		// No change, not part of the curve
 		run_to_block(30, 1);
 		assert_eq!(Rewards::reward(), 50);
 		run_to_block(40, 1);
 		assert_eq!(Rewards::reward(), 25);
 		run_to_block(50, 1);
 		assert_eq!(Rewards::reward(), 20);
+		// Curve is finished and is empty
+		assert_eq!(RewardCurve::<Test>::get(), vec![]);
+		// Everything works fine past the curve definition
 		run_to_block(100, 1);
 		assert_eq!(Rewards::reward(), 20);
 	});

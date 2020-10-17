@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // This file is part of Kulupu.
 //
-// Copyright (c) 2020 Wei Tang.
+// Copyright (c) 2020 Shawn Tabrizi.
 //
 // Kulupu is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -84,11 +84,14 @@ decl_module! {
 		fn deposit_event() = default;
 
 		fn on_initialize(current_block: T::BlockNumber) -> Weight {
+			let mut weight: Weight = 0;
 			if current_block % T::UpdateFrequency::get() == Zero::zero() {
-				let _ = RewardCurve::<T>::try_mutate(|curve| -> Result<(), ()>{
+				let _ = RewardCurve::<T>::try_mutate(|curve| -> Result<(), ()> {
+					weight = weight.saturating_add(T::DbWeight::get().reads(1));
 					ensure!(!curve.is_empty(), ());
-					ensure!(curve.first().expect("We checked curve was not empty; QED").start <= current_block, ());
+					// We checked above that curve is not empty, so this will never panic.
 					let point = curve.remove(0);
+					ensure!(point.start <= current_block, ());
 					let new_reward = point.reward;
 					// Not much we can do if this fails.
 					let result = T::SetReward::set_reward(new_reward);
@@ -96,13 +99,14 @@ decl_module! {
 						Ok(..) => Self::deposit_event(Event::UpdateSuccessful),
 						Err(..) => Self::deposit_event(Event::UpdateFailed),
 					}
+					weight = weight.saturating_add(T::DbWeight::get().writes(1));
 					Ok(())
 				});
 			}
-			0
+			weight
 		}
 
-		#[weight = 0]
+		#[weight = T::DbWeight::get().writes(1)]
 		fn set_reward_curve(origin, curve: Vec<RewardPoint<T::BlockNumber, BalanceOf<T>>>) {
 			T::UpdateOrigin::ensure_origin(origin)?;
 			Self::ensure_sorted(&curve)?;
