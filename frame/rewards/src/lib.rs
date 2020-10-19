@@ -85,6 +85,8 @@ pub trait Trait: frame_system::Trait {
 	type DonationDestination: Get<Self::AccountId>;
 	/// Generate reward locks.
 	type GenerateRewardLocks: GenerateRewardLocks<Self>;
+	/// How often to check to update the reward curve.
+	type UpdateFrequency: Get<Self::BlockNumber>;
 	/// Weights for this pallet.
 	type WeightInfo: WeightInfo;
 }
@@ -92,12 +94,20 @@ pub trait Trait: frame_system::Trait {
 /// Type alias for currency balance.
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
 
+#[derive(Encode, Decode, Clone, PartialEq, Debug)]
+pub struct RewardPoint<BlockNumber, Balance> {
+	start: BlockNumber,
+	reward: Balance,
+}
+
 decl_error! {
 	pub enum Error for Module<T: Trait> {
 		/// Reward set is too low.
 		RewardTooLow,
 		/// Author preferences already set.
 		AuthorPrefsAlreadySet,
+		/// Reward curve is not sorted.
+		NotSorted,
 	}
 }
 
@@ -114,6 +124,8 @@ decl_storage! {
 		/// Pending reward locks.
 		RewardLocks get(fn reward_locks):
 			map hasher(twox_64_concat) T::AccountId => BTreeMap<T::BlockNumber, BalanceOf<T>>;
+		/// Reward Curve for this chain
+		RewardCurve get(fn reward_curve) config(): Vec<RewardPoint<T::BlockNumber, BalanceOf<T>>>;
 	}
 }
 
@@ -123,6 +135,12 @@ decl_event! {
 		RewardChanged(Balance),
 		/// Block taxation has changed. [taxation]
 		TaxationChanged(Perbill),
+		/// A new reward curve was set.
+		RewardCurveSet,
+		/// Reward updated successfully.
+		UpdateSuccessful,
+		/// Reward failed to update.
+		UpdateFailed,
 	}
 }
 
@@ -131,6 +149,52 @@ decl_module! {
 		type Error = Error<T>;
 
 		fn deposit_event() = default;
+
+		fn on_initialize(now: T::BlockNumber) -> Weight {
+			let author = frame_system::Module::<T>::digest()
+				.logs
+				.iter()
+				.filter_map(|s| s.as_pre_runtime())
+				.filter_map(|(id, mut data)| if id == POW_ENGINE_ID {
+					T::AccountId::decode(&mut data).ok()
+				} else {
+					None
+				})
+				.next();
+
+			if let Some(author) = author {
+				<Self as Store>::Author::put(author);
+			}
+
+			if now % T::UpdateFrequency::get() == Zero::zero() {
+				let _ = RewardCurve::<T>::try_mutate(|curve| -> Result<(), ()> {
+					ensure!(!curve.is_empty(), ());
+					// We checked above that curve is not empty, so this will never panic.
+					let point = curve.remove(0);
+					ensure!(point.start <= now, ());
+					let new_reward = point.reward;
+					// Not much we can do if this fails.
+					let result = Self::set_reward_impl(new_reward);
+					match result {
+						Ok(..) => Self::deposit_event(Event::<T>::UpdateSuccessful),
+						Err(..) => Self::deposit_event(Event::<T>::UpdateFailed),
+					}
+					Ok(())
+				});
+			}
+
+			T::WeightInfo::on_initialize().saturating_add(T::WeightInfo::on_finalize())
+		}
+
+		fn on_finalize(now: T::BlockNumber) {
+			if let Some(author) = <Self as Store>::Author::get() {
+				let reward = Reward::<T>::get();
+				Self::do_reward(&author, reward, now);
+			}
+
+			<Self as Store>::Author::kill();
+			<Self as Store>::AuthorDonation::kill();
+		}
 
 		#[weight = (
 			T::WeightInfo::note_author_prefs(),
@@ -179,33 +243,12 @@ decl_module! {
 			Self::do_update_locks(&target, locks, current_number);
 		}
 
-		fn on_initialize(now: T::BlockNumber) -> Weight {
-			let author = frame_system::Module::<T>::digest()
-				.logs
-				.iter()
-				.filter_map(|s| s.as_pre_runtime())
-				.filter_map(|(id, mut data)| if id == POW_ENGINE_ID {
-					T::AccountId::decode(&mut data).ok()
-				} else {
-					None
-				})
-				.next();
-
-			if let Some(author) = author {
-				<Self as Store>::Author::put(author);
-			}
-
-			T::WeightInfo::on_initialize().saturating_add(T::WeightInfo::on_finalize())
-		}
-
-		fn on_finalize(now: T::BlockNumber) {
-			if let Some(author) = <Self as Store>::Author::get() {
-				let reward = Reward::<T>::get();
-				Self::do_reward(&author, reward, now);
-			}
-
-			<Self as Store>::Author::kill();
-			<Self as Store>::AuthorDonation::kill();
+		#[weight = T::DbWeight::get().writes(1)]
+		fn set_reward_curve(origin, curve: Vec<RewardPoint<T::BlockNumber, BalanceOf<T>>>) {
+			ensure_root(origin)?;
+			Self::ensure_sorted(&curve)?;
+			RewardCurve::<T>::put(curve);
+			Self::deposit_event(Event::<T>::RewardCurveSet);
 		}
 	}
 }
@@ -213,6 +256,12 @@ decl_module! {
 const REWARDS_ID: LockIdentifier = *b"rewards ";
 
 impl<T: Trait> Module<T> {
+	fn ensure_sorted(curve: &[RewardPoint<T::BlockNumber, BalanceOf<T>>]) -> Result<(), Error<T>> {
+		// Check curve is sorted
+		ensure!(curve.windows(2).all(|w| w[0].start < w[1].start), Error::<T>::NotSorted);
+		Ok(())
+	}
+
 	fn set_reward_impl(reward: BalanceOf<T>) -> Result<(), Error<T>> {
 		Self::check_new_reward_taxation(reward, Taxation::get())?;
 		Reward::<T>::put(reward);
@@ -288,16 +337,6 @@ impl<T: Trait> Module<T> {
 		);
 
 		<Self as Store>::RewardLocks::insert(author, locks);
-	}
-}
-
-pub trait SetReward<Balance> {
-	fn set_reward(reward: Balance) -> Result<(), ()>;
-}
-
-impl<T: Trait> SetReward<BalanceOf<T>> for Module<T> {
-	fn set_reward(reward: BalanceOf<T>) -> Result<(), ()> {
-		Self::set_reward_impl(reward).map_err(|_| ())
 	}
 }
 

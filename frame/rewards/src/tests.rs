@@ -184,3 +184,94 @@ fn reward_locks_work() {
 		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
 	});
 }
+
+fn reward_point(start: u64, reward: u128) -> RewardPoint<u64, u128> {
+	RewardPoint { start, reward }
+}
+
+fn test_curve() -> Vec<RewardPoint<u64, u128>> {
+	vec![
+		reward_point(10, 100),
+		reward_point(20, 50),
+		reward_point(40, 25),
+		reward_point(50, 20),
+	]
+}
+
+#[test]
+fn reward_curve_works() {
+	new_test_ext(1).execute_with(|| {
+		// Set reward curve
+		assert_ok!(Rewards::set_reward_curve(Origin::root(), test_curve()));
+		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::RewardCurveSet));
+		// Check current reward
+		assert_eq!(Rewards::reward(), 60);
+		run_to_block(9, 1);
+		assert_eq!(Rewards::reward(), 60);
+		run_to_block(10, 1);
+		// Update successful
+		assert_eq!(Rewards::reward(), 100);
+		// Success reported
+		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::UpdateSuccessful));
+		run_to_block(20, 1);
+		assert_eq!(Rewards::reward(), 50);
+		// No change, not part of the curve
+		run_to_block(30, 1);
+		assert_eq!(Rewards::reward(), 50);
+		run_to_block(40, 1);
+		assert_eq!(Rewards::reward(), 25);
+		run_to_block(50, 1);
+		assert_eq!(Rewards::reward(), 20);
+		// Curve is finished and is empty
+		assert_eq!(RewardCurve::<Test>::get(), vec![]);
+		// Everything works fine past the curve definition
+		run_to_block(100, 1);
+		assert_eq!(Rewards::reward(), 20);
+	});
+}
+
+#[test]
+fn set_reward_curve_works() {
+	new_test_ext(1).execute_with(|| {
+		// Bad Origin
+		assert_noop!(Rewards::set_reward_curve(Origin::signed(1), test_curve()), BadOrigin);
+		// Duplicate Point
+		let duplicate_curve = vec![reward_point(20, 50), reward_point(20, 30)];
+		assert_noop!(
+			Rewards::set_reward_curve(Origin::root(), duplicate_curve),
+			Error::<Test>::NotSorted,
+		);
+		// Unsorted
+		let unsorted_curve = vec![reward_point(20, 50), reward_point(10, 30)];
+		assert_noop!(
+			Rewards::set_reward_curve(Origin::root(), unsorted_curve),
+			Error::<Test>::NotSorted,
+		);
+		// Single Point OK
+		let single_point = vec![reward_point(100, 100)];
+		assert_ok!(Rewards::set_reward_curve(Origin::root(), single_point));
+		// Empty Curve OK
+		assert_ok!(Rewards::set_reward_curve(Origin::root(), vec![]));
+	});
+}
+
+#[test]
+fn failed_update_reported() {
+	new_test_ext(1).execute_with(|| {
+		// Shouldn't be able to set reward to 0
+		let bad_curve = vec![reward_point(10, 100), reward_point(20, 0), reward_point(30, 50)];
+		// Set reward curve
+		assert_ok!(Rewards::set_reward_curve(Origin::root(), bad_curve));
+		// Check current reward
+		assert_eq!(Rewards::reward(), 60);
+		run_to_block(10, 1);
+		assert_eq!(Rewards::reward(), 100);
+		run_to_block(20, 1);
+		// Unchanged because of bad reward amount
+		assert_eq!(Rewards::reward(), 100);
+		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::UpdateFailed));
+		// Continues to work after the fact
+		run_to_block(30, 1);
+		assert_eq!(Rewards::reward(), 50);
+	});
+}

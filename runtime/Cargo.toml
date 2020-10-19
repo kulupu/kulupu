@@ -43,7 +43,6 @@ proxy = { package = "pallet-proxy", path = "../vendor/substrate/frame/proxy", de
 vesting = { package = "pallet-vesting", path = "../vendor/substrate/frame/vesting", default-features = false }
 multisig = { package = "pallet-multisig", path = "../vendor/substrate/frame/multisig", default-features = false }
 rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
-reward-curve = { package = "pallet-reward-curve", path = "../frame/reward-curve", default-features = false }
 eras = { package = "pallet-eras", path = "../frame/eras", default-features = false }
 difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", default-features = false }
 
@@ -97,7 +96,6 @@ std = [
 	"vesting/std",
 	"multisig/std",
 	"rewards/std",
-	"reward-curve/std",
 	"eras/std",
 	"difficulty/std",
 
