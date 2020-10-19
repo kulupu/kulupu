@@ -366,6 +366,7 @@ impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
 
 parameter_types! {
 	pub DonationDestination: AccountId = Treasury::account_id();
+	pub const UpdateFrequency: BlockNumber = 7 * DAYS;
 }
 
 impl rewards::Trait for Runtime {
@@ -373,6 +374,7 @@ impl rewards::Trait for Runtime {
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
+	type UpdateFrequency = UpdateFrequency;
 	type WeightInfo = weights::rewards::WeightInfo;
 }
 
@@ -768,18 +770,6 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
 	}
 }
 
-parameter_types! {
-	pub const UpdateFrequency: BlockNumber = 7 * DAYS;
-}
-
-impl reward_curve::Trait for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type UpdateFrequency = UpdateFrequency;
-	type UpdateOrigin = EnsureRoot<AccountId>;
-	type SetReward = Rewards;
-}
-
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -798,7 +788,6 @@ construct_runtime!(
 		Difficulty: difficulty::{Module, Call, Storage, Config} = 19,
 		Eras: eras::{Module, Call, Storage, Config<T>} = 20,
 		Rewards: rewards::{Module, Call, Inherent, Storage, Event<T>, Config<T>} = 4,
-		RewardCurve: reward_curve::{Module, Call, Storage, Event} = 21,
 
 		// Governance.
 		Democracy: democracy::{Module, Call, Storage, Config, Event<T>} = 5,
