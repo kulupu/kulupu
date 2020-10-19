@@ -69,12 +69,13 @@ impl<T: Trait> GenerateRewardLocks<T> for () {
 }
 
 pub trait WeightInfo {
+	fn on_initialize() -> Weight;
+	fn on_finalize() -> Weight;
 	fn note_author_prefs() -> Weight;
 	fn set_reward() -> Weight;
 	fn set_taxation() -> Weight;
 	fn unlock() -> Weight;
-	fn on_initialize() -> Weight;
-	fn on_finalize() -> Weight;
+	fn set_reward_curve() -> Weight;
 }
 
 /// Trait for rewards.
@@ -246,7 +247,7 @@ decl_module! {
 			Self::do_update_locks(&target, locks, current_number);
 		}
 
-		#[weight = T::DbWeight::get().writes(1)]
+		#[weight = T::WeightInfo::set_reward_curve()]
 		fn set_reward_curve(origin, curve: Vec<RewardPoint<T::BlockNumber, BalanceOf<T>>>) {
 			ensure_root(origin)?;
 			Self::ensure_sorted(&curve)?;

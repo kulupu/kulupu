@@ -54,4 +54,5 @@ impl rewards::WeightInfo for WeightInfo {
 			.saturating_add(DbWeight::get().reads(5 as Weight))
 			.saturating_add(DbWeight::get().writes(3 as Weight))
 	}
+	fn set_reward_curve() -> Weight { 0 }
 }

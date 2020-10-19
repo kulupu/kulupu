@@ -25,6 +25,14 @@
 use frame_support::weights::{Weight, constants::RocksDbWeight as DbWeight};
 
 impl crate::WeightInfo for () {
+	fn on_initialize() -> Weight {
+		(12159000 as Weight)
+	}
+	fn on_finalize() -> Weight {
+		(224231000 as Weight)
+			.saturating_add(DbWeight::get().reads(5 as Weight))
+			.saturating_add(DbWeight::get().writes(3 as Weight))
+	}
 	fn note_author_prefs() -> Weight {
 		(9845000 as Weight)
 			.saturating_add(DbWeight::get().reads(1 as Weight))
@@ -45,12 +53,5 @@ impl crate::WeightInfo for () {
 			.saturating_add(DbWeight::get().reads(1 as Weight))
 			.saturating_add(DbWeight::get().writes(1 as Weight))
 	}
-	fn on_initialize() -> Weight {
-		(12159000 as Weight)
-	}
-	fn on_finalize() -> Weight {
-		(224231000 as Weight)
-			.saturating_add(DbWeight::get().reads(5 as Weight))
-			.saturating_add(DbWeight::get().writes(3 as Weight))
-	}
+	fn set_reward_curve() -> Weight { 0 }
 }
