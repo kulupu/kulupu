@@ -28,7 +28,7 @@ use frame_support::{traits::Get, weights::Weight};
 use sp_std::marker::PhantomData;
 
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Trait> rewards::WeightInfo for WeightInfo<T> {
+impl<T: system::Trait> rewards::WeightInfo for WeightInfo<T> {
 	fn on_initialize() -> Weight {
 		(48_264_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))

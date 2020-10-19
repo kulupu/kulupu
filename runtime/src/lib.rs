@@ -375,7 +375,7 @@ impl rewards::Trait for Runtime {
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
 	type UpdateFrequency = UpdateFrequency;
-	type WeightInfo = weights::rewards::WeightInfo;
+	type WeightInfo = weights::rewards::WeightInfo<Runtime>;
 }
 
 pub struct Author;
