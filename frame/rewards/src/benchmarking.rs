@@ -123,6 +123,21 @@ benchmarks! {
 		assert_last_event::<T>(Event::<T>::TaxationChanged(new_taxation).into());
 	}
 
+	set_reward_curve {
+		let l in 0 .. 1_000;
+
+		let mut curve = Vec::new();
+		for i in 0 .. l {
+			curve.push(RewardPoint {
+				start: i.into(),
+				reward: i.into(),
+			});
+		}
+	}: _(RawOrigin::Root, curve)
+	verify {
+		assert_last_event::<T>(Event::<T>::RewardCurveSet.into());
+	}
+
 	// Worst case: Target user has `max_locks` which are all unlocked during this call.
 	unlock {
 		let miner = account("miner", 0, 0);
@@ -146,12 +161,13 @@ mod tests {
 	#[test]
 	fn test_benchmarks() {
 		new_test_ext(0).execute_with(|| {
+			assert_ok!(test_benchmark_on_finalize::<Test>());
+			assert_ok!(test_benchmark_on_initialize::<Test>());
 			assert_ok!(test_benchmark_note_author_prefs::<Test>());
 			assert_ok!(test_benchmark_set_reward::<Test>());
 			assert_ok!(test_benchmark_set_taxation::<Test>());
 			assert_ok!(test_benchmark_unlock::<Test>());
-			assert_ok!(test_benchmark_on_initialize::<Test>());
-			assert_ok!(test_benchmark_on_finalize::<Test>());
+			assert_ok!(test_benchmark_set_reward_curve::<Test>());
 		});
 	}
 }
