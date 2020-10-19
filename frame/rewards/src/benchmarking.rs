@@ -123,6 +123,19 @@ benchmarks! {
 		assert_last_event::<T>(Event::<T>::TaxationChanged(new_taxation).into());
 	}
 
+	// Worst case: Target user has `max_locks` which are all unlocked during this call.
+	unlock {
+		let miner = account("miner", 0, 0);
+		let max_locks = T::GenerateRewardLocks::max_locks();
+		create_locks::<T>(&miner, max_locks);
+		let caller = whitelisted_caller();
+		frame_system::Module::<T>::set_block_number(max_locks.into());
+		assert_eq!(RewardLocks::<T>::get(&miner).iter().count() as u32, max_locks);
+	}: _(RawOrigin::Signed(caller), miner.clone())
+	verify {
+		assert_eq!(RewardLocks::<T>::get(&miner).iter().count(), 0);
+	}
+
 	set_reward_curve {
 		let l in 0 .. 1_000;
 
@@ -136,19 +149,6 @@ benchmarks! {
 	}: _(RawOrigin::Root, curve)
 	verify {
 		assert_last_event::<T>(Event::<T>::RewardCurveSet.into());
-	}
-
-	// Worst case: Target user has `max_locks` which are all unlocked during this call.
-	unlock {
-		let miner = account("miner", 0, 0);
-		let max_locks = T::GenerateRewardLocks::max_locks();
-		create_locks::<T>(&miner, max_locks);
-		let caller = whitelisted_caller();
-		frame_system::Module::<T>::set_block_number(max_locks.into());
-		assert_eq!(RewardLocks::<T>::get(&miner).iter().count() as u32, max_locks);
-	}: _(RawOrigin::Signed(caller), miner.clone())
-	verify {
-		assert_eq!(RewardLocks::<T>::get(&miner).iter().count(), 0);
 	}
 }
 

@@ -75,7 +75,7 @@ pub trait WeightInfo {
 	fn set_reward() -> Weight;
 	fn set_taxation() -> Weight;
 	fn unlock() -> Weight;
-	fn set_reward_curve() -> Weight;
+	fn set_reward_curve(_l: u32, ) -> Weight;
 }
 
 /// Trait for rewards.
@@ -247,7 +247,7 @@ decl_module! {
 			Self::do_update_locks(&target, locks, current_number);
 		}
 
-		#[weight = T::WeightInfo::set_reward_curve()]
+		#[weight = T::WeightInfo::set_reward_curve(curve.len() as u32)]
 		fn set_reward_curve(origin, curve: Vec<RewardPoint<T::BlockNumber, BalanceOf<T>>>) {
 			ensure_root(origin)?;
 			Self::ensure_sorted(&curve)?;
