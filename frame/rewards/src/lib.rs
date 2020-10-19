@@ -29,6 +29,8 @@ mod benchmarking;
 mod default_weights;
 
 use codec::{Encode, Decode};
+#[cfg(feature = "std")]
+use serde::{Serialize, Deserialize};
 use sp_std::{result, cmp::min, prelude::*, collections::btree_map::BTreeMap};
 use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
 use sp_inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
@@ -95,6 +97,7 @@ pub trait Trait: frame_system::Trait {
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
 
 #[derive(Encode, Decode, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct RewardPoint<BlockNumber, Balance> {
 	start: BlockNumber,
 	reward: Balance,
