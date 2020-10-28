@@ -185,16 +185,16 @@ fn reward_locks_work() {
 	});
 }
 
-fn reward_point(start: u64, reward: u128) -> RewardPoint<u64, u128> {
-	RewardPoint { start, reward }
+fn reward_point(start: u64, reward: u128, taxation: Perbill) -> RewardPoint<u64, u128> {
+	RewardPoint { start, reward, taxation }
 }
 
 fn test_curve() -> Vec<RewardPoint<u64, u128>> {
 	vec![
-		reward_point(10, 100),
-		reward_point(20, 50),
-		reward_point(40, 25),
-		reward_point(50, 20),
+		reward_point(50, 20, Perbill::from_percent(50)),
+		reward_point(40, 25, Perbill::from_percent(20)),
+		reward_point(20, 50, Perbill::from_percent(10)),
+		reward_point(10, 100, Perbill::from_percent(10)),
 	]
 }
 
@@ -212,7 +212,7 @@ fn reward_curve_works() {
 		// Update successful
 		assert_eq!(Rewards::reward(), 100);
 		// Success reported
-		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::UpdateSuccessful));
+		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::RewardChanged(100)));
 		run_to_block(20, 1);
 		assert_eq!(Rewards::reward(), 50);
 		// No change, not part of the curve
@@ -236,19 +236,25 @@ fn set_reward_curve_works() {
 		// Bad Origin
 		assert_noop!(Rewards::set_reward_curve(Origin::signed(1), test_curve()), BadOrigin);
 		// Duplicate Point
-		let duplicate_curve = vec![reward_point(20, 50), reward_point(20, 30)];
+		let duplicate_curve = vec![
+			reward_point(20, 50, Perbill::from_percent(0)),
+			reward_point(20, 30, Perbill::from_percent(0)),
+		];
 		assert_noop!(
 			Rewards::set_reward_curve(Origin::root(), duplicate_curve),
 			Error::<Test>::NotSorted,
 		);
 		// Unsorted
-		let unsorted_curve = vec![reward_point(20, 50), reward_point(10, 30)];
+		let unsorted_curve = vec![
+			reward_point(10, 30, Perbill::from_percent(0)),
+			reward_point(20, 50, Perbill::from_percent(0)),
+		];
 		assert_noop!(
 			Rewards::set_reward_curve(Origin::root(), unsorted_curve),
 			Error::<Test>::NotSorted,
 		);
 		// Single Point OK
-		let single_point = vec![reward_point(100, 100)];
+		let single_point = vec![reward_point(100, 100, Perbill::from_percent(0))];
 		assert_ok!(Rewards::set_reward_curve(Origin::root(), single_point));
 		// Empty Curve OK
 		assert_ok!(Rewards::set_reward_curve(Origin::root(), vec![]));
@@ -259,19 +265,12 @@ fn set_reward_curve_works() {
 fn failed_update_reported() {
 	new_test_ext(1).execute_with(|| {
 		// Shouldn't be able to set reward to 0
-		let bad_curve = vec![reward_point(10, 100), reward_point(20, 0), reward_point(30, 50)];
+		let bad_curve = vec![
+			reward_point(30, 50, Perbill::from_percent(0)),
+			reward_point(20, 0, Perbill::from_percent(0)),
+			reward_point(10, 100, Perbill::from_percent(0)),
+		];
 		// Set reward curve
-		assert_ok!(Rewards::set_reward_curve(Origin::root(), bad_curve));
-		// Check current reward
-		assert_eq!(Rewards::reward(), 60);
-		run_to_block(10, 1);
-		assert_eq!(Rewards::reward(), 100);
-		run_to_block(20, 1);
-		// Unchanged because of bad reward amount
-		assert_eq!(Rewards::reward(), 100);
-		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::UpdateFailed));
-		// Continues to work after the fact
-		run_to_block(30, 1);
-		assert_eq!(Rewards::reward(), 50);
+		assert_noop!(Rewards::set_reward_curve(Origin::root(), bad_curve), Error::<Test>::RewardTooLow);
 	});
 }

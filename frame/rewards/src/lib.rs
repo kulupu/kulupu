@@ -171,10 +171,19 @@ decl_module! {
 				RewardCurve::<T>::mutate(|curve| {
 					if let Some(point) = curve.pop() {
 						if point.start <= now {
-							Reward::<T>::put(point.reward);
-							Self::deposit_event(RawEvent::RewardChanged(point.reward));
-							Taxation::put(point.taxation);
-							Self::deposit_event(RawEvent::TaxationChanged(point.taxation));
+							Reward::<T>::mutate(|reward| {
+								if reward != &point.reward {
+									*reward = point.reward;
+									Self::deposit_event(RawEvent::RewardChanged(point.reward));
+								}
+							});
+
+							Taxation::mutate(|taxation| {
+								if taxation != &point.taxation {
+									*taxation = point.taxation;
+									Self::deposit_event(RawEvent::TaxationChanged(point.taxation));
+								}
+							});
 						} else {
 							curve.push(point);
 						}
