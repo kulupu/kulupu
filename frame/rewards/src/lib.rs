@@ -102,6 +102,7 @@ pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::
 pub struct RewardPoint<BlockNumber, Balance> {
 	start: BlockNumber,
 	reward: Balance,
+	taxation: Perbill,
 }
 
 decl_error! {
@@ -139,12 +140,8 @@ decl_event! {
 		RewardChanged(Balance),
 		/// Block taxation has changed. [taxation]
 		TaxationChanged(Perbill),
-		/// A new reward curve was set.
+		/// A new reward curve has been set.
 		RewardCurveSet,
-		/// Reward updated successfully.
-		UpdateSuccessful,
-		/// Reward failed to update.
-		UpdateFailed,
 	}
 }
 
@@ -171,19 +168,17 @@ decl_module! {
 			}
 
 			if now % T::UpdateFrequency::get() == Zero::zero() {
-				let _ = RewardCurve::<T>::try_mutate(|curve| -> Result<(), ()> {
-					ensure!(!curve.is_empty(), ());
-					// We checked above that curve is not empty, so this will never panic.
-					let point = curve.remove(0);
-					ensure!(point.start <= now, ());
-					let new_reward = point.reward;
-					// Not much we can do if this fails.
-					let result = Self::set_reward_impl(new_reward);
-					match result {
-						Ok(..) => Self::deposit_event(Event::<T>::UpdateSuccessful),
-						Err(..) => Self::deposit_event(Event::<T>::UpdateFailed),
+				RewardCurve::<T>::mutate(|curve| {
+					if let Some(point) = curve.pop() {
+						if point.start <= now {
+							Reward::<T>::put(point.reward);
+							Self::deposit_event(RawEvent::RewardChanged(point.reward));
+							Taxation::put(point.taxation);
+							Self::deposit_event(RawEvent::TaxationChanged(point.taxation));
+						} else {
+							curve.push(point);
+						}
 					}
-					Ok(())
 				});
 			}
 
@@ -223,7 +218,10 @@ decl_module! {
 		)]
 		fn set_reward(origin, reward: BalanceOf<T>) {
 			ensure_root(origin)?;
-			Self::set_reward_impl(reward)?;
+			Self::check_new_reward_taxation(reward, Taxation::get())?;
+
+			Reward::<T>::put(reward);
+			Self::deposit_event(RawEvent::RewardChanged(reward));
 		}
 
 		#[weight = (
@@ -251,6 +249,10 @@ decl_module! {
 		fn set_reward_curve(origin, curve: Vec<RewardPoint<T::BlockNumber, BalanceOf<T>>>) {
 			ensure_root(origin)?;
 			Self::ensure_sorted(&curve)?;
+			for point in &curve {
+				Self::check_new_reward_taxation(point.reward, point.taxation)?;
+			}
+
 			RewardCurve::<T>::put(curve);
 			Self::deposit_event(Event::<T>::RewardCurveSet);
 		}
@@ -262,14 +264,7 @@ const REWARDS_ID: LockIdentifier = *b"rewards ";
 impl<T: Trait> Module<T> {
 	fn ensure_sorted(curve: &[RewardPoint<T::BlockNumber, BalanceOf<T>>]) -> Result<(), Error<T>> {
 		// Check curve is sorted
-		ensure!(curve.windows(2).all(|w| w[0].start < w[1].start), Error::<T>::NotSorted);
-		Ok(())
-	}
-
-	fn set_reward_impl(reward: BalanceOf<T>) -> Result<(), Error<T>> {
-		Self::check_new_reward_taxation(reward, Taxation::get())?;
-		Reward::<T>::put(reward);
-		Self::deposit_event(RawEvent::RewardChanged(reward));
+		ensure!(curve.windows(2).all(|w| w[0].start > w[1].start), Error::<T>::NotSorted);
 		Ok(())
 	}
 
