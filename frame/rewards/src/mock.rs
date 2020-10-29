@@ -103,10 +103,6 @@ impl pallet_balances::Trait for Test {
 	type WeightInfo = ();
 }
 
-parameter_types! {
-	pub DonationDestination: u64 = 255;
-}
-
 const DOLLARS: Balance = 1;
 const DAYS: BlockNumber = 1;
 
@@ -142,11 +138,18 @@ impl crate::GenerateRewardLocks<Test> for GenerateRewardLocks {
 	}
 }
 
+parameter_types! {
+	pub DonationDestination: u64 = 255;
+	// Check every block for changes to the curve.
+	pub const UpdateFrequency: u64 = 1;
+}
+
 impl Trait for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
+	type UpdateFrequency = UpdateFrequency;
 	type WeightInfo = ();
 }
 
@@ -160,6 +163,7 @@ pub fn new_test_ext(author: u64) -> sp_io::TestExternalities {
 	GenesisConfig::<Test> {
 		reward: 60,
 		taxation: Perbill::from_percent(10),
+		curve: vec![],
 	}.assimilate_storage(&mut t).unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);

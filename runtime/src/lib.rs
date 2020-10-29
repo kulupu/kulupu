@@ -366,6 +366,7 @@ impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
 
 parameter_types! {
 	pub DonationDestination: AccountId = Treasury::account_id();
+	pub const UpdateFrequency: BlockNumber = 7 * DAYS;
 }
 
 impl rewards::Trait for Runtime {
@@ -373,7 +374,8 @@ impl rewards::Trait for Runtime {
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
-	type WeightInfo = weights::rewards::WeightInfo;
+	type UpdateFrequency = UpdateFrequency;
+	type WeightInfo = weights::rewards::WeightInfo<Runtime>;
 }
 
 pub struct Author;

@@ -29,6 +29,8 @@ mod benchmarking;
 mod default_weights;
 
 use codec::{Encode, Decode};
+#[cfg(feature = "std")]
+use serde::{Serialize, Deserialize};
 use sp_std::{result, cmp::min, prelude::*, collections::btree_map::BTreeMap};
 use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
 use sp_inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
@@ -67,12 +69,13 @@ impl<T: Trait> GenerateRewardLocks<T> for () {
 }
 
 pub trait WeightInfo {
+	fn on_initialize() -> Weight;
+	fn on_finalize() -> Weight;
 	fn note_author_prefs() -> Weight;
 	fn set_reward() -> Weight;
 	fn set_taxation() -> Weight;
 	fn unlock() -> Weight;
-	fn on_initialize() -> Weight;
-	fn on_finalize() -> Weight;
+	fn set_curve(_l: u32, ) -> Weight;
 }
 
 /// Trait for rewards.
@@ -85,6 +88,8 @@ pub trait Trait: frame_system::Trait {
 	type DonationDestination: Get<Self::AccountId>;
 	/// Generate reward locks.
 	type GenerateRewardLocks: GenerateRewardLocks<Self>;
+	/// How often to check to update the reward curve.
+	type UpdateFrequency: Get<Self::BlockNumber>;
 	/// Weights for this pallet.
 	type WeightInfo: WeightInfo;
 }
@@ -92,12 +97,22 @@ pub trait Trait: frame_system::Trait {
 /// Type alias for currency balance.
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
 
+#[derive(Encode, Decode, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct CurvePoint<BlockNumber, Balance> {
+	start: BlockNumber,
+	reward: Balance,
+	taxation: Perbill,
+}
+
 decl_error! {
 	pub enum Error for Module<T: Trait> {
 		/// Reward set is too low.
 		RewardTooLow,
 		/// Author preferences already set.
 		AuthorPrefsAlreadySet,
+		/// Reward curve is not sorted.
+		NotSorted,
 	}
 }
 
@@ -114,6 +129,8 @@ decl_storage! {
 		/// Pending reward locks.
 		RewardLocks get(fn reward_locks):
 			map hasher(twox_64_concat) T::AccountId => BTreeMap<T::BlockNumber, BalanceOf<T>>;
+		/// Curve for this chain, sorted in reverse by block number.
+		Curve get(fn curve) config(): Vec<CurvePoint<T::BlockNumber, BalanceOf<T>>>;
 	}
 }
 
@@ -123,6 +140,8 @@ decl_event! {
 		RewardChanged(Balance),
 		/// Block taxation has changed. [taxation]
 		TaxationChanged(Perbill),
+		/// A new curve has been set.
+		CurveSet,
 	}
 }
 
@@ -131,56 +150,6 @@ decl_module! {
 		type Error = Error<T>;
 
 		fn deposit_event() = default;
-
-		#[weight = (
-			T::WeightInfo::note_author_prefs(),
-			DispatchClass::Mandatory
-		)]
-		fn note_author_prefs(
-			origin,
-			donation: Perbill,
-		) {
-			ensure_none(origin)?;
-			ensure!(
-				<Self as Store>::AuthorDonation::get().is_none(),
-				Error::<T>::AuthorPrefsAlreadySet
-			);
-
-			<Self as Store>::AuthorDonation::put(donation);
-		}
-
-		#[weight = (
-			T::WeightInfo::set_reward(),
-			DispatchClass::Operational
-		)]
-		fn set_reward(origin, reward: BalanceOf<T>) {
-			ensure_root(origin)?;
-			Self::check_new_reward_taxation(reward, Taxation::get())?;
-
-			Reward::<T>::put(reward);
-			Self::deposit_event(RawEvent::RewardChanged(reward));
-		}
-
-		#[weight = (
-			T::WeightInfo::set_taxation(),
-			DispatchClass::Operational
-		)]
-		fn set_taxation(origin, taxation: Perbill) {
-			ensure_root(origin)?;
-			Self::check_new_reward_taxation(Reward::<T>::get(), taxation)?;
-
-			Taxation::put(taxation);
-			Self::deposit_event(RawEvent::TaxationChanged(taxation));
-		}
-
-		#[weight = T::WeightInfo::unlock()]
-		fn unlock(origin, target: T::AccountId) {
-			ensure_signed(origin)?;
-
-			let locks = Self::reward_locks(&target);
-			let current_number = frame_system::Module::<T>::block_number();
-			Self::do_update_locks(&target, locks, current_number);
-		}
 
 		fn on_initialize(now: T::BlockNumber) -> Weight {
 			let author = frame_system::Module::<T>::digest()
@@ -198,6 +167,30 @@ decl_module! {
 				<Self as Store>::Author::put(author);
 			}
 
+			if now % T::UpdateFrequency::get() == Zero::zero() {
+				Curve::<T>::mutate(|curve| {
+					if let Some(point) = curve.pop() {
+						if point.start <= now {
+							Reward::<T>::mutate(|reward| {
+								if reward != &point.reward {
+									*reward = point.reward;
+									Self::deposit_event(RawEvent::RewardChanged(point.reward));
+								}
+							});
+
+							Taxation::mutate(|taxation| {
+								if taxation != &point.taxation {
+									*taxation = point.taxation;
+									Self::deposit_event(RawEvent::TaxationChanged(point.taxation));
+								}
+							});
+						} else {
+							curve.push(point);
+						}
+					}
+				});
+			}
+
 			T::WeightInfo::on_initialize().saturating_add(T::WeightInfo::on_finalize())
 		}
 
@@ -210,12 +203,87 @@ decl_module! {
 			<Self as Store>::Author::kill();
 			<Self as Store>::AuthorDonation::kill();
 		}
+
+		/// As the block author, note your preferences for the block you produced.
+		#[weight = (
+			T::WeightInfo::note_author_prefs(),
+			DispatchClass::Mandatory
+		)]
+		fn note_author_prefs(
+			origin,
+			donation: Perbill,
+		) {
+			ensure_none(origin)?;
+			ensure!(
+				<Self as Store>::AuthorDonation::get().is_none(),
+				Error::<T>::AuthorPrefsAlreadySet
+			);
+
+			<Self as Store>::AuthorDonation::put(donation);
+		}
+
+		/// Set the reward amount for this chain. Must be Root origin.
+		#[weight = (
+			T::WeightInfo::set_reward(),
+			DispatchClass::Operational
+		)]
+		fn set_reward(origin, reward: BalanceOf<T>) {
+			ensure_root(origin)?;
+			Self::check_new_reward_taxation(reward, Taxation::get())?;
+
+			Reward::<T>::put(reward);
+			Self::deposit_event(RawEvent::RewardChanged(reward));
+		}
+
+		/// Set the taxation amount for this chain. Must be Root origin.
+		#[weight = (
+			T::WeightInfo::set_taxation(),
+			DispatchClass::Operational
+		)]
+		fn set_taxation(origin, taxation: Perbill) {
+			ensure_root(origin)?;
+			Self::check_new_reward_taxation(Reward::<T>::get(), taxation)?;
+
+			Taxation::put(taxation);
+			Self::deposit_event(RawEvent::TaxationChanged(taxation));
+		}
+
+		/// Unlock any vested rewards for `target` account.
+		#[weight = T::WeightInfo::unlock()]
+		fn unlock(origin, target: T::AccountId) {
+			ensure_signed(origin)?;
+
+			let locks = Self::reward_locks(&target);
+			let current_number = frame_system::Module::<T>::block_number();
+			Self::do_update_locks(&target, locks, current_number);
+		}
+
+		/// Set the reward and taxation curve for this chain. Must be Root origin.
+		///
+		/// NOTE: The curve should be reverse sorted by block number.
+		#[weight = T::WeightInfo::set_curve(curve.len() as u32)]
+		fn set_curve(origin, curve: Vec<CurvePoint<T::BlockNumber, BalanceOf<T>>>) {
+			ensure_root(origin)?;
+			Self::ensure_sorted(&curve)?;
+			for point in &curve {
+				Self::check_new_reward_taxation(point.reward, point.taxation)?;
+			}
+
+			Curve::<T>::put(curve);
+			Self::deposit_event(Event::<T>::CurveSet);
+		}
 	}
 }
 
 const REWARDS_ID: LockIdentifier = *b"rewards ";
 
 impl<T: Trait> Module<T> {
+	fn ensure_sorted(curve: &[CurvePoint<T::BlockNumber, BalanceOf<T>>]) -> Result<(), Error<T>> {
+		// Check curve is reverse sorted by block number
+		ensure!(curve.windows(2).all(|w| w[0].start > w[1].start), Error::<T>::NotSorted);
+		Ok(())
+	}
+
 	fn check_new_reward_taxation(reward: BalanceOf<T>, taxation: Perbill) -> Result<(), Error<T>> {
 		let tax = taxation * reward;
 		let miner = reward.saturating_sub(tax);

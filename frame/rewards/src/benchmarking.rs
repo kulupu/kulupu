@@ -48,46 +48,15 @@ fn create_locks<T: Trait>(who: &T::AccountId, num_of_locks: u32) {
 benchmarks! {
 	_ { }
 
-	// Constant time
-	note_author_prefs { }: _(RawOrigin::None, Perbill::from_percent(50))
-	verify {
-		assert!(AuthorDonation::exists());
-	}
-
-	// Constant time
-	set_reward {
-		let new_reward = BalanceOf::<T>::max_value();
-	}: _(RawOrigin::Root, new_reward)
-	verify {
-		assert_last_event::<T>(Event::<T>::RewardChanged(new_reward).into());
-	}
-
-	// Constant time
-	set_taxation {
-		let new_taxation = Perbill::from_percent(50);
-	}: _(RawOrigin::Root, new_taxation)
-	verify {
-		assert_last_event::<T>(Event::<T>::TaxationChanged(new_taxation).into());
-	}
-
-	// Worst case: Target user has `max_locks` which are all unlocked during this call.
-	unlock {
-		let miner = account("miner", 0, 0);
-		let max_locks = T::GenerateRewardLocks::max_locks();
-		create_locks::<T>(&miner, max_locks);
-		let caller = whitelisted_caller();
-		frame_system::Module::<T>::set_block_number(max_locks.into());
-		assert_eq!(RewardLocks::<T>::get(&miner).iter().count() as u32, max_locks);
-	}: _(RawOrigin::Signed(caller), miner.clone())
-	verify {
-		assert_eq!(RewardLocks::<T>::get(&miner).iter().count(), 0);
-	}
-
-	// Worst case: Author info is in digest.
+	// Worst case: Author info is in digest, and curve needs to be updated.
 	on_initialize {
 		let author: T::AccountId = account("author", 0, 0);
 		let author_digest = DigestItemOf::<T>::PreRuntime(sp_consensus_pow::POW_ENGINE_ID, author.encode());
 		frame_system::Module::<T>::deposit_log(author_digest);
+
+		Reward::<T>::put(T::Currency::minimum_balance());
+		Taxation::put(Perbill::zero());
+		Curve::<T>::put(vec![CurvePoint { start: 0.into(), reward: BalanceOf::<T>::max_value(), taxation: Perbill::max_value() }]);
 
 		// Whitelist transient storage items
 		frame_benchmarking::benchmarking::add_to_whitelist(Author::<T>::hashed_key().to_vec().into());
@@ -96,6 +65,7 @@ benchmarks! {
 	}: { crate::Module::<T>::on_initialize(block_number); }
 	verify {
 		assert_eq!(Author::<T>::get(), Some(author));
+		assert_eq!(Reward::<T>::get(), BalanceOf::<T>::max_value());
 	}
 
 	// Worst case: This author already has `max_locks` locked up, produces a new block, and we unlock
@@ -131,6 +101,58 @@ benchmarks! {
 		assert!(AuthorDonation::get().is_none());
 		assert!(RewardLocks::<T>::get(&author).iter().count() > 0);
 	}
+
+	// Constant time
+	note_author_prefs { }: _(RawOrigin::None, Perbill::from_percent(50))
+	verify {
+		assert!(AuthorDonation::exists());
+	}
+
+	// Constant time
+	set_reward {
+		let new_reward = BalanceOf::<T>::max_value();
+	}: _(RawOrigin::Root, new_reward)
+	verify {
+		assert_last_event::<T>(Event::<T>::RewardChanged(new_reward).into());
+	}
+
+	// Constant time
+	set_taxation {
+		let new_taxation = Perbill::from_percent(50);
+	}: _(RawOrigin::Root, new_taxation)
+	verify {
+		assert_last_event::<T>(Event::<T>::TaxationChanged(new_taxation).into());
+	}
+
+	// Worst case: Target user has `max_locks` which are all unlocked during this call.
+	unlock {
+		let miner = account("miner", 0, 0);
+		let max_locks = T::GenerateRewardLocks::max_locks();
+		create_locks::<T>(&miner, max_locks);
+		let caller = whitelisted_caller();
+		frame_system::Module::<T>::set_block_number(max_locks.into());
+		assert_eq!(RewardLocks::<T>::get(&miner).iter().count() as u32, max_locks);
+	}: _(RawOrigin::Signed(caller), miner.clone())
+	verify {
+		assert_eq!(RewardLocks::<T>::get(&miner).iter().count(), 0);
+	}
+
+	set_curve {
+		let l in 0 .. 1_000;
+
+		let mut curve = Vec::new();
+		// Sorted in reverse
+		for i in (0 .. l).rev() {
+			curve.push(CurvePoint {
+				start: i.into(),
+				reward: T::Currency::minimum_balance() + i.into(),
+				taxation: Perbill::from_parts(i.into()),
+			});
+		}
+	}: _(RawOrigin::Root, curve)
+	verify {
+		assert_last_event::<T>(Event::<T>::CurveSet.into());
+	}
 }
 
 #[cfg(test)]
@@ -142,12 +164,13 @@ mod tests {
 	#[test]
 	fn test_benchmarks() {
 		new_test_ext(0).execute_with(|| {
+			assert_ok!(test_benchmark_on_finalize::<Test>());
+			assert_ok!(test_benchmark_on_initialize::<Test>());
 			assert_ok!(test_benchmark_note_author_prefs::<Test>());
 			assert_ok!(test_benchmark_set_reward::<Test>());
 			assert_ok!(test_benchmark_set_taxation::<Test>());
 			assert_ok!(test_benchmark_unlock::<Test>());
-			assert_ok!(test_benchmark_on_initialize::<Test>());
-			assert_ok!(test_benchmark_on_finalize::<Test>());
+			assert_ok!(test_benchmark_set_curve::<Test>());
 		});
 	}
 }
