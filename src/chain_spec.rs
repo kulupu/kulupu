@@ -112,7 +112,7 @@ fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256) -> GenesisConfi
 		rewards: Some(RewardsConfig {
 			reward: 60 * DOLLARS,
 			taxation: Perbill::from_percent(0),
-			reward_curve: vec![],
+			curve: vec![],
 		}),
 	}
 }
@@ -160,7 +160,7 @@ pub fn mainnet_genesis() -> GenesisConfig {
 		rewards: Some(RewardsConfig {
 			reward: 60 * DOLLARS,
 			taxation: Perbill::from_percent(0),
-			reward_curve: vec![],
+			curve: vec![],
 		}),
 	}
 }

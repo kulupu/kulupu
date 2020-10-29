@@ -163,7 +163,7 @@ pub fn new_test_ext(author: u64) -> sp_io::TestExternalities {
 	GenesisConfig::<Test> {
 		reward: 60,
 		taxation: Perbill::from_percent(10),
-		reward_curve: vec![],
+		curve: vec![],
 	}.assimilate_storage(&mut t).unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);

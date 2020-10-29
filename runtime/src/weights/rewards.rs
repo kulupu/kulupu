@@ -54,7 +54,7 @@ impl<T: system::Trait> rewards::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn set_reward_curve(l: u32, ) -> Weight {
+	fn set_curve(l: u32, ) -> Weight {
 		(19_503_000 as Weight)
 			.saturating_add((12_000 as Weight).saturating_mul(l as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))

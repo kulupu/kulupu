@@ -75,7 +75,7 @@ pub trait WeightInfo {
 	fn set_reward() -> Weight;
 	fn set_taxation() -> Weight;
 	fn unlock() -> Weight;
-	fn set_reward_curve(_l: u32, ) -> Weight;
+	fn set_curve(_l: u32, ) -> Weight;
 }
 
 /// Trait for rewards.
@@ -99,7 +99,7 @@ pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::
 
 #[derive(Encode, Decode, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct RewardPoint<BlockNumber, Balance> {
+pub struct CurvePoint<BlockNumber, Balance> {
 	start: BlockNumber,
 	reward: Balance,
 	taxation: Perbill,
@@ -129,8 +129,8 @@ decl_storage! {
 		/// Pending reward locks.
 		RewardLocks get(fn reward_locks):
 			map hasher(twox_64_concat) T::AccountId => BTreeMap<T::BlockNumber, BalanceOf<T>>;
-		/// Reward Curve for this chain
-		RewardCurve get(fn reward_curve) config(): Vec<RewardPoint<T::BlockNumber, BalanceOf<T>>>;
+		/// Curve for this chain, sorted in reverse by block number.
+		Curve get(fn curve) config(): Vec<CurvePoint<T::BlockNumber, BalanceOf<T>>>;
 	}
 }
 
@@ -140,8 +140,8 @@ decl_event! {
 		RewardChanged(Balance),
 		/// Block taxation has changed. [taxation]
 		TaxationChanged(Perbill),
-		/// A new reward curve has been set.
-		RewardCurveSet,
+		/// A new curve has been set.
+		CurveSet,
 	}
 }
 
@@ -168,7 +168,7 @@ decl_module! {
 			}
 
 			if now % T::UpdateFrequency::get() == Zero::zero() {
-				RewardCurve::<T>::mutate(|curve| {
+				Curve::<T>::mutate(|curve| {
 					if let Some(point) = curve.pop() {
 						if point.start <= now {
 							Reward::<T>::mutate(|reward| {
@@ -254,16 +254,17 @@ decl_module! {
 			Self::do_update_locks(&target, locks, current_number);
 		}
 
-		#[weight = T::WeightInfo::set_reward_curve(curve.len() as u32)]
-		fn set_reward_curve(origin, curve: Vec<RewardPoint<T::BlockNumber, BalanceOf<T>>>) {
+		/// Set the reward and taxation curve for this chain
+		#[weight = T::WeightInfo::set_curve(curve.len() as u32)]
+		fn set_curve(origin, curve: Vec<CurvePoint<T::BlockNumber, BalanceOf<T>>>) {
 			ensure_root(origin)?;
 			Self::ensure_sorted(&curve)?;
 			for point in &curve {
 				Self::check_new_reward_taxation(point.reward, point.taxation)?;
 			}
 
-			RewardCurve::<T>::put(curve);
-			Self::deposit_event(Event::<T>::RewardCurveSet);
+			Curve::<T>::put(curve);
+			Self::deposit_event(Event::<T>::CurveSet);
 		}
 	}
 }
@@ -271,7 +272,7 @@ decl_module! {
 const REWARDS_ID: LockIdentifier = *b"rewards ";
 
 impl<T: Trait> Module<T> {
-	fn ensure_sorted(curve: &[RewardPoint<T::BlockNumber, BalanceOf<T>>]) -> Result<(), Error<T>> {
+	fn ensure_sorted(curve: &[CurvePoint<T::BlockNumber, BalanceOf<T>>]) -> Result<(), Error<T>> {
 		// Check curve is sorted
 		ensure!(curve.windows(2).all(|w| w[0].start > w[1].start), Error::<T>::NotSorted);
 		Ok(())

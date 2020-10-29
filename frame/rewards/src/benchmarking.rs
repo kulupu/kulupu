@@ -55,7 +55,8 @@ benchmarks! {
 		frame_system::Module::<T>::deposit_log(author_digest);
 
 		Reward::<T>::put(T::Currency::minimum_balance());
-		RewardCurve::<T>::put(vec![RewardPoint { start: 0.into(), reward: BalanceOf::<T>::max_value() }]);
+		Taxation::put(Perbill::zero());
+		Curve::<T>::put(vec![CurvePoint { start: 0.into(), reward: BalanceOf::<T>::max_value(), taxation: Perbill::max_value() }]);
 
 		// Whitelist transient storage items
 		frame_benchmarking::benchmarking::add_to_whitelist(Author::<T>::hashed_key().to_vec().into());
@@ -136,19 +137,21 @@ benchmarks! {
 		assert_eq!(RewardLocks::<T>::get(&miner).iter().count(), 0);
 	}
 
-	set_reward_curve {
+	set_curve {
 		let l in 0 .. 1_000;
 
 		let mut curve = Vec::new();
-		for i in 0 .. l {
-			curve.push(RewardPoint {
+		// Sorted in reverse
+		for i in (0 .. l).rev() {
+			curve.push(CurvePoint {
 				start: i.into(),
-				reward: i.into(),
+				reward: T::Currency::minimum_balance() + i.into(),
+				taxation: Perbill::from_parts(i.into()),
 			});
 		}
 	}: _(RawOrigin::Root, curve)
 	verify {
-		assert_last_event::<T>(Event::<T>::RewardCurveSet.into());
+		assert_last_event::<T>(Event::<T>::CurveSet.into());
 	}
 }
 
@@ -167,7 +170,7 @@ mod tests {
 			assert_ok!(test_benchmark_set_reward::<Test>());
 			assert_ok!(test_benchmark_set_taxation::<Test>());
 			assert_ok!(test_benchmark_unlock::<Test>());
-			assert_ok!(test_benchmark_set_reward_curve::<Test>());
+			assert_ok!(test_benchmark_set_curve::<Test>());
 		});
 	}
 }
