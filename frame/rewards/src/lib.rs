@@ -204,6 +204,7 @@ decl_module! {
 			<Self as Store>::AuthorDonation::kill();
 		}
 
+		/// As the block author, note your preferences for the block you produced.
 		#[weight = (
 			T::WeightInfo::note_author_prefs(),
 			DispatchClass::Mandatory
@@ -221,6 +222,7 @@ decl_module! {
 			<Self as Store>::AuthorDonation::put(donation);
 		}
 
+		/// Set the reward amount for this chain. Must be Root origin.
 		#[weight = (
 			T::WeightInfo::set_reward(),
 			DispatchClass::Operational
@@ -233,6 +235,7 @@ decl_module! {
 			Self::deposit_event(RawEvent::RewardChanged(reward));
 		}
 
+		/// Set the taxation amount for this chain. Must be Root origin.
 		#[weight = (
 			T::WeightInfo::set_taxation(),
 			DispatchClass::Operational
@@ -245,6 +248,7 @@ decl_module! {
 			Self::deposit_event(RawEvent::TaxationChanged(taxation));
 		}
 
+		/// Unlock any vested rewards for `target` account.
 		#[weight = T::WeightInfo::unlock()]
 		fn unlock(origin, target: T::AccountId) {
 			ensure_signed(origin)?;
@@ -254,7 +258,9 @@ decl_module! {
 			Self::do_update_locks(&target, locks, current_number);
 		}
 
-		/// Set the reward and taxation curve for this chain
+		/// Set the reward and taxation curve for this chain. Must be Root origin.
+		///
+		/// NOTE: The curve should be reverse sorted by block number.
 		#[weight = T::WeightInfo::set_curve(curve.len() as u32)]
 		fn set_curve(origin, curve: Vec<CurvePoint<T::BlockNumber, BalanceOf<T>>>) {
 			ensure_root(origin)?;
@@ -273,7 +279,7 @@ const REWARDS_ID: LockIdentifier = *b"rewards ";
 
 impl<T: Trait> Module<T> {
 	fn ensure_sorted(curve: &[CurvePoint<T::BlockNumber, BalanceOf<T>>]) -> Result<(), Error<T>> {
-		// Check curve is sorted
+		// Check curve is reverse sorted by block number
 		ensure!(curve.windows(2).all(|w| w[0].start > w[1].start), Error::<T>::NotSorted);
 		Ok(())
 	}
