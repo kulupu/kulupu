@@ -19,7 +19,7 @@
 
 //! Weights for rewards
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 2.0.0
-//! DATE: 2020-10-19, STEPS: [50], REPEAT: 20, LOW RANGE: [], HIGH RANGE: []
+//! DATE: 2020-10-29, STEPS: [50], REPEAT: 20, LOW RANGE: [], HIGH RANGE: []
 
 #![allow(unused_parens)]
 #![allow(unused_imports)]
@@ -30,38 +30,38 @@ use sp_std::marker::PhantomData;
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: system::Trait> rewards::WeightInfo for WeightInfo<T> {
 	fn on_initialize() -> Weight {
-		(48_264_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		(50_081_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(3 as Weight))
+			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
 	fn on_finalize() -> Weight {
-		(164_338_000 as Weight)
+		(158_735_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
 	fn note_author_prefs() -> Weight {
-		(7_001_000 as Weight)
+		(6_936_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn set_reward() -> Weight {
-		(24_184_000 as Weight)
+		(23_361_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn set_taxation() -> Weight {
-		(22_786_000 as Weight)
+		(21_996_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+	fn unlock() -> Weight {
+		(56_355_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn set_curve(l: u32, ) -> Weight {
-		(19_503_000 as Weight)
-			.saturating_add((12_000 as Weight).saturating_mul(l as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn unlock() -> Weight {
-		(58_289_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+		(19_142_000 as Weight)
+			.saturating_add((62_000 as Weight).saturating_mul(l as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 }
