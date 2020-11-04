@@ -13,17 +13,17 @@ rand = { version = "0.7", features = ["small_rng"] }
 lazy_static = "1.4"
 parking_lot = "0.10.0"
 humantime = "2.0.1"
-sp-blockchain = { path = "../vendor/substrate/primitives/blockchain" }
-sp-consensus = { path = "../vendor/substrate/primitives/consensus/common" }
-sp-consensus-pow = { path = "../vendor/substrate/primitives/consensus/pow" }
-sp-runtime = { path = "../vendor/substrate/primitives/runtime" }
-sp-inherents = { path = "../vendor/substrate/primitives/inherents" }
-sp-core = { path = "../vendor/substrate/primitives/core" }
-sp-api = { path = "../vendor/substrate/primitives/api" }
-sp-application-crypto = { path = "../vendor/substrate/primitives/application-crypto" }
-sc-client-api = { package = "sc-client-api", path = "../vendor/substrate/client/api" }
-sc-consensus-pow = { path = "../vendor/substrate/client/consensus/pow" }
-sc-keystore = { path = "../vendor/substrate/client/keystore" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sp-consensus = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sp-consensus-pow = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sp-application-crypto = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sc-consensus-pow = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sc-keystore = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
 kulupu-primitives = { path = "../primitives" }
 kulupu-runtime = { path = "../runtime" }
 kulupu-randomx = { path = "randomx" }

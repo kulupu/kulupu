@@ -1,6 +1,3 @@
-[submodule "vendor/substrate"]
-	path = vendor/substrate
-	url = https://github.com/paritytech/substrate
 [submodule "pow/randomx/sys/randomx"]
 	path = pow/randomx/sys/randomx
 	url = https://github.com/kulupu/randomx
