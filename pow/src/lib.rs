@@ -31,7 +31,7 @@ use sp_runtime::traits::{
 use sp_consensus_pow::{Seal as RawSeal, DifficultyApi};
 use sc_consensus_pow::PowAlgorithm;
 use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore};
-use sc_keystore::KeyStorePtr;
+use sc_keystore::LocalKeystore;
 use kulupu_primitives::{Difficulty, AlgorithmApi};
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
 use log::*;
@@ -255,7 +255,7 @@ impl Stats {
 
 pub fn mine<B, C>(
 	client: &C,
-	keystore: &KeyStorePtr,
+	keystore: &LocalKeystore,
 	parent: &BlockId<B>,
 	pre_hash: &H256,
 	pre_digest: Option<&[u8]>,
@@ -296,7 +296,7 @@ pub fn mine<B, C>(
 		)
 	})?;
 
-	let pair = keystore.read().key_pair::<app::Pair>(
+	let pair = keystore.key_pair::<app::Pair>(
 		&author,
 	).map_err(|_| sc_consensus_pow::Error::<B>::Other(
 		"Unable to mine: fetch pair from author failed".to_string(),
