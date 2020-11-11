@@ -89,8 +89,6 @@ pub trait Trait: frame_system::Trait {
 	type DonationDestination: Get<Self::AccountId>;
 	/// Generate reward locks.
 	type GenerateRewardLocks: GenerateRewardLocks<Self>;
-	/// How often to check to update the reward curve.
-	type UpdateFrequency: Get<Self::BlockNumber>;
 	/// Weights for this pallet.
 	type WeightInfo: WeightInfo;
 }
@@ -170,29 +168,27 @@ decl_module! {
 				<Self as Store>::Author::put(author);
 			}
 
-			if now % T::UpdateFrequency::get() == Zero::zero() {
-				Curve::<T>::mutate(|curve| {
-					if let Some(point) = curve.pop() {
-						if point.start <= now {
-							Reward::<T>::mutate(|reward| {
-								if reward != &point.reward {
-									*reward = point.reward;
-									Self::deposit_event(RawEvent::RewardChanged(point.reward));
-								}
-							});
+			Curve::<T>::mutate(|curve| {
+				if let Some(point) = curve.pop() {
+					if point.start <= now {
+						Reward::<T>::mutate(|reward| {
+							if reward != &point.reward {
+								*reward = point.reward;
+								Self::deposit_event(RawEvent::RewardChanged(point.reward));
+							}
+						});
 
-							Taxation::mutate(|taxation| {
-								if taxation != &point.taxation {
-									*taxation = point.taxation;
-									Self::deposit_event(RawEvent::TaxationChanged(point.taxation));
-								}
-							});
-						} else {
-							curve.push(point);
-						}
+						Taxation::mutate(|taxation| {
+							if taxation != &point.taxation {
+								*taxation = point.taxation;
+								Self::deposit_event(RawEvent::TaxationChanged(point.taxation));
+							}
+						});
+					} else {
+						curve.push(point);
 					}
-				});
-			}
+				}
+			});
 
 			T::WeightInfo::on_initialize().saturating_add(T::WeightInfo::on_finalize())
 		}

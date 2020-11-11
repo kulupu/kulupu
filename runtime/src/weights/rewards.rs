@@ -30,7 +30,7 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions for rewards.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Trait> rewards::WeightInfo for WeightInfo<T> {
+impl<T: system::Trait> rewards::WeightInfo for WeightInfo<T> {
 	fn on_initialize() -> Weight {
 		(86_760_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
