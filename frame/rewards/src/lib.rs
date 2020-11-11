@@ -76,6 +76,7 @@ pub trait WeightInfo {
 	fn set_taxation() -> Weight;
 	fn unlock() -> Weight;
 	fn set_curve(_l: u32, ) -> Weight;
+	fn fund() -> Weight;
 }
 
 /// Trait for rewards.
@@ -140,6 +141,8 @@ decl_event! {
 		RewardChanged(Balance),
 		/// Block taxation has changed. [taxation]
 		TaxationChanged(Perbill),
+		/// Funded amount to donation address.
+		Funded(Balance),
 		/// A new curve has been set.
 		CurveSet,
 	}
@@ -271,6 +274,17 @@ decl_module! {
 
 			Curve::<T>::put(curve);
 			Self::deposit_event(Event::<T>::CurveSet);
+		}
+
+		/// Fund the donation address with coin-holder initiated taxation.
+		#[weight = T::WeightInfo::fund()]
+		fn fund(origin, amount: BalanceOf<T>) {
+			ensure_root(origin)?;
+
+			let treasury_id = T::DonationDestination::get();
+			drop(T::Currency::deposit_creating(&treasury_id, amount));
+
+			Self::deposit_event(RawEvent::Funded(amount));
 		}
 	}
 }

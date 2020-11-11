@@ -56,7 +56,7 @@ benchmarks! {
 
 		Reward::<T>::put(T::Currency::minimum_balance());
 		Taxation::put(Perbill::zero());
-		Curve::<T>::put(vec![CurvePoint { start: 0.into(), reward: BalanceOf::<T>::max_value(), taxation: Perbill::max_value() }]);
+		Curve::<T>::put(vec![CurvePoint { start: 0u32.into(), reward: BalanceOf::<T>::max_value(), taxation: Perbill::max_value() }]);
 
 		// Whitelist transient storage items
 		frame_benchmarking::benchmarking::add_to_whitelist(Author::<T>::hashed_key().to_vec().into());
@@ -152,6 +152,14 @@ benchmarks! {
 	}: _(RawOrigin::Root, curve)
 	verify {
 		assert_last_event::<T>(Event::<T>::CurveSet.into());
+	}
+
+	// Constant time
+	fund {
+		let amount = BalanceOf::<T>::from(10000u32);
+	}: _(RawOrigin::Root, amount)
+	verify {
+		assert_last_event::<T>(Event::<T>::Funded(amount).into());
 	}
 }
 
