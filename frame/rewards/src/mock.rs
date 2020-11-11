@@ -140,8 +140,6 @@ impl crate::GenerateRewardLocks<Test> for GenerateRewardLocks {
 
 parameter_types! {
 	pub DonationDestination: u64 = 255;
-	// Check every block for changes to the curve.
-	pub const UpdateFrequency: u64 = 1;
 }
 
 impl Trait for Test {
@@ -149,7 +147,6 @@ impl Trait for Test {
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
-	type UpdateFrequency = UpdateFrequency;
 	type WeightInfo = ();
 }
 

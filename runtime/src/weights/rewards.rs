@@ -19,7 +19,8 @@
 
 //! Weights for rewards
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 2.0.0
-//! DATE: 2020-10-29, STEPS: [50], REPEAT: 20, LOW RANGE: [], HIGH RANGE: []
+//! DATE: 2020-11-11, STEPS: [50, ], REPEAT: 20, LOW RANGE: [], HIGH RANGE: []
+//! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("dev"), DB CACHE: 128
 
 #![allow(unused_parens)]
 #![allow(unused_imports)]
@@ -27,41 +28,45 @@
 use frame_support::{traits::Get, weights::Weight};
 use sp_std::marker::PhantomData;
 
+/// Weight functions for rewards.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: system::Trait> rewards::WeightInfo for WeightInfo<T> {
 	fn on_initialize() -> Weight {
-		(50_081_000 as Weight)
+		(86_760_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
 	fn on_finalize() -> Weight {
-		(158_735_000 as Weight)
+		(265_656_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
 	fn note_author_prefs() -> Weight {
-		(6_936_000 as Weight)
+		(11_699_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn set_reward() -> Weight {
-		(23_361_000 as Weight)
+		(41_890_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn set_taxation() -> Weight {
-		(21_996_000 as Weight)
+		(38_872_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn unlock() -> Weight {
-		(56_355_000 as Weight)
+		(94_964_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn set_curve(l: u32, ) -> Weight {
-		(19_142_000 as Weight)
-			.saturating_add((62_000 as Weight).saturating_mul(l as Weight))
+		(34_301_000 as Weight)
+			.saturating_add((103_000 as Weight).saturating_mul(l as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+	fn fund() -> Weight {
+		(55_119_000 as Weight)
 	}
 }
