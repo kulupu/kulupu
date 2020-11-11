@@ -314,8 +314,7 @@ parameter_types! {
 }
 
 impl transaction_payment::Trait for Runtime {
-	type Currency = balances::Module<Runtime>;
-	type OnTransactionPayment = DealWithFees;
+	type OnChargeTransaction = transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
 	type TransactionByteFee = TransactionByteFee;
 	type WeightToFee = WeightToFee;
 	type FeeMultiplierUpdate = TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
@@ -529,7 +528,7 @@ impl elections_phragmen::Trait for Runtime {
 	type Currency = Balances;
 	type ChangeMembers = Council;
 	type InitializeMembers = Council;
-	type CurrencyToVote = CurrencyToVoteHandler<Self>;
+	type CurrencyToVote = frame_support::traits::U128CurrencyToVote;
 	type CandidacyBond = CandidacyBond;
 	type VotingBond = VotingBond;
 	type LoserCandidate = Treasury;
@@ -779,7 +778,7 @@ construct_runtime!(
 		// Basic stuff.
 		System: system::{Module, Call, Storage, Config, Event<T>} = 0,
 		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage} = 17,
-		Timestamp: timestamp::{Module, Call, Storage, Inherent, Config} = 1,
+		Timestamp: timestamp::{Module, Call, Storage, Inherent} = 1,
 		Indices: indices::{Module, Call, Storage, Config<T>, Event<T>} = 2,
 		Balances: balances::{Module, Call, Storage, Config<T>, Event<T>} = 3,
 		TransactionPayment: transaction_payment::{Module, Storage} = 18,

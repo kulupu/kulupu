@@ -107,7 +107,6 @@ fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256) -> GenesisConfi
 		elections_phragmen: Some(Default::default()),
 		eras: Some(Default::default()),
 		membership_Instance1: Some(Default::default()),
-		timestamp: Some(Default::default()),
 		vesting: Some(Default::default()),
 		rewards: Some(RewardsConfig {
 			reward: 60 * DOLLARS,
@@ -155,7 +154,6 @@ pub fn mainnet_genesis() -> GenesisConfig {
 		treasury: Some(Default::default()),
 		elections_phragmen: Some(Default::default()),
 		membership_Instance1: Some(Default::default()),
-		timestamp: Some(Default::default()),
 		vesting: None,
 		rewards: Some(RewardsConfig {
 			reward: 60 * DOLLARS,

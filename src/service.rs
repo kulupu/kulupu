@@ -118,7 +118,7 @@ pub fn new_partial(
 		donate,
 	)?;
 
-	let (client, backend, keystore, task_manager) =
+	let (client, backend, keystore_container, task_manager) =
 		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(&config)?;
 	let client = Arc::new(client);
 
@@ -163,8 +163,8 @@ pub fn new_partial(
 	)?;
 
 	Ok(sc_service::PartialComponents {
-		client, backend, task_manager, import_queue, keystore, select_chain, transaction_pool,
-		inherent_data_providers,
+		client, backend, task_manager, import_queue, keystore_container,
+		select_chain, transaction_pool, inherent_data_providers,
 		other: pow_block_import,
 	})
 }
@@ -180,8 +180,9 @@ pub fn new_full(
 	enable_weak_subjectivity: bool,
 ) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
-		client, backend, mut task_manager, import_queue, keystore, select_chain, transaction_pool,
-		inherent_data_providers, other: pow_block_import,
+		client, backend, mut task_manager, import_queue, keystore_container,
+		select_chain, transaction_pool, inherent_data_providers,
+		other: pow_block_import,
 	} = new_partial(&config, author, check_inherents_after, donate, enable_weak_subjectivity)?;
 
 	let (network, network_status_sinks, system_rpc_tx, network_starter) =
@@ -204,6 +205,7 @@ pub fn new_full(
 	}
 
 	let role = config.role.clone();
+	let prometheus_registry = config.prometheus_registry().cloned();
 	let telemetry_connection_sinks = sc_service::TelemetryConnectionSinks::default();
 
 	let rpc_extensions_builder = {
@@ -224,7 +226,7 @@ pub fn new_full(
 	sc_service::spawn_tasks(sc_service::SpawnTasksParams {
 		network: network.clone(),
 		client: client.clone(),
-		keystore: keystore.clone(),
+		keystore: keystore_container.sync_keystore(),
 		task_manager: &mut task_manager,
 		transaction_pool: transaction_pool.clone(),
 		telemetry_connection_sinks: telemetry_connection_sinks.clone(),
@@ -241,9 +243,10 @@ pub fn new_full(
 		);
 
 		let proposer = sc_basic_authorship::ProposerFactory::new(
+			task_manager.spawn_handle(),
 			client.clone(),
 			transaction_pool.clone(),
-			None,
+			prometheus_registry.as_ref(),
 		);
 
 		let (worker, worker_task) = sc_consensus_pow::start_mining_worker(
@@ -264,42 +267,45 @@ pub fn new_full(
 		let stats = Arc::new(Mutex::new(kulupu_pow::Stats::new()));
 
 		for _ in 0..threads {
-			let worker = worker.clone();
-			let client = client.clone();
-			let keystore = keystore.clone();
-			let stats = stats.clone();
+			if let Some(keystore) = keystore_container.local_keystore() {
+				let worker = worker.clone();
+				let client = client.clone();
+				let stats = stats.clone();
 
-			thread::spawn(move || {
-				loop {
-					let metadata = worker.lock().metadata();
-					if let Some(metadata) = metadata {
-						match kulupu_pow::mine(
-							client.as_ref(),
-							&keystore,
-							&BlockId::Hash(metadata.best_hash),
-							&metadata.pre_hash,
-							metadata.pre_runtime.as_ref().map(|v| &v[..]),
-							metadata.difficulty,
-							round,
-							&stats
-						) {
-							Ok(Some(seal)) => {
-								let mut worker = worker.lock();
-								let current_metadata = worker.metadata();
-								if current_metadata == Some(metadata) {
-									let _ = worker.submit(seal);
-								}
-							},
-							Ok(None) => (),
-							Err(err) => {
-								warn!("Mining failed: {:?}", err);
-							},
+				thread::spawn(move || {
+					loop {
+						let metadata = worker.lock().metadata();
+						if let Some(metadata) = metadata {
+							match kulupu_pow::mine(
+								client.as_ref(),
+								&keystore,
+								&BlockId::Hash(metadata.best_hash),
+								&metadata.pre_hash,
+								metadata.pre_runtime.as_ref().map(|v| &v[..]),
+								metadata.difficulty,
+								round,
+								&stats
+							) {
+								Ok(Some(seal)) => {
+									let mut worker = worker.lock();
+									let current_metadata = worker.metadata();
+									if current_metadata == Some(metadata) {
+										let _ = worker.submit(seal);
+									}
+								},
+								Ok(None) => (),
+								Err(err) => {
+									warn!("Mining failed: {:?}", err);
+								},
+							}
+						} else {
+							thread::sleep(Duration::new(1, 0));
 						}
-					} else {
-						thread::sleep(Duration::new(1, 0));
 					}
-				}
-			});
+				});
+			} else {
+				warn!("Local keystore is not available");
+			}
 		}
 	}
 
@@ -315,7 +321,7 @@ pub fn new_light(
 	donate: bool,
 	enable_weak_subjectivity: bool,
 ) -> Result<TaskManager, ServiceError> {
-	let (client, backend, keystore, mut task_manager, on_demand) =
+	let (client, backend, keystore_container, mut task_manager, on_demand) =
 		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(&config)?;
 
 	let transaction_pool = Arc::new(sc_transaction_pool::BasicPool::new_light(
@@ -350,7 +356,6 @@ pub fn new_light(
 		inherent_data_providers.clone(),
 		sp_consensus::AlwaysCanAuthor,
 	);
-
 
 	let import_queue = sc_consensus_pow::import_queue(
 		Box::new(pow_block_import.clone()),
@@ -390,7 +395,7 @@ pub fn new_light(
 		telemetry_connection_sinks: sc_service::TelemetryConnectionSinks::default(),
 		config,
 		client,
-		keystore,
+		keystore: keystore_container.sync_keystore(),
 		backend,
 		network,
 		network_status_sinks,

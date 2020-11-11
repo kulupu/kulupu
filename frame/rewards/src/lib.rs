@@ -39,7 +39,7 @@ use sp_consensus_pow::POW_ENGINE_ID;
 use sp_inherents::ProvideInherentData;
 use frame_support::{
 	decl_module, decl_storage, decl_error, decl_event, ensure,
-	traits::{Get, Currency, LockIdentifier, LockableCurrency, WithdrawReason},
+	traits::{Get, Currency, LockIdentifier, LockableCurrency, WithdrawReasons},
 	weights::{DispatchClass, Weight},
 };
 use frame_system::{ensure_none, ensure_root, ensure_signed};
@@ -348,7 +348,7 @@ impl<T: Trait> Module<T> {
 			REWARDS_ID,
 			&author,
 			total_locked,
-			WithdrawReason::Transfer | WithdrawReason::Reserve,
+			WithdrawReasons::except(WithdrawReasons::TRANSACTION_PAYMENT),
 		);
 
 		<Self as Store>::RewardLocks::insert(author, locks);

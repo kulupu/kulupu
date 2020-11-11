@@ -3,8 +3,8 @@ trigger:
 - refs/tags/*
 
 variables:
-  RUST_STABLE: 1.45.2
-  RUST_NIGHTLY: nightly-2020-08-29
+  RUST_STABLE: 1.47.0
+  RUST_NIGHTLY: nightly-2020-10-23
 
 jobs:
 - job: Linux

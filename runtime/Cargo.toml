@@ -8,54 +8,54 @@ edition = "2018"
 [dependencies]
 serde = { version = "1.0", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "1.0.0", default-features = false, features = ["derive"] }
-sp-std = { path = "../vendor/substrate/primitives/std", default-features = false }
-sp-io = { path = "../vendor/substrate/primitives/io", default-features = false }
-sp-version = { path = "../vendor/substrate/primitives/version", default-features = false }
-sp-core = { path = "../vendor/substrate/primitives/core", default-features = false }
-sp-runtime = { path = "../vendor/substrate/primitives/runtime", default-features = false }
-sp-offchain = { path = "../vendor/substrate/primitives/offchain", default-features = false }
-sp-consensus-pow = { path = "../vendor/substrate/primitives/consensus/pow", default-features = false }
-sp-session = { path = "../vendor/substrate/primitives/session", default-features = false }
-sp-api = { path = "../vendor/substrate/primitives/api", default-features = false }
-sp-block-builder = { path = "../vendor/substrate/primitives/block-builder", default-features = false }
-sp-transaction-pool = { path = "../vendor/substrate/primitives/transaction-pool", default-features = false }
-sp-inherents = { path = "../vendor/substrate/primitives/inherents", default-features = false }
-frame-support = { path = "../vendor/substrate/frame/support", default-features = false }
-frame-executive = { path = "../vendor/substrate/frame/executive", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-version = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-offchain = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-consensus-pow = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-session = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-block-builder = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+frame-executive = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 kulupu-primitives = { path = "../primitives", default-features = false }
 smallvec = "1.4.0"
 
-system = { package = "frame-system", path = "../vendor/substrate/frame/system", default-features = false }
-balances = { package = "pallet-balances", path = "../vendor/substrate/frame/balances", default-features = false }
-utility = { package = "pallet-utility", path = "../vendor/substrate/frame/utility", default-features = false }
-indices = { package = "pallet-indices", path = "../vendor/substrate/frame/indices", default-features = false }
-timestamp = { package = "pallet-timestamp", path = "../vendor/substrate/frame/timestamp", default-features = false }
-transaction-payment = { package = "pallet-transaction-payment", path = "../vendor/substrate/frame/transaction-payment", default-features = false }
-randomness-collective-flip = { package = "pallet-randomness-collective-flip", path = "../vendor/substrate/frame/randomness-collective-flip", default-features = false }
-democracy = { package = "pallet-democracy", path = "../vendor/substrate/frame/democracy", default-features = false }
-collective = { package = "pallet-collective", path = "../vendor/substrate/frame/collective", default-features = false }
-elections-phragmen = { package = "pallet-elections-phragmen", path = "../vendor/substrate/frame/elections-phragmen", default-features = false }
-membership = { package = "pallet-membership", path = "../vendor/substrate/frame/membership", default-features = false }
-treasury = { package = "pallet-treasury", path = "../vendor/substrate/frame/treasury", default-features = false }
-scheduler = { package = "pallet-scheduler", path = "../vendor/substrate/frame/scheduler", default-features = false }
-identity = { package = "pallet-identity", path = "../vendor/substrate/frame/identity", default-features = false }
-proxy = { package = "pallet-proxy", path = "../vendor/substrate/frame/proxy", default-features = false }
-vesting = { package = "pallet-vesting", path = "../vendor/substrate/frame/vesting", default-features = false }
-multisig = { package = "pallet-multisig", path = "../vendor/substrate/frame/multisig", default-features = false }
+system = { package = "frame-system", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+balances = { package = "pallet-balances", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+utility = { package = "pallet-utility", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+indices = { package = "pallet-indices", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+timestamp = { package = "pallet-timestamp", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+transaction-payment = { package = "pallet-transaction-payment", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+randomness-collective-flip = { package = "pallet-randomness-collective-flip", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+collective = { package = "pallet-collective", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+elections-phragmen = { package = "pallet-elections-phragmen", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+membership = { package = "pallet-membership", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+treasury = { package = "pallet-treasury", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+scheduler = { package = "pallet-scheduler", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+identity = { package = "pallet-identity", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+proxy = { package = "pallet-proxy", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+vesting = { package = "pallet-vesting", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+multisig = { package = "pallet-multisig", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
 eras = { package = "pallet-eras", path = "../frame/eras", default-features = false }
 difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", default-features = false }
 
-frame-system-rpc-runtime-api = { default-features = false, path = "../vendor/substrate/frame/system/rpc/runtime-api/" }
-pallet-transaction-payment-rpc-runtime-api = { default-features = false, path = "../vendor/substrate/frame/transaction-payment/rpc/runtime-api/" }
+frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 
 # benchmarking
-frame-benchmarking = { default-features = false, path = "../vendor/substrate/frame/benchmarking", optional = true }
-frame-system-benchmarking = { default-features = false, path = "../vendor/substrate/frame/system/benchmarking", optional = true }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false, optional = true }
+frame-system-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false, optional = true }
 hex-literal = { version = "0.2.1", optional = true }
 
 [build-dependencies]
-wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.5", path = "../vendor/substrate/utils/wasm-builder-runner" }
+wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "2.0.0" }
 
 [features]
 default = ["std"]
