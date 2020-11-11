@@ -19,6 +19,7 @@
 use std::{path::PathBuf, fs::File, io::Write};
 use log::info;
 use sp_core::{hexdisplay::HexDisplay, crypto::{Pair, Ss58Codec, Ss58AddressFormat}};
+use sp_keystore::SyncCryptoStore;
 use sc_cli::{SubstrateCli, ChainSpec, Role, RuntimeVersion};
 use sc_service::{PartialComponents, config::KeystoreConfig};
 use sc_keystore::LocalKeystore;
@@ -167,8 +168,18 @@ pub fn run() -> sc_cli::Result<()> {
 					KeystoreConfig::InMemory => LocalKeystore::in_memory(),
 				};
 
-				let pair = keystore.insert::<kulupu_pow::app::Pair>(&cmd.suri)
-					.map_err(|e| format!("Registering mining key failed: {:?}", e))?;
+				let pair = kulupu_pow::app::Pair::from_string(
+					&cmd.suri,
+					None,
+				).map_err(|e| format!("Invalid seed: {:?}", e))?;
+
+				SyncCryptoStore::insert_unknown(
+					&keystore,
+					kulupu_pow::app::ID,
+					&cmd.suri,
+					pair.public().as_ref(),
+				).map_err(|e| format!("Registering mining key failed: {:?}", e))?;
+
 				info!("Registered one mining key (public key 0x{}).",
 					  HexDisplay::from(&pair.public().as_ref()));
 
@@ -186,10 +197,14 @@ pub fn run() -> sc_cli::Result<()> {
 					KeystoreConfig::InMemory => LocalKeystore::in_memory(),
 				};
 
-				let (_, phrase, _) = kulupu_pow::app::Pair::generate_with_phrase(None);
+				let (pair, phrase, _) = kulupu_pow::app::Pair::generate_with_phrase(None);
 
-				let pair = keystore.insert::<kulupu_pow::app::Pair>(&phrase)
-					.map_err(|e| format!("Generating mining key failed: {:?}", e))?;
+				SyncCryptoStore::insert_unknown(
+					&keystore,
+					kulupu_pow::app::ID,
+					&phrase,
+					pair.public().as_ref(),
+				).map_err(|e| format!("Registering mining key failed: {:?}", e))?;
 
 				info!("Generated one mining key.");
 
