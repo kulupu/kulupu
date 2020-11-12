@@ -39,7 +39,7 @@ RUN rustup update $NIGHTLY
 
 # BUILD RUNTIME AND BINARY
 RUN rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY
-RUN cd /rustbuilder/kulupu && RUSTUP_TOOLCHAIN=$STABLE WASM_BUILD_TOOLCHAIN=$NIGHTLY RANDOMX_ARCH=default cargo build --$PROFILE
+RUN cd /rustbuilder/kulupu && RUSTUP_TOOLCHAIN=$STABLE WASM_BUILD_TOOLCHAIN=$NIGHTLY RANDOMX_ARCH=default cargo build --$PROFILE --locked
 # ===== END FIRST STAGE ======
 
 # ===== START SECOND STAGE ======

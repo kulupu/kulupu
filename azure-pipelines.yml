@@ -23,11 +23,11 @@ jobs:
     displayName: 'Rust setup'
   - script: |
       source ~/.cargo/env
-      RANDOMX_ARCH=default RUSTUP_TOOLCHAIN=$(RUST_STABLE) WASM_BUILD_TOOLCHAIN=$(RUST_NIGHTLY) cargo test --release --all
+      RANDOMX_ARCH=default RUSTUP_TOOLCHAIN=$(RUST_STABLE) WASM_BUILD_TOOLCHAIN=$(RUST_NIGHTLY) cargo test --release --all --locked
     displayName: 'Run tests'
   - script: |
       source ~/.cargo/env
-      RANDOMX_ARCH=default RUSTUP_TOOLCHAIN=$(RUST_STABLE) WASM_BUILD_TOOLCHAIN=$(RUST_NIGHTLY) cargo build --release
+      RANDOMX_ARCH=default RUSTUP_TOOLCHAIN=$(RUST_STABLE) WASM_BUILD_TOOLCHAIN=$(RUST_NIGHTLY) cargo build --release --locked
     displayName: 'Build artifacts'
   - task: ArchiveFiles@2
     inputs:
@@ -73,7 +73,7 @@ jobs:
     displayName: 'Rust setup'
   - script: |
       source ~/.cargo/env
-      RANDOMX_ARCH=default RUSTUP_TOOLCHAIN=$(RUST_STABLE) WASM_BUILD_TOOLCHAIN=$(RUST_NIGHTLY) cargo build --release
+      RANDOMX_ARCH=default RUSTUP_TOOLCHAIN=$(RUST_STABLE) WASM_BUILD_TOOLCHAIN=$(RUST_NIGHTLY) cargo build --release --locked
     displayName: 'Build artifacts'
   - task: ArchiveFiles@2
     inputs:
@@ -105,7 +105,7 @@ jobs:
       set RANDOMX_ARCH=default
       set RUSTUP_TOOLCHAIN=$(RUST_STABLE)
       set WASM_BUILD_TOOLCHAIN=$(RUST_NIGHTLY)
-      cargo build --release
+      cargo build --release --locked
     displayName: 'Build artifacts'
   - task: ArchiveFiles@2
     inputs:
