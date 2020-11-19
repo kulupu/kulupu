@@ -21,6 +21,7 @@ mod v2;
 
 pub use self::v1::{ComputeV1, SealV1};
 pub use self::v2::{ComputeV2, SealV2};
+pub use randomx::Config;
 
 use log::info;
 use codec::{Encode, Decode};
@@ -29,6 +30,7 @@ use std::cell::RefCell;
 use sp_core::H256;
 use lazy_static::lazy_static;
 use lru_cache::LruCache;
+use once_cell::sync::OnceCell;
 use kulupu_randomx as randomx;
 use kulupu_primitives::Difficulty;
 
@@ -42,6 +44,17 @@ lazy_static! {
 thread_local! {
 	static FULL_MACHINE: RefCell<Option<(H256, randomx::FullVM)>> = RefCell::new(None);
 	static LIGHT_MACHINE: RefCell<Option<(H256, randomx::LightVM)>> = RefCell::new(None);
+}
+
+static GLOBAL_CONFIG: OnceCell<Config> = OnceCell::new();
+static DEFAULT_CONFIG: Config = Config::new();
+
+pub fn global_config() -> &'static Config {
+	GLOBAL_CONFIG.get().unwrap_or(&DEFAULT_CONFIG)
+}
+
+pub fn set_global_config(config: Config) -> Result<(), Config> {
+	GLOBAL_CONFIG.set(config)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Encode, Decode, Debug)]
@@ -93,7 +106,7 @@ fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
 		let mut shared_caches = shared_caches.lock().expect("Mutex poisioned");
 
 		if let Some(cache) = shared_caches.get_mut(key_hash) {
-			*ms = Some((*key_hash, randomx::VM::new(cache.clone())));
+			*ms = Some((*key_hash, randomx::VM::new(cache.clone(), global_config())));
 		} else {
 			info!(
 				target: "kulupu-randomx",
@@ -101,9 +114,9 @@ fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
 				M::description(),
 				key_hash,
 			);
-			let cache = Arc::new(randomx::Cache::new(&key_hash[..]));
+			let cache = Arc::new(randomx::Cache::new(&key_hash[..], global_config()));
 			shared_caches.insert(*key_hash, cache.clone());
-			*ms = Some((*key_hash, randomx::VM::new(cache)));
+			*ms = Some((*key_hash, randomx::VM::new(cache, global_config())));
 		}
 	}
 

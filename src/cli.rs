@@ -18,6 +18,7 @@
 
 use sc_cli::RunCmd;
 use structopt::StructOpt;
+use std::str::FromStr;
 
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
@@ -59,6 +60,24 @@ pub enum Subcommand {
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum RandomxFlag {
+	LargePages,
+	Secure,
+}
+
+impl FromStr for RandomxFlag {
+	type Err = String;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		match s {
+			"large-pages" => Ok(Self::LargePages),
+			"secure" => Ok(Self::Secure),
+			_ => Err("Unknown flag".to_string()),
+		}
+	}
+}
+
 #[derive(Debug, StructOpt)]
 pub struct Cli {
 	#[structopt(subcommand)]
@@ -81,6 +100,8 @@ pub struct Cli {
 	pub disable_weak_subjectivity: bool,
 	#[structopt(long)]
 	pub check_inherents_after: Option<u32>,
+	#[structopt(long)]
+	pub randomx_flags: Vec<RandomxFlag>,
 }
 
 #[derive(Debug, StructOpt)]
