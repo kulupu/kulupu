@@ -24,7 +24,7 @@ use sc_cli::{SubstrateCli, ChainSpec, Role, RuntimeVersion};
 use sc_service::{PartialComponents, config::KeystoreConfig};
 use sc_keystore::LocalKeystore;
 use crate::chain_spec;
-use crate::cli::{Cli, Subcommand};
+use crate::cli::{Cli, Subcommand, RandomxFlag};
 use crate::service;
 
 const DEFAULT_CHECK_INHERENTS_AFTER: u32 = 152650;
@@ -81,6 +81,15 @@ pub fn run() -> sc_cli::Result<()> {
 	if cli.enable_polkadot_telemetry {
 		cli.run.telemetry_endpoints.push((POLKADOT_TELEMETRY_URL.to_string(), 0));
 	}
+
+	let mut randomx_config = kulupu_pow::compute::Config::new();
+	if cli.randomx_flags.contains(&RandomxFlag::LargePages) {
+		randomx_config.large_pages = true;
+	}
+	if cli.randomx_flags.contains(&RandomxFlag::Secure) {
+		randomx_config.secure = true;
+	}
+	let _ = kulupu_pow::compute::set_global_config(randomx_config);
 
 	match &cli.subcommand {
 		Some(Subcommand::BuildSpec(cmd)) => {

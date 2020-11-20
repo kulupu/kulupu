@@ -21,6 +21,26 @@ use std::marker::PhantomData;
 
 pub const HASH_SIZE: usize = sys::RANDOMX_HASH_SIZE as usize;
 
+pub struct Config {
+	pub large_pages: bool,
+	pub secure: bool,
+}
+
+impl Config {
+	pub const fn new() -> Self {
+		Config {
+			large_pages: false,
+			secure: false,
+		}
+	}
+}
+
+impl Default for Config {
+	fn default() -> Self {
+		Config::new()
+	}
+}
+
 pub enum CacheMode {
 	Full,
 	Light,
@@ -28,17 +48,23 @@ pub enum CacheMode {
 
 pub unsafe trait WithCacheMode {
 	fn has_dataset() -> bool;
-	fn randomx_flags() -> sys::randomx_flags;
+	fn randomx_flags(config: &Config) -> sys::randomx_flags;
 	fn description() -> &'static str;
 }
 
 pub enum WithFullCacheMode { }
 unsafe impl WithCacheMode for WithFullCacheMode {
 	fn has_dataset() -> bool { true }
-	fn randomx_flags() -> sys::randomx_flags {
+	fn randomx_flags(config: &Config) -> sys::randomx_flags {
 		unsafe {
-			sys::randomx_get_flags() |
-			sys::randomx_flags_RANDOMX_FLAG_FULL_MEM
+			let mut flags = sys::randomx_get_flags() | sys::randomx_flags_RANDOMX_FLAG_FULL_MEM;
+			if config.large_pages {
+				flags = flags | sys::randomx_flags_RANDOMX_FLAG_LARGE_PAGES
+			}
+			if config.secure {
+				flags = flags | sys::randomx_flags_RANDOMX_FLAG_SECURE
+			}
+			flags
 		}
 
 	}
@@ -48,8 +74,14 @@ unsafe impl WithCacheMode for WithFullCacheMode {
 pub enum WithLightCacheMode { }
 unsafe impl WithCacheMode for WithLightCacheMode {
 	fn has_dataset() -> bool { false }
-	fn randomx_flags() -> sys::randomx_flags {
-		unsafe { sys::randomx_get_flags() }
+	fn randomx_flags(config: &Config) -> sys::randomx_flags {
+		unsafe {
+			let mut flags = sys::randomx_get_flags();
+			if config.secure {
+				flags = flags | sys::randomx_flags_RANDOMX_FLAG_SECURE
+			}
+			flags
+		}
 	}
 	fn description() -> &'static str { "light" }
 }
@@ -67,8 +99,8 @@ unsafe impl<M: WithCacheMode> Send for Cache<M> { }
 unsafe impl<M: WithCacheMode> Sync for Cache<M> { }
 
 impl<M: WithCacheMode> Cache<M> {
-	pub fn new(key: &[u8]) -> Self {
-		let flags = M::randomx_flags();
+	pub fn new(key: &[u8], config: &Config) -> Self {
+		let flags = M::randomx_flags(config);
 
 		let cache_ptr = unsafe {
 			let ptr = sys::randomx_alloc_cache(flags);
@@ -119,8 +151,8 @@ pub type FullVM = VM<WithFullCacheMode>;
 pub type LightVM = VM<WithLightCacheMode>;
 
 impl<M: WithCacheMode> VM<M> {
-	pub fn new(cache: Arc<Cache<M>>) -> Self {
-		let flags = M::randomx_flags();
+	pub fn new(cache: Arc<Cache<M>>, config: &Config) -> Self {
+		let flags = M::randomx_flags(config);
 
 		let ptr = unsafe {
 			sys::randomx_create_vm(
@@ -211,19 +243,19 @@ mod tests {
 
 	#[test]
 	fn should_create_light_vm() {
-		let cache = Arc::new(LightCache::new(&b"RandomX example key"[..]));
-		let mut vm = LightVM::new(cache);
+		let cache = Arc::new(LightCache::new(&b"RandomX example key"[..], &Default::default()));
+		let mut vm = LightVM::new(cache, &Default::default());
 		let hash = vm.calculate(&b"RandomX example input"[..]);
 		assert_eq!(hash, [69, 167, 169, 170, 66, 104, 77, 15, 73, 13, 233, 6, 227, 92, 143, 244, 95, 153, 4, 251, 223, 169, 78, 126, 236, 216, 174, 147, 1, 213, 223, 59]);
 	}
 
 	#[test]
 	fn should_work_with_full_vm() {
-		let light_cache = Arc::new(LightCache::new(&b"RandomX example key"[..]));
-		let mut light_vm = LightVM::new(light_cache);
+		let light_cache = Arc::new(LightCache::new(&b"RandomX example key"[..], &Default::default()));
+		let mut light_vm = LightVM::new(light_cache, &Default::default());
 		let hash = light_vm.calculate(&b"RandomX example input"[..]);
-		let full_cache = Arc::new(FullCache::new(&b"RandomX example key"[..]));
-		let mut full_vm = FullVM::new(full_cache);
+		let full_cache = Arc::new(FullCache::new(&b"RandomX example key"[..], &Default::default()));
+		let mut full_vm = FullVM::new(full_cache, &Default::default());
 		let full_hash = full_vm.calculate(&b"RandomX example input"[..]);
 		assert_eq!(hash, full_hash);
 	}
