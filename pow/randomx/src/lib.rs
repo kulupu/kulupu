@@ -243,19 +243,19 @@ mod tests {
 
 	#[test]
 	fn should_create_light_vm() {
-		let cache = Arc::new(LightCache::new(&b"RandomX example key"[..]));
-		let mut vm = LightVM::new(cache);
+		let cache = Arc::new(LightCache::new(&b"RandomX example key"[..], &Default::default()));
+		let mut vm = LightVM::new(cache, &Default::default());
 		let hash = vm.calculate(&b"RandomX example input"[..]);
 		assert_eq!(hash, [69, 167, 169, 170, 66, 104, 77, 15, 73, 13, 233, 6, 227, 92, 143, 244, 95, 153, 4, 251, 223, 169, 78, 126, 236, 216, 174, 147, 1, 213, 223, 59]);
 	}
 
 	#[test]
 	fn should_work_with_full_vm() {
-		let light_cache = Arc::new(LightCache::new(&b"RandomX example key"[..]));
-		let mut light_vm = LightVM::new(light_cache);
+		let light_cache = Arc::new(LightCache::new(&b"RandomX example key"[..], &Default::default()));
+		let mut light_vm = LightVM::new(light_cache, &Default::default());
 		let hash = light_vm.calculate(&b"RandomX example input"[..]);
-		let full_cache = Arc::new(FullCache::new(&b"RandomX example key"[..]));
-		let mut full_vm = FullVM::new(full_cache);
+		let full_cache = Arc::new(FullCache::new(&b"RandomX example key"[..], &Default::default()));
+		let mut full_vm = FullVM::new(full_cache, &Default::default());
 		let full_hash = full_vm.calculate(&b"RandomX example input"[..]);
 		assert_eq!(hash, full_hash);
 	}
