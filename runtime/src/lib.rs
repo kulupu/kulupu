@@ -516,7 +516,7 @@ parameter_types! {
 	pub const VotingBond: Balance = 5 * CENTS;
 	/// Daily council elections.
 	pub const TermDuration: BlockNumber = 24 * HOURS;
-	pub const DesiredMembers: u32 = 11;
+	pub const DesiredMembers: u32 = 7;
 	pub const DesiredRunnersUp: u32 = 30;
 	pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
 }
