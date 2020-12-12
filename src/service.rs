@@ -155,7 +155,6 @@ pub fn new_partial(
 	let import_queue = sc_consensus_pow::import_queue(
 		Box::new(pow_block_import.clone()),
 		None,
-		None,
 		algorithm.clone(),
 		inherent_data_providers.clone(),
 		&task_manager.spawn_handle(),
@@ -194,8 +193,6 @@ pub fn new_full(
 			import_queue,
 			on_demand: None,
 			block_announce_validator_builder: None,
-			finality_proof_request_builder: None,
-			finality_proof_provider: None,
 		})?;
 
 	if config.offchain_worker.enabled {
@@ -360,7 +357,6 @@ pub fn new_light(
 	let import_queue = sc_consensus_pow::import_queue(
 		Box::new(pow_block_import.clone()),
 		None,
-		None,
 		algorithm.clone(),
 		inherent_data_providers.clone(),
 		&task_manager.spawn_handle(),
@@ -376,8 +372,6 @@ pub fn new_light(
 			import_queue,
 			on_demand: Some(on_demand.clone()),
 			block_announce_validator_builder: None,
-			finality_proof_request_builder: None,
-			finality_proof_provider: None,
 		})?;
 
 	if config.offchain_worker.enabled {

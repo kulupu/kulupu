@@ -45,7 +45,7 @@ use frame_support::{
 use frame_system::{ensure_none, ensure_root, ensure_signed};
 
 /// Trait for generating reward locks.
-pub trait GenerateRewardLocks<T: Trait> {
+pub trait GenerateRewardLocks<T: Config> {
 	/// Generate reward locks.
 	fn generate_reward_locks(
 		current_block: T::BlockNumber,
@@ -55,7 +55,7 @@ pub trait GenerateRewardLocks<T: Trait> {
 	fn max_locks() -> u32;
 }
 
-impl<T: Trait> GenerateRewardLocks<T> for () {
+impl<T: Config> GenerateRewardLocks<T> for () {
 	fn generate_reward_locks(
 		_current_block: T::BlockNumber,
 		_total_reward: BalanceOf<T>,
@@ -80,10 +80,10 @@ pub trait WeightInfo {
 	fn set_additional_rewards() -> Weight;
 }
 
-/// Trait for rewards.
-pub trait Trait: frame_system::Trait {
+/// Config for rewards.
+pub trait Config: frame_system::Config {
 	/// The overarching event type.
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 	/// An implementation of on-chain currency.
 	type Currency: LockableCurrency<Self::AccountId>;
 	/// Donation destination.
@@ -95,7 +95,7 @@ pub trait Trait: frame_system::Trait {
 }
 
 /// Type alias for currency balance.
-pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
+pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[derive(Encode, Decode, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -106,7 +106,7 @@ pub struct CurvePoint<BlockNumber, Balance> {
 }
 
 decl_error! {
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		/// Reward set is too low.
 		RewardTooLow,
 		/// Author preferences already set.
@@ -117,7 +117,7 @@ decl_error! {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Rewards {
+	trait Store for Module<T: Config> as Rewards {
 		/// Current block author.
 		Author get(fn author): Option<T::AccountId>;
 		/// Current block donation.
@@ -152,7 +152,7 @@ decl_event! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
 		fn deposit_event() = default;
@@ -305,7 +305,7 @@ decl_module! {
 
 const REWARDS_ID: LockIdentifier = *b"rewards ";
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 	fn ensure_sorted(curve: &[CurvePoint<T::BlockNumber, BalanceOf<T>>]) -> Result<(), Error<T>> {
 		// Check curve is reverse sorted by block number
 		ensure!(curve.windows(2).all(|w| w[0].start > w[1].start), Error::<T>::NotSorted);
@@ -456,7 +456,7 @@ impl ProvideInherentData for InherentDataProvider {
 	}
 }
 
-impl<T: Trait> ProvideInherent for Module<T> {
+impl<T: Config> ProvideInherent for Module<T> {
 	type Call = Call<T>;
 	type Error = InherentError;
 	const INHERENT_IDENTIFIER: InherentIdentifier = INHERENT_IDENTIFIER;

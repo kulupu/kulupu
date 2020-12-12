@@ -47,13 +47,13 @@ pub fn clamp(actual: u128, goal: u128, clamp_factor: u128) -> u128 {
 	max(goal / clamp_factor, min(actual, goal * clamp_factor))
 }
 
-pub trait Trait: pallet_timestamp::Trait {
+pub trait Config: pallet_timestamp::Config {
 	/// Target block time in millseconds.
 	type TargetBlockTime: Get<Self::Moment>;
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Difficulty {
+	trait Store for Module<T: Config> as Difficulty {
 		/// Past difficulties and timestamps, from earliest to latest.
 		PastDifficultiesAndTimestamps:
 		[Option<DifficultyAndTimestamp<T::Moment>>; 60]
@@ -68,13 +68,13 @@ decl_storage! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		/// Target block time in milliseconds.
 		const TargetBlockTime: T::Moment = T::TargetBlockTime::get();
 	}
 }
 
-impl<T: Trait> OnTimestampSet<T::Moment> for Module<T> {
+impl<T: Config> OnTimestampSet<T::Moment> for Module<T> {
 	fn on_timestamp_set(now: T::Moment) {
 		let block_time = UniqueSaturatedInto::<u128>::unique_saturated_into(T::TargetBlockTime::get());
 		let block_time_window = DIFFICULTY_ADJUST_WINDOW as u128 * block_time;
