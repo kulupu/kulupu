@@ -77,6 +77,7 @@ pub trait WeightInfo {
 	fn unlock() -> Weight;
 	fn set_curve(_l: u32, ) -> Weight;
 	fn fund() -> Weight;
+	fn set_additional_rewards() -> Weight;
 }
 
 /// Trait for rewards.
@@ -130,6 +131,8 @@ decl_storage! {
 			map hasher(twox_64_concat) T::AccountId => BTreeMap<T::BlockNumber, BalanceOf<T>>;
 		/// Curve for this chain, sorted in reverse by block number.
 		Curve get(fn curve) config(): Vec<CurvePoint<T::BlockNumber, BalanceOf<T>>>;
+		/// Additional non-miner reward.
+		AdditionalRewards get(fn additional_rewards) config(): Vec<(T::AccountId, BalanceOf<T>)>;
 	}
 }
 
@@ -143,6 +146,8 @@ decl_event! {
 		Funded(Balance),
 		/// A new curve has been set.
 		CurveSet,
+		/// Additional rewards have been set.
+		AdditionalRewardsSet,
 	}
 }
 
@@ -280,7 +285,20 @@ decl_module! {
 			let treasury_id = T::DonationDestination::get();
 			drop(T::Currency::deposit_creating(&treasury_id, amount));
 
-			Self::deposit_event(RawEvent::Funded(amount));
+			Self::deposit_event(Event::<T>::Funded(amount));
+		}
+
+		/// Set additional per-block rewards.
+		#[weight = T::WeightInfo::set_additional_rewards()]
+		fn set_additional_rewards(origin, rewards: Vec<(T::AccountId, BalanceOf<T>)>) {
+			ensure_root(origin)?;
+
+			for (_, reward) in &rewards {
+				ensure!(reward >= &T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
+			}
+
+			AdditionalRewards::<T>::put(rewards);
+			Self::deposit_event(Event::<T>::AdditionalRewardsSet);
 		}
 	}
 }
@@ -331,6 +349,11 @@ impl<T: Trait> Module<T> {
 			}
 
 			Self::do_update_locks(&author, locks, when);
+		}
+
+		let additional_rewards = Self::additional_rewards();
+		for (additional_destination, additional_reward) in additional_rewards {
+			T::Currency::deposit_creating(&additional_destination, additional_reward);
 		}
 	}
 

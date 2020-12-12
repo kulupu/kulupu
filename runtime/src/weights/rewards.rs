@@ -69,4 +69,9 @@ impl<T: system::Trait> rewards::WeightInfo for WeightInfo<T> {
 	fn fund() -> Weight {
 		(55_119_000 as Weight)
 	}
+	fn set_additional_rewards() -> Weight {
+		(41_890_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
 }

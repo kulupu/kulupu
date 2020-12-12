@@ -161,6 +161,7 @@ pub fn new_test_ext(author: u64) -> sp_io::TestExternalities {
 		reward: 60,
 		taxation: Perbill::from_percent(10),
 		curve: vec![],
+		additional_rewards: vec![],
 	}.assimilate_storage(&mut t).unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
