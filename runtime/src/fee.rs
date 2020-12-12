@@ -42,7 +42,7 @@ impl WeightToFeePolynomial for WeightToFee {
 mod tests {
 	use frame_support::weights::WeightToFeePolynomial;
 	use super::WeightToFee;
-	use crate::MAXIMUM_BLOCK_WEIGHT;
+	use crate::{MAXIMUM_BLOCK_WEIGHT, ExtrinsicBaseWeight};
 	use kulupu_primitives::{CENTS, DOLLARS};
 
 	#[test]
@@ -56,6 +56,6 @@ mod tests {
 	// This function tests that the fee for `ExtrinsicBaseWeight` of weight is correct
 	fn extrinsic_base_fee_is_correct() {
 		// `ExtrinsicBaseWeight` should cost 1/10 of a CENT
-		assert_eq!(WeightToFee::calc(&MAXIMUM_BLOCK_WEIGHT), CENTS / 10)
+		assert_eq!(WeightToFee::calc(&ExtrinsicBaseWeight::get()), CENTS / 10)
 	}
 }
