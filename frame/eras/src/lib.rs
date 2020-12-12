@@ -37,15 +37,15 @@ pub struct Era<H> {
 	pub final_state_root: H,
 }
 
-pub trait Trait: frame_system::Trait { }
+pub trait Config: frame_system::Config { }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Eras {
+	trait Store for Module<T: Config> as Eras {
 		/// Past eras.
 		pub PastEras get(fn past_eras) config(past_eras): Vec<Era<T::Hash>>;
 	}
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin { }
+	pub struct Module<T: Config> for enum Call where origin: T::Origin { }
 }

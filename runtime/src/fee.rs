@@ -41,15 +41,15 @@ impl WeightToFeePolynomial for WeightToFee {
 #[cfg(test)]
 mod tests {
 	use frame_support::weights::WeightToFeePolynomial;
-	use super::{WeightToFee, ExtrinsicBaseWeight};
-	use crate::MaximumBlockWeight;
+	use super::WeightToFee;
+	use crate::{MAXIMUM_BLOCK_WEIGHT, ExtrinsicBaseWeight};
 	use kulupu_primitives::{CENTS, DOLLARS};
 
 	#[test]
 	// This function tests that the fee for `MaximumBlockWeight` of weight is correct
 	fn full_block_fee_is_correct() {
 		// A full block should cost 16 DOLLARS
-		assert_eq!(WeightToFee::calc(&MaximumBlockWeight::get()), 16 * DOLLARS)
+		assert_eq!(WeightToFee::calc(&MAXIMUM_BLOCK_WEIGHT), 16 * DOLLARS)
 	}
 
 	#[test]

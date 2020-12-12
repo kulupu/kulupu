@@ -38,7 +38,7 @@ use sp_runtime::{
 	FixedPointNumber,
 };
 use sp_runtime::traits::{
-	BlakeTwo256, Block as BlockT, StaticLookup, Saturating,
+	BlakeTwo256, Block as BlockT, StaticLookup,
 	Verify, IdentifyAccount, Convert, ConvertInto,
 };
 use sp_api::impl_runtime_apis;
@@ -47,7 +47,8 @@ use sp_version::RuntimeVersion;
 use sp_version::NativeVersion;
 use kulupu_primitives::{DOLLARS, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS, BLOCK_TIME, deposit};
 use transaction_payment::{TargetedFeeAdjustment, Multiplier};
-use system::EnsureRoot;
+use system::{limits, EnsureRoot};
+use static_assertions::const_assert;
 use crate::fee::WeightToFee;
 
 // A few exports that help ease life for downstream crates.
@@ -58,7 +59,7 @@ pub use frame_support::{
 	StorageValue, construct_runtime, parameter_types,
 	traits::{Currency, Randomness, LockIdentifier, OnUnbalanced, InstanceFilter},
 	weights::{
-		Weight, RuntimeDbWeight,
+		Weight, RuntimeDbWeight, DispatchClass,
 		constants::{
 			WEIGHT_PER_SECOND, BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight
 		},
@@ -129,84 +130,79 @@ pub fn native_version() -> NativeVersion {
 	}
 }
 
-const AVERAGE_ON_INITIALIZE_WEIGHT: Perbill = Perbill::from_percent(10);
+/// We assume that an on-initialize consumes 2.5% of the weight on average, hence a single extrinsic
+/// will not be allowed to consume more than `AvailableBlockRatio - 2.5%`.
+pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_perthousand(25);
+/// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used
+/// by  Operational  extrinsics.
+const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+/// We allow for 2 seconds of compute with a 6 second average block time.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
+
+const_assert!(NORMAL_DISPATCH_RATIO.deconstruct() >= AVERAGE_ON_INITIALIZE_RATIO.deconstruct());
+
 parameter_types! {
 	pub const BlockHashCount: BlockNumber = 250;
-	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
-	pub const MaximumBlockWeight: Weight = 2 * WEIGHT_PER_SECOND;
-	pub MaximumExtrinsicWeight: Weight = AvailableBlockRatio::get()
-		.saturating_sub(AVERAGE_ON_INITIALIZE_WEIGHT) * MaximumBlockWeight::get();
-	pub const MaximumBlockLength: u32 = 5 * 1024 * 1024;
+	pub BlockLength: limits::BlockLength =
+		limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	/// Block weights base values and limits.
+	pub BlockWeights: limits::BlockWeights = limits::BlockWeights::builder()
+		.base_block(BlockExecutionWeight::get())
+		.for_class(DispatchClass::all(), |weights| {
+			weights.base_extrinsic = ExtrinsicBaseWeight::get();
+		})
+		.for_class(DispatchClass::Normal, |weights| {
+			weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
+		})
+		.for_class(DispatchClass::Operational, |weights| {
+			weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
+			// Operational transactions have an extra reserved space, so that they
+			// are included even if block reached `MAXIMUM_BLOCK_WEIGHT`.
+			weights.reserved = Some(
+				MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT,
+			);
+		})
+		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
+		.build_or_panic();
 	pub const Version: RuntimeVersion = VERSION;
 	pub const DbWeight: RuntimeDbWeight = frame_support::weights::constants::RocksDbWeight::get();
 }
 
-impl system::Trait for Runtime {
-	/// Filter for base call.
+impl system::Config for Runtime {
 	type BaseCallFilter = ();
-	/// The identifier used to distinguish between accounts.
-	type AccountId = AccountId;
-	/// The aggregated dispatch type that is available for extrinsics.
-	type Call = Call;
-	/// The lookup mechanism to get account ID from whatever is passed in dispatchers.
-	type Lookup = Indices;
-	/// The index type for storing how many extrinsics an account has signed.
-	type Index = Index;
-	/// The index type for blocks.
-	type BlockNumber = BlockNumber;
-	/// The type for hashing blocks and tries.
-	type Hash = Hash;
-	/// The hashing algorithm used.
-	type Hashing = BlakeTwo256;
-	/// The header type.
-	type Header = generic::Header<BlockNumber, BlakeTwo256>;
-	/// The ubiquitous event type.
-	type Event = Event;
-	/// The ubiquitous origin type.
+	type BlockWeights = BlockWeights;
+	type BlockLength = BlockLength;
 	type Origin = Origin;
-	/// Maximum number of block number to block hash mappings to keep (oldest pruned first).
+	type Call = Call;
+	type Index = Index;
+	type BlockNumber = BlockNumber;
+	type Hash = Hash;
+	type Hashing = BlakeTwo256;
+	type AccountId = AccountId;
+	type Lookup = Indices;
+	type Header = generic::Header<BlockNumber, BlakeTwo256>;
+	type Event = Event;
 	type BlockHashCount = BlockHashCount;
-	/// Maximum weight of each block.
-	type MaximumBlockWeight = MaximumBlockWeight;
-	/// The weight of database operations that the runtime can invoke.
 	type DbWeight = DbWeight;
-	/// The weight of the overhead invoked on the block import process, independent of the
-	/// extrinsics included in that block.
-	type BlockExecutionWeight = BlockExecutionWeight;
-	/// The base weight of any extrinsic processed by the runtime, independent of the
-	/// logic of that extrinsic. (Signature verification, nonce increment, fee, etc...)
-	type ExtrinsicBaseWeight = ExtrinsicBaseWeight;
-	/// Maximum size of all encoded transactions (in bytes) that are allowed in one block.
-	type MaximumBlockLength = MaximumBlockLength;
-	/// Maximum extrinsic weight.
-	type MaximumExtrinsicWeight = MaximumExtrinsicWeight;
-	/// Portion of the block weight that is available to all normal transactions.
-	type AvailableBlockRatio = AvailableBlockRatio;
-	/// Version of the runtime.
 	type Version = Version;
-	/// Converts a module to the index of the module in `construct_runtime!`.
-	///
-	/// This type is being generated by `construct_runtime!`.
 	type PalletInfo = PalletInfo;
-	/// What to do if a new account is created.
-	type OnNewAccount = ();
-	/// What to do if an account is fully reaped from the system.
-	type OnKilledAccount = ();
-	/// The data to be stored in an account.
 	type AccountData = balances::AccountData<Balance>;
-	/// System weight info.
+	type OnNewAccount = ();
+	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
 }
 
 parameter_types! {
+	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
+		BlockWeights::get().max_block;
 	pub const MaxScheduledPerBlock: u32 = 50;
 }
 
-impl scheduler::Trait for Runtime {
+impl scheduler::Config for Runtime {
 	type Event = Event;
 	type Origin = Origin;
 	type Call = Call;
-	type MaximumWeight = MaximumBlockWeight;
+	type MaximumWeight = MaximumSchedulerWeight;
 	type PalletsOrigin = OriginCaller;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
@@ -221,7 +217,7 @@ parameter_types! {
 	pub const MaxSignatories: u16 = 100;
 }
 
-impl multisig::Trait for Runtime {
+impl multisig::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
 	type Currency = Balances;
@@ -231,7 +227,7 @@ impl multisig::Trait for Runtime {
 	type WeightInfo = ();
 }
 
-impl utility::Trait for Runtime {
+impl utility::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
 	type WeightInfo = ();
@@ -241,7 +237,7 @@ parameter_types! {
 	pub const IndexDeposit: Balance = 1 * DOLLARS;
 }
 
-impl indices::Trait for Runtime {
+impl indices::Config for Runtime {
 	/// The type for recording indexing into the account enumeration.
 	type AccountIndex = AccountIndex;
 	/// Index deposit.
@@ -258,7 +254,7 @@ parameter_types! {
 	pub const MinimumPeriod: u64 = 1000;
 }
 
-impl timestamp::Trait for Runtime {
+impl timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
 	type OnTimestampSet = Difficulty;
@@ -271,7 +267,7 @@ parameter_types! {
 	pub const MaxLocks: u32 = 50;
 }
 
-impl balances::Trait for Runtime {
+impl balances::Config for Runtime {
 	/// The type for recording an account's balance.
 	type Balance = Balance;
 	/// The ubiquitous event type.
@@ -313,7 +309,7 @@ parameter_types! {
 	pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000u128);
 }
 
-impl transaction_payment::Trait for Runtime {
+impl transaction_payment::Config for Runtime {
 	type OnChargeTransaction = transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
 	type TransactionByteFee = TransactionByteFee;
 	type WeightToFee = WeightToFee;
@@ -324,11 +320,11 @@ parameter_types! {
 	pub const TargetBlockTime: u64 = BLOCK_TIME;
 }
 
-impl difficulty::Trait for Runtime {
+impl difficulty::Config for Runtime {
 	type TargetBlockTime = TargetBlockTime;
 }
 
-impl eras::Trait for Runtime { }
+impl eras::Config for Runtime { }
 
 pub struct GenerateRewardLocks;
 
@@ -367,7 +363,7 @@ parameter_types! {
 	pub DonationDestination: AccountId = Treasury::account_id();
 }
 
-impl rewards::Trait for Runtime {
+impl rewards::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
@@ -400,7 +396,7 @@ parameter_types! {
 	pub const MaxProposals: u32 = 100;
 }
 
-impl democracy::Trait for Runtime {
+impl democracy::Config for Runtime {
 	type Proposal = Call;
 	type Event = Event;
 	type Currency = Balances;
@@ -470,7 +466,7 @@ parameter_types! {
 }
 
 type CouncilCollective = collective::Instance1;
-impl collective::Trait<CouncilCollective> for Runtime {
+impl collective::Config<CouncilCollective> for Runtime {
 	type Origin = Origin;
 	type Proposal = Call;
 	type Event = Event;
@@ -486,7 +482,7 @@ pub struct CurrencyToVoteHandler<R>(sp_std::marker::PhantomData<R>);
 
 impl<R> CurrencyToVoteHandler<R>
 where
-	R: balances::Trait,
+	R: balances::Config,
 	R::Balance: Into<u128>,
 {
 	fn factor() -> u128 {
@@ -497,7 +493,7 @@ where
 
 impl<R> Convert<u128, u64> for CurrencyToVoteHandler<R>
 where
-	R: balances::Trait,
+	R: balances::Config,
 	R::Balance: Into<u128>,
 {
 	fn convert(x: u128) -> u64 { (x / Self::factor()) as u64 }
@@ -505,7 +501,7 @@ where
 
 impl<R> Convert<u128, u128> for CurrencyToVoteHandler<R>
 where
-	R: balances::Trait,
+	R: balances::Config,
 	R::Balance: Into<u128>,
 {
 	fn convert(x: u128) -> u128 { x * Self::factor() }
@@ -521,7 +517,7 @@ parameter_types! {
 	pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
 }
 
-impl elections_phragmen::Trait for Runtime {
+impl elections_phragmen::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type ChangeMembers = Council;
@@ -546,7 +542,7 @@ parameter_types! {
 }
 
 type TechnicalCollective = collective::Instance2;
-impl collective::Trait<TechnicalCollective> for Runtime {
+impl collective::Config<TechnicalCollective> for Runtime {
 	type Origin = Origin;
 	type Proposal = Call;
 	type Event = Event;
@@ -557,7 +553,7 @@ impl collective::Trait<TechnicalCollective> for Runtime {
 	type WeightInfo = ();
 }
 
-impl membership::Trait<membership::Instance1> for Runtime {
+impl membership::Config<membership::Instance1> for Runtime {
 	type Event = Event;
 	type AddOrigin = system::EnsureRoot<AccountId>;
 	type RemoveOrigin = system::EnsureRoot<AccountId>;
@@ -587,7 +583,7 @@ parameter_types! {
 	pub const BountyValueMinimum: Balance = 10 * DOLLARS;
 }
 
-impl treasury::Trait for Runtime {
+impl treasury::Config for Runtime {
 	type Currency = Balances;
 	type ApproveOrigin = system::EnsureOneOf<AccountId,
 		collective::EnsureProportionMoreThan<_4, _5, AccountId, CouncilCollective>,
@@ -629,7 +625,7 @@ parameter_types! {
 	pub const MaxRegistrars: u32 = 20;
 }
 
-impl identity::Trait for Runtime {
+impl identity::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type Slashed = Treasury;
@@ -712,7 +708,7 @@ impl InstanceFilter<Call> for ProxyType {
 	}
 }
 
-impl proxy::Trait for Runtime {
+impl proxy::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
 	type Currency = Balances;
@@ -731,46 +727,12 @@ parameter_types! {
 	pub const MinVestedTransfer: Balance = 10 * DOLLARS;
 }
 
-impl vesting::Trait for Runtime {
+impl vesting::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type BlockNumberToBalance = ConvertInto;
 	type MinVestedTransfer = MinVestedTransfer;
 	type WeightInfo = ();
-}
-
-pub struct CustomOnRuntimeUpgrade;
-impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
-	fn on_runtime_upgrade() -> frame_support::weights::Weight {
-		// Update scheduler origin usage
-		#[derive(Encode, Decode)]
-		#[allow(non_camel_case_types)]
-		pub enum OldOriginCaller {
-			system(system::Origin<Runtime>),
-			collective_Instance1(
-				collective::Origin<Runtime, collective::Instance1>
-			),
-			collective_Instance2(
-				collective::Origin<Runtime, collective::Instance2>
-			),
-		}
-
-		impl Into<OriginCaller> for OldOriginCaller {
-			fn into(self) -> OriginCaller {
-				match self {
-					OldOriginCaller::system(o) => OriginCaller::system(o),
-					OldOriginCaller::collective_Instance1(o) =>
-						OriginCaller::collective_Instance1(o),
-					OldOriginCaller::collective_Instance2(o) =>
-						OriginCaller::collective_Instance2(o),
-				}
-			}
-		}
-
-		scheduler::Module::<Runtime>::migrate_origin::<OldOriginCaller>();
-
-		<Runtime as system::Trait>::MaximumBlockWeight::get()
-	}
 }
 
 construct_runtime!(
@@ -845,7 +807,6 @@ pub type Executive = frame_executive::Executive<
 	system::ChainContext<Runtime>,
 	Runtime,
 	AllModules,
-	CustomOnRuntimeUpgrade,
 >;
 
 impl_runtime_apis! {
@@ -962,7 +923,7 @@ impl_runtime_apis! {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 			use frame_system_benchmarking::Module as SystemBench;
 
-			impl frame_system_benchmarking::Trait for Runtime {}
+			impl frame_system_benchmarking::Config for Runtime {}
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number

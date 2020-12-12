@@ -19,11 +19,11 @@
 
 //! Mock runtime for tests
 
-use crate::{Module, Trait, GenesisConfig};
+use crate::{Module, Config, GenesisConfig};
 use sp_core::H256;
 use codec::Encode;
 use frame_support::{
-	impl_outer_origin, impl_outer_event, parameter_types, weights::Weight, traits::OnInitialize
+	impl_outer_origin, impl_outer_event, parameter_types, traits::OnInitialize
 };
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup}, testing::{Digest, DigestItem, Header}, Perbill,
@@ -52,15 +52,12 @@ impl_outer_event! {
 pub struct Test;
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: Weight = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
 }
 
 type Balance = u128;
 type BlockNumber = u64;
 
-impl system::Trait for Test {
+impl system::Config for Test {
 	type BaseCallFilter = ();
 	type Origin = Origin;
 	type Call = ();
@@ -73,15 +70,11 @@ impl system::Trait for Test {
 	type Header = Header;
 	type Event = Event;
 	type BlockHashCount = BlockHashCount;
-	type MaximumBlockWeight = MaximumBlockWeight;
 	type DbWeight = ();
-	type BlockExecutionWeight = ();
-	type ExtrinsicBaseWeight = ();
-	type MaximumExtrinsicWeight = MaximumBlockWeight;
-	type MaximumBlockLength = MaximumBlockLength;
-	type AvailableBlockRatio = AvailableBlockRatio;
 	type Version = ();
 	type PalletInfo = ();
+	type BlockWeights = ();
+	type BlockLength = ();
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
@@ -93,7 +86,7 @@ parameter_types! {
 	pub const MaxLocks: u32 = 50;
 }
 
-impl pallet_balances::Trait for Test {
+impl pallet_balances::Config for Test {
 	type Balance = Balance;
 	type DustRemoval = ();
 	type Event = Event;
@@ -142,7 +135,7 @@ parameter_types! {
 	pub DonationDestination: u64 = 255;
 }
 
-impl Trait for Test {
+impl Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
