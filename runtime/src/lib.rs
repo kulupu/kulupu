@@ -516,7 +516,7 @@ parameter_types! {
 	pub const VotingBond: Balance = 5 * CENTS;
 	/// Daily council elections.
 	pub const TermDuration: BlockNumber = 24 * HOURS;
-	pub const DesiredMembers: u32 = 11;
+	pub const DesiredMembers: u32 = 7;
 	pub const DesiredRunnersUp: u32 = 30;
 	pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
 }
@@ -589,8 +589,14 @@ parameter_types! {
 
 impl treasury::Trait for Runtime {
 	type Currency = Balances;
-	type ApproveOrigin = collective::EnsureProportionMoreThan<_4, _5, AccountId, CouncilCollective>;
-	type RejectOrigin = collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type ApproveOrigin = system::EnsureOneOf<AccountId,
+		collective::EnsureProportionMoreThan<_4, _5, AccountId, CouncilCollective>,
+		system::EnsureRoot<AccountId>,
+	>;
+	type RejectOrigin = system::EnsureOneOf<AccountId,
+		collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
+		system::EnsureRoot<AccountId>,
+	>;
 	type Tippers = ElectionsPhragmen;
 	type TipCountdown = TipCountdown;
 	type TipFindersFee = TipFindersFee;
