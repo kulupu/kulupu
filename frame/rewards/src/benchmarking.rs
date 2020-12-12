@@ -163,7 +163,7 @@ benchmarks! {
 	}
 
 	// Constant time
-	set_reward {
+	set_additional_rewards {
 		let new_reward = (T::AccountId::default(), BalanceOf::<T>::max_value());
 	}: _(RawOrigin::Root, new_reward)
 	verify {
