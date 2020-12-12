@@ -161,6 +161,14 @@ benchmarks! {
 	verify {
 		assert_last_event::<T>(Event::<T>::Funded(amount).into());
 	}
+
+	// Constant time
+	set_additional_rewards {
+		let new_reward = (T::AccountId::default(), BalanceOf::<T>::max_value());
+	}: _(RawOrigin::Root, new_reward)
+	verify {
+		assert_last_event::<T>(Event::<T>::AdditionalRewardsSet);
+	}
 }
 
 #[cfg(test)]
