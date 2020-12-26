@@ -46,6 +46,7 @@ multisig = { package = "pallet-multisig", git = "https://github.com/paritytech/s
 rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
 eras = { package = "pallet-eras", path = "../frame/eras", default-features = false }
 difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", default-features = false }
+variables = { package = "pallet-variables", path = "../frame/variables", default-features = false }
 
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
@@ -99,6 +100,7 @@ std = [
 	"rewards/std",
 	"eras/std",
 	"difficulty/std",
+	"variables/std",
 
 	"frame-system-rpc-runtime-api/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
