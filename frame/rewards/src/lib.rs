@@ -91,7 +91,7 @@ pub trait Config: frame_system::Config {
 	/// Generate reward locks.
 	type GenerateRewardLocks: GenerateRewardLocks<Self>;
 	/// Enable or Disable Mandatory Taxation
-	type MandatoryTaxation: Get<bool>;
+	type MandatoryDonation: Get<bool>;
 	/// Weights for this pallet.
 	type WeightInfo: WeightInfo;
 }
@@ -341,7 +341,7 @@ impl<T: Config> Module<T> {
 		drop(T::Currency::deposit_creating(&author, miner_total));
 		// Runtime configuration can decide whether we allow miners to define the donation amount
 		// or we simply place the entire taxed amount into treasury.
-		if T::MandatoryTaxation::get() {
+		if T::MandatoryDonation::get() {
 			drop(T::Currency::deposit_creating(&treasury_id, tax));
 		} else {
 			drop(T::Currency::deposit_creating(&treasury_id, donate));

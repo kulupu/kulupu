@@ -133,7 +133,7 @@ impl crate::GenerateRewardLocks<Test> for GenerateRewardLocks {
 
 parameter_types! {
 	pub DonationDestination: u64 = 255;
-	pub MandatoryTaxation: bool = false;
+	pub MandatoryDonation: bool = false;
 }
 
 impl Config for Test {
@@ -141,7 +141,7 @@ impl Config for Test {
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
-	type MandatoryTaxation = MandatoryTaxation;
+	type MandatoryDonation = MandatoryDonation;
 	type WeightInfo = ();
 }
 
