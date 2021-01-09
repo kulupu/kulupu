@@ -361,6 +361,7 @@ impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
 
 parameter_types! {
 	pub DonationDestination: AccountId = Treasury::account_id();
+	pub MandatoryTaxation: bool = true;
 }
 
 impl rewards::Config for Runtime {
@@ -368,6 +369,7 @@ impl rewards::Config for Runtime {
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
+	type MandatoryTaxation = MandatoryTaxation;
 	type WeightInfo = weights::rewards::WeightInfo<Runtime>;
 }
 
