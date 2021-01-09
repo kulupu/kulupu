@@ -90,7 +90,7 @@ pub trait Config: frame_system::Config {
 	type DonationDestination: Get<Self::AccountId>;
 	/// Generate reward locks.
 	type GenerateRewardLocks: GenerateRewardLocks<Self>;
-	/// Enable or Disable Mandatory Taxation
+	/// Enable or Disable Mandatory Donation
 	type MandatoryDonation: Get<bool>;
 	/// Weights for this pallet.
 	type WeightInfo: WeightInfo;
