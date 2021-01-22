@@ -377,9 +377,9 @@ pub fn mine<B, C>(
 			let duration = since_last_clear;
 
 			let clear = duration >= Duration::new(600, 0);
-			let display = clear || since_last_display >= Duration::new(2, 0);
+			let display = (clear || since_last_display >= Duration::new(2, 0)) && duration.as_secs() > 0;
 
-			if display && duration.as_secs() > 0 {
+			if display {
 				stats.last_display = now;
 				ret = Some((duration, stats.round));
 			}
