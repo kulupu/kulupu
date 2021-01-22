@@ -379,7 +379,7 @@ pub fn mine<B, C>(
 			let clear = duration >= Duration::new(600, 0);
 			let display = clear || since_last_display >= Duration::new(2, 0);
 
-			if display {
+			if display && duration.as_secs() > 0 {
 				stats.last_display = now;
 				ret = Some((duration, stats.round));
 			}
@@ -403,16 +403,26 @@ pub fn mine<B, C>(
 	if let Some((duration, round)) = maybe_display {
 		let hashrate = round / duration.as_secs() as u32;
 		let network_hashrate = difficulty / U256::from(60);
-		let every: u32 = (network_hashrate / U256::from(hashrate)).unique_saturated_into();
-		let every_duration = Duration::new(60, 0) * every;
-		info!(
-			target: "kulupu-pow",
-			"Local hashrate: {} H/s, network hashrate: {} H/s, expected one block every {} ({} blocks)",
-			hashrate,
-			network_hashrate,
-			humantime::format_duration(every_duration).to_string(),
-			every,
-		);
+
+		if hashrate == 0 {
+			info!(
+				target: "kulupu-pow",
+				"Local hashrate: {} H/s, network hashrate: {} H/s",
+				hashrate,
+				network_hashrate,
+			);
+		} else {
+			let every: u32 = (network_hashrate / U256::from(hashrate)).unique_saturated_into();
+			let every_duration = Duration::new(60, 0) * every;
+			info!(
+				target: "kulupu-pow",
+				"Local hashrate: {} H/s, network hashrate: {} H/s, expected one block every {} ({} blocks)",
+				hashrate,
+				network_hashrate,
+				humantime::format_duration(every_duration).to_string(),
+				every,
+			);
+		}
 	}
 
 	Ok(maybe_seal)
