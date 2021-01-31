@@ -37,7 +37,7 @@ use sp_consensus_pow::POW_ENGINE_ID;
 #[cfg(feature = "std")]
 use sp_inherents::ProvideInherentData;
 use frame_support::{
-	decl_module, decl_storage, decl_error, decl_event,
+	decl_module, decl_storage, decl_error, decl_event, ensure,
 	traits::{Get, Currency, LockIdentifier, LockableCurrency, WithdrawReasons},
 	weights::Weight,
 };
@@ -100,6 +100,8 @@ decl_error! {
 	pub enum Error for Module<T: Config> {
 		/// Reward set is too low.
 		RewardTooLow,
+		/// Mint value is too low.
+		MintTooLow,
 		/// Reward curve is not sorted.
 		NotSorted,
 	}
@@ -225,6 +227,19 @@ decl_module! {
 			mint_changes: BTreeMap<T::BlockNumber, BTreeMap<T::AccountId, BalanceOf<T>>>,
 		) {
 			ensure_root(origin)?;
+
+			ensure!(reward >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
+			for (_, mint) in &mints {
+				ensure!(*mint >= T::Currency::minimum_balance(), Error::<T>::MintTooLow);
+			}
+			for (_, reward_change) in &reward_changes {
+				ensure!(*reward_change >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
+			}
+			for (_, mint_change) in &mint_changes {
+				for (_, mint) in mint_change {
+					ensure!(*mint >= T::Currency::minimum_balance(), Error::<T>::MintTooLow);
+				}
+			}
 
 			Reward::<T>::put(reward);
 			Self::deposit_event(RawEvent::RewardChanged(reward));
