@@ -53,7 +53,7 @@ decl_module! {
 	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
-		#[weight = 0]
+		#[weight = T::DbWeight::get().writes(1)]
 		fn set_u32(origin, key: H256, value: u32) {
 			ensure_root(origin)?;
 
