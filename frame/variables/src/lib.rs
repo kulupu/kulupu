@@ -20,7 +20,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use sp_core::H256;
+use sp_std::vec::Vec;
 use frame_support::{
 	decl_module, decl_storage, decl_event,
 };
@@ -34,18 +34,18 @@ pub trait Config: frame_system::Config {
 decl_storage! {
 	trait Store for Module<T: Config> as Eras {
 		///	u32 storage values.
-		pub U32s: map hasher(opaque_blake2_256) H256 => Option<u32>;
+		pub U32s: map hasher(blake2_128_concat) Vec<u8> => Option<u32>;
 		/// u64 storage values.
-		pub U64s: map hasher(opaque_blake2_256) H256 => Option<u64>;
+		pub U64s: map hasher(blake2_128_concat) Vec<u8> => Option<u64>;
 	}
 }
 
 decl_event! {
 	pub enum Event {
 		/// U32 value changed.
-		U32Changed(H256, u32),
+		U32Changed(Vec<u8>, u32),
 		/// U64 value changed.
-		U64Changed(H256, u64),
+		U64Changed(Vec<u8>, u64),
 	}
 }
 
@@ -54,18 +54,18 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = 0]
-		fn set_u32(origin, key: H256, value: u32) {
+		fn set_u32(origin, key: Vec<u8>, value: u32) {
 			ensure_root(origin)?;
 
-			U32s::insert(key, value);
+			U32s::insert(key.clone(), value);
 			Self::deposit_event(Event::U32Changed(key, value));
 		}
 
 		#[weight = 0]
-		fn set_u64(origin, key: H256, value: u64) {
+		fn set_u64(origin, key: Vec<u8>, value: u64) {
 			ensure_root(origin)?;
 
-			U64s::insert(key, value);
+			U64s::insert(key.clone(), value);
 			Self::deposit_event(Event::U64Changed(key, value));
 		}
 	}
