@@ -31,7 +31,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use sp_std::{collections::btree_map::BTreeMap, cmp::{min, max}, prelude::*};
 use codec::{Encode, Decode};
-use sp_core::{H256, OpaqueMetadata, u32_trait::{_1, _2, _4, _5}};
+use sp_core::{OpaqueMetadata, u32_trait::{_1, _2, _4, _5}};
 use sp_runtime::{
 	ApplyExtrinsicResult, Percent, ModuleId, generic, create_runtime_str, MultiSignature,
 	RuntimeDebug, Perquintill, transaction_validity::{TransactionValidity, TransactionSource},
@@ -518,14 +518,7 @@ parameter_types! {
 pub enum DesiredMembers { }
 impl frame_support::traits::Get<u32> for DesiredMembers {
 	fn get() -> u32 {
-		const KEY: H256 = H256([
-			0x74, 0x82, 0x71, 0x02, 0x15, 0x08, 0x27, 0xe8,
-			0x63, 0x77, 0x30, 0x79, 0x05, 0x2e, 0x87, 0xd9,
-			0x8c, 0x22, 0x11, 0xca, 0xbe, 0x82, 0x8e, 0xf5,
-			0xab, 0x07, 0x06, 0x28, 0x36, 0x48, 0x6a, 0xab,
-		]); // blake2("runtime::elections_phragmen::desired_members")
-
-		let var = variables::U32s::get(&KEY).unwrap_or(7);
+		let var = variables::U32s::get(b"runtime::elections_phragmen::desired_members".to_vec()).unwrap_or(7);
 		max(min(var, 50), 7)
 	}
 }
@@ -533,14 +526,7 @@ impl frame_support::traits::Get<u32> for DesiredMembers {
 pub enum DesiredRunnersUp { }
 impl frame_support::traits::Get<u32> for DesiredRunnersUp {
 	fn get() -> u32 {
-		const KEY: H256 = H256([
-			0x5c, 0x27, 0x9d, 0x6a, 0x32, 0x4d, 0x51, 0x4d,
-			0x8b, 0x1b, 0x9a, 0x69, 0x67, 0xfa, 0xec, 0x45,
-			0x9b, 0x21, 0x1a, 0x2e, 0x2c, 0xcf, 0x41, 0xba,
-			0xe3, 0x32, 0x59, 0xa8, 0x04, 0x5b, 0x55, 0xd0,
-		]); // blake2("runtime::elections_phragmen::desired_runners_up")
-
-		let var = variables::U32s::get(&KEY).unwrap_or(30);
+		let var = variables::U32s::get(b"runtime::elections_phragmen::desired_runners_up".to_vec()).unwrap_or(30);
 		max(min(var, 100), 7)
 	}
 }
