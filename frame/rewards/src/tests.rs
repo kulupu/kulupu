@@ -71,29 +71,19 @@ fn genesis_config_works() {
 fn set_reward_works() {
 	new_test_ext(1).execute_with(|| {
 		// Fails with bad origin
-		assert_noop!(Rewards::set_reward(Origin::signed(1), 42), BadOrigin);
-		assert_noop!(Rewards::set_reward(Origin::none(), 42), BadOrigin);
+		assert_noop!(Rewards::set_schedule(Origin::signed(1), 42, Default::default(), Default::default(), Default::default()), BadOrigin);
 		// Successful
-		assert_ok!(Rewards::set_reward(Origin::root(), 42));
+		assert_ok!(Rewards::set_schedule(Origin::root(), 42, Default::default(), Default::default(), Default::default()));
 		assert_eq!(Reward::<Test>::get(), 42);
-		assert_eq!(last_event(), RawEvent::RewardChanged(42).into());
+		assert_eq!(last_event(), RawEvent::ScheduleSet.into());
 		// Fails when too low
-		assert_noop!(Rewards::set_reward(Origin::root(), 0), Error::<Test>::RewardTooLow);
+		assert_noop!(Rewards::set_schedule(Origin::root(), 0, Default::default(), Default::default(), Default::default()), Error::<Test>::RewardTooLow);
 	});
 }
 
 #[test]
 fn set_author_works() {
 	new_test_ext(1).execute_with(|| {
-		// Fails with bad origin
-		assert_noop!(Rewards::note_author_prefs(Origin::signed(1), Perbill::zero()), BadOrigin);
-		// Block author can successfully set themselves
-		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
-		// Cannot set author twice
-		assert_noop!(
-			Rewards::note_author_prefs(Origin::none(), Perbill::zero()),
-			Error::<Test>::AuthorPrefsAlreadySet,
-		);
 		assert_eq!(Author::<Test>::get(), Some(1));
 	});
 }
@@ -101,17 +91,13 @@ fn set_author_works() {
 #[test]
 fn reward_payment_works() {
 	new_test_ext(1).execute_with(|| {
-		// Block author sets themselves as author
-		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
 		// Next block
 		run_to_block(2, 2);
 		// User gets reward
-		assert_eq!(Balances::free_balance(1), 54);
+		assert_eq!(Balances::free_balance(1), 60);
 
 		// Set new reward
-		assert_ok!(Rewards::set_reward(Origin::root(), 42));
-		assert_ok!(Rewards::set_taxation(Origin::root(), Perbill::zero()));
-		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
+		assert_ok!(Rewards::set_schedule(Origin::root(), 42, Default::default(), Default::default(), Default::default()));
 		run_to_block(3, 1);
 		assert_eq!(Balances::free_balance(2), 42);
 	});
@@ -121,11 +107,8 @@ fn reward_payment_works() {
 fn reward_locks_work() {
 	new_test_ext(1).execute_with(|| {
 		// Make numbers better :)
-		assert_ok!(Rewards::set_taxation(Origin::root(), Perbill::zero()));
-		assert_ok!(Rewards::set_reward(Origin::root(), 101));
+		assert_ok!(Rewards::set_schedule(Origin::root(), 101, Default::default(), Default::default(), Default::default()));
 
-		// Block author sets themselves as author
-		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
 		// Next block
 		run_to_block(2, 1);
 		// User gets reward
@@ -153,9 +136,7 @@ fn reward_locks_work() {
 		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
 
 		// User mints more blocks
-		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
 		run_to_block(12, 1);
-		assert_ok!(Rewards::note_author_prefs(Origin::none(), Perbill::zero()));
 		run_to_block(13, 1);
 
 		// Locks as expected
@@ -185,25 +166,21 @@ fn reward_locks_work() {
 	});
 }
 
-fn reward_point(start: u64, reward: u128, taxation: Perbill) -> CurvePoint<u64, u128> {
-	CurvePoint { start, reward, taxation }
-}
-
-fn test_curve() -> Vec<CurvePoint<u64, u128>> {
-	vec![
-		reward_point(50, 20, Perbill::from_percent(50)),
-		reward_point(40, 25, Perbill::from_percent(20)),
-		reward_point(20, 50, Perbill::from_percent(10)),
-		reward_point(10, 100, Perbill::from_percent(10)),
-	]
+fn test_curve() -> BTreeMap<u64, u128> {
+	let mut curve = BTreeMap::new();
+	curve.insert(50, 20);
+	curve.insert(40, 25);
+	curve.insert(20, 50);
+	curve.insert(10, 100);
+	curve
 }
 
 #[test]
 fn curve_works() {
 	new_test_ext(1).execute_with(|| {
 		// Set reward curve
-		assert_ok!(Rewards::set_curve(Origin::root(), test_curve()));
-		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::CurveSet));
+		assert_ok!(Rewards::set_schedule(Origin::root(), 60, Default::default(), test_curve(), Default::default()));
+		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::ScheduleSet));
 		// Check current reward
 		assert_eq!(Rewards::reward(), 60);
 		run_to_block(9, 1);
@@ -223,54 +200,9 @@ fn curve_works() {
 		run_to_block(50, 1);
 		assert_eq!(Rewards::reward(), 20);
 		// Curve is finished and is empty
-		assert_eq!(Curve::<Test>::get(), vec![]);
+		assert_eq!(RewardChanges::<Test>::get(), Default::default());
 		// Everything works fine past the curve definition
 		run_to_block(100, 1);
 		assert_eq!(Rewards::reward(), 20);
-	});
-}
-
-#[test]
-fn set_curve_works() {
-	new_test_ext(1).execute_with(|| {
-		// Bad Origin
-		assert_noop!(Rewards::set_curve(Origin::signed(1), test_curve()), BadOrigin);
-		// Duplicate Point
-		let duplicate_curve = vec![
-			reward_point(20, 50, Perbill::from_percent(0)),
-			reward_point(20, 30, Perbill::from_percent(0)),
-		];
-		assert_noop!(
-			Rewards::set_curve(Origin::root(), duplicate_curve),
-			Error::<Test>::NotSorted,
-		);
-		// Unsorted
-		let unsorted_curve = vec![
-			reward_point(10, 30, Perbill::from_percent(0)),
-			reward_point(20, 50, Perbill::from_percent(0)),
-		];
-		assert_noop!(
-			Rewards::set_curve(Origin::root(), unsorted_curve),
-			Error::<Test>::NotSorted,
-		);
-		// Single Point OK
-		let single_point = vec![reward_point(100, 100, Perbill::from_percent(0))];
-		assert_ok!(Rewards::set_curve(Origin::root(), single_point));
-		// Empty Curve OK
-		assert_ok!(Rewards::set_curve(Origin::root(), vec![]));
-	});
-}
-
-#[test]
-fn failed_update_reported() {
-	new_test_ext(1).execute_with(|| {
-		// Shouldn't be able to set reward to 0
-		let bad_curve = vec![
-			reward_point(30, 50, Perbill::from_percent(0)),
-			reward_point(20, 0, Perbill::from_percent(0)),
-			reward_point(10, 100, Perbill::from_percent(0)),
-		];
-		// Set reward curve
-		assert_noop!(Rewards::set_curve(Origin::root(), bad_curve), Error::<Test>::RewardTooLow);
 	});
 }

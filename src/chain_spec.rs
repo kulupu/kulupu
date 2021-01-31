@@ -18,7 +18,6 @@
 
 use serde_json::json;
 use sp_core::{U256, crypto::UncheckedFrom};
-use sp_runtime::Perbill;
 use sc_service::ChainType;
 use kulupu_primitives::DOLLARS;
 use kulupu_runtime::{
@@ -110,9 +109,7 @@ fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256) -> GenesisConfi
 		vesting: Some(Default::default()),
 		rewards: Some(RewardsConfig {
 			reward: 60 * DOLLARS,
-			taxation: Perbill::from_percent(0),
-			curve: vec![],
-			additional_rewards: vec![],
+			mints: Default::default(),
 		}),
 	}
 }
@@ -158,9 +155,7 @@ pub fn mainnet_genesis() -> GenesisConfig {
 		vesting: None,
 		rewards: Some(RewardsConfig {
 			reward: 60 * DOLLARS,
-			taxation: Perbill::from_percent(0),
-			curve: vec![],
-			additional_rewards: vec![],
+			mints: Default::default(),
 		}),
 	}
 }

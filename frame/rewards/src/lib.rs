@@ -27,11 +27,10 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 mod default_weights;
+mod migrations;
 
 use codec::{Encode, Decode};
-#[cfg(feature = "std")]
-use serde::{Serialize, Deserialize};
-use sp_std::{result, cmp::min, prelude::*, collections::btree_map::BTreeMap};
+use sp_std::{result, ops::Bound::Included, prelude::*, collections::btree_map::BTreeMap};
 use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
 use sp_inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
 use sp_consensus_pow::POW_ENGINE_ID;
@@ -40,9 +39,9 @@ use sp_inherents::ProvideInherentData;
 use frame_support::{
 	decl_module, decl_storage, decl_error, decl_event, ensure,
 	traits::{Get, Currency, LockIdentifier, LockableCurrency, WithdrawReasons},
-	weights::{DispatchClass, Weight},
+	weights::Weight,
 };
-use frame_system::{ensure_none, ensure_root, ensure_signed};
+use frame_system::{ensure_root, ensure_signed};
 
 /// Trait for generating reward locks.
 pub trait GenerateRewardLocks<T: Config> {
@@ -97,20 +96,12 @@ pub trait Config: frame_system::Config {
 /// Type alias for currency balance.
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-#[derive(Encode, Decode, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct CurvePoint<BlockNumber, Balance> {
-	start: BlockNumber,
-	reward: Balance,
-	taxation: Perbill,
-}
-
 decl_error! {
 	pub enum Error for Module<T: Config> {
 		/// Reward set is too low.
 		RewardTooLow,
-		/// Author preferences already set.
-		AuthorPrefsAlreadySet,
+		/// Mint value is too low.
+		MintTooLow,
 		/// Reward curve is not sorted.
 		NotSorted,
 	}
@@ -120,34 +111,35 @@ decl_storage! {
 	trait Store for Module<T: Config> as Rewards {
 		/// Current block author.
 		Author get(fn author): Option<T::AccountId>;
-		/// Current block donation.
-		AuthorDonation get(fn author_donation): Option<Perbill>;
-		/// Current block reward.
+
+		/// Current block reward for miner.
 		Reward get(fn reward) config(): BalanceOf<T>;
-		/// Taxation rate.
-		Taxation get(fn taxation) config(): Perbill;
 		/// Pending reward locks.
-		RewardLocks get(fn reward_locks):
-			map hasher(twox_64_concat) T::AccountId => BTreeMap<T::BlockNumber, BalanceOf<T>>;
-		/// Curve for this chain, sorted in reverse by block number.
-		Curve get(fn curve) config(): Vec<CurvePoint<T::BlockNumber, BalanceOf<T>>>;
-		/// Additional non-miner reward.
-		AdditionalRewards get(fn additional_rewards) config(): Vec<(T::AccountId, BalanceOf<T>)>;
+		RewardLocks get(fn reward_locks): map hasher(twox_64_concat) T::AccountId => BTreeMap<T::BlockNumber, BalanceOf<T>>;
+		/// Reward changes planned in the future.
+		RewardChanges get(fn reward_changes): BTreeMap<T::BlockNumber, BalanceOf<T>>;
+
+		/// Current block mints.
+		Mints get(fn mints) config(): BTreeMap<T::AccountId, BalanceOf<T>>;
+		/// Mint changes planned in the future.
+		MintChanges get(fn mint_changes): BTreeMap<T::BlockNumber, BTreeMap<T::AccountId, BalanceOf<T>>>;
+
+		StorageVersion build(|_| migrations::StorageVersion::V1): migrations::StorageVersion;
 	}
 }
 
 decl_event! {
-	pub enum Event<T> where Balance = BalanceOf<T> {
-		/// Block reward has changed. [reward]
+	pub enum Event<T> where AccountId = <T as frame_system::Config>::AccountId, Balance = BalanceOf<T> {
+		/// A new schedule has been set.
+		ScheduleSet,
+		/// Reward has been sent.
+		Rewarded(AccountId, Balance),
+		/// Reward has been changed.
 		RewardChanged(Balance),
-		/// Block taxation has changed. [taxation]
-		TaxationChanged(Perbill),
-		/// Funded amount to donation address.
-		Funded(Balance),
-		/// A new curve has been set.
-		CurveSet,
-		/// Additional rewards have been set.
-		AdditionalRewardsSet,
+		/// Mint has been sent.
+		Minted(AccountId, Balance),
+		/// Mint has been changed.
+		MintsChanged(BTreeMap<AccountId, Balance>),
 	}
 }
 
@@ -173,25 +165,33 @@ decl_module! {
 				<Self as Store>::Author::put(author);
 			}
 
-			Curve::<T>::mutate(|curve| {
-				if let Some(point) = curve.pop() {
-					if point.start <= now {
-						Reward::<T>::mutate(|reward| {
-							if reward != &point.reward {
-								*reward = point.reward;
-								Self::deposit_event(RawEvent::RewardChanged(point.reward));
-							}
-						});
+			RewardChanges::<T>::mutate(|reward_changes| {
+				let mut removing = Vec::new();
 
-						Taxation::mutate(|taxation| {
-							if taxation != &point.taxation {
-								*taxation = point.taxation;
-								Self::deposit_event(RawEvent::TaxationChanged(point.taxation));
-							}
-						});
-					} else {
-						curve.push(point);
-					}
+				for (block_number, reward) in reward_changes.range((Included(Zero::zero()), Included(now))) {
+					Reward::<T>::set(*reward);
+					removing.push(*block_number);
+
+					Self::deposit_event(Event::<T>::RewardChanged(*reward));
+				}
+
+				for block_number in removing {
+					reward_changes.remove(&block_number);
+				}
+			});
+
+			MintChanges::<T>::mutate(|mint_changes| {
+				let mut removing = Vec::new();
+
+				for (block_number, mints) in mint_changes.range((Included(Zero::zero()), Included(now))) {
+					Mints::<T>::set(mints.clone());
+					removing.push(*block_number);
+
+					Self::deposit_event(Event::<T>::MintsChanged(mints.clone()));
+				}
+
+				for block_number in removing {
+					mint_changes.remove(&block_number);
 				}
 			});
 
@@ -204,52 +204,52 @@ decl_module! {
 				Self::do_reward(&author, reward, now);
 			}
 
+			let mints = Mints::<T>::get();
+			Self::do_mints(&mints);
+
 			<Self as Store>::Author::kill();
-			<Self as Store>::AuthorDonation::kill();
 		}
 
-		/// As the block author, note your preferences for the block you produced.
-		#[weight = (
-			T::WeightInfo::note_author_prefs(),
-			DispatchClass::Mandatory
-		)]
-		fn note_author_prefs(
+		fn on_runtime_upgrade() -> frame_support::weights::Weight {
+			let version = StorageVersion::get();
+			let new_version = version.migrate::<T>();
+			StorageVersion::put(new_version);
+
+			0
+		}
+
+		#[weight = 0]
+		fn set_schedule(
 			origin,
-			donation: Perbill,
+			reward: BalanceOf<T>,
+			mints: BTreeMap<T::AccountId, BalanceOf<T>>,
+			reward_changes: BTreeMap<T::BlockNumber, BalanceOf<T>>,
+			mint_changes: BTreeMap<T::BlockNumber, BTreeMap<T::AccountId, BalanceOf<T>>>,
 		) {
-			ensure_none(origin)?;
-			ensure!(
-				<Self as Store>::AuthorDonation::get().is_none(),
-				Error::<T>::AuthorPrefsAlreadySet
-			);
-
-			<Self as Store>::AuthorDonation::put(donation);
-		}
-
-		/// Set the reward amount for this chain. Must be Root origin.
-		#[weight = (
-			T::WeightInfo::set_reward(),
-			DispatchClass::Operational
-		)]
-		fn set_reward(origin, reward: BalanceOf<T>) {
 			ensure_root(origin)?;
-			Self::check_new_reward_taxation(reward, Taxation::get())?;
+
+			ensure!(reward >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
+			for (_, mint) in &mints {
+				ensure!(*mint >= T::Currency::minimum_balance(), Error::<T>::MintTooLow);
+			}
+			for (_, reward_change) in &reward_changes {
+				ensure!(*reward_change >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
+			}
+			for (_, mint_change) in &mint_changes {
+				for (_, mint) in mint_change {
+					ensure!(*mint >= T::Currency::minimum_balance(), Error::<T>::MintTooLow);
+				}
+			}
 
 			Reward::<T>::put(reward);
 			Self::deposit_event(RawEvent::RewardChanged(reward));
-		}
 
-		/// Set the taxation amount for this chain. Must be Root origin.
-		#[weight = (
-			T::WeightInfo::set_taxation(),
-			DispatchClass::Operational
-		)]
-		fn set_taxation(origin, taxation: Perbill) {
-			ensure_root(origin)?;
-			Self::check_new_reward_taxation(Reward::<T>::get(), taxation)?;
+			Mints::<T>::put(mints.clone());
+			Self::deposit_event(RawEvent::MintsChanged(mints));
 
-			Taxation::put(taxation);
-			Self::deposit_event(RawEvent::TaxationChanged(taxation));
+			RewardChanges::<T>::put(reward_changes);
+			MintChanges::<T>::put(mint_changes);
+			Self::deposit_event(RawEvent::ScheduleSet);
 		}
 
 		/// Unlock any vested rewards for `target` account.
@@ -259,46 +259,7 @@ decl_module! {
 
 			let locks = Self::reward_locks(&target);
 			let current_number = frame_system::Module::<T>::block_number();
-			Self::do_update_locks(&target, locks, current_number);
-		}
-
-		/// Set the reward and taxation curve for this chain. Must be Root origin.
-		///
-		/// NOTE: The curve should be reverse sorted by block number.
-		#[weight = T::WeightInfo::set_curve(curve.len() as u32)]
-		fn set_curve(origin, curve: Vec<CurvePoint<T::BlockNumber, BalanceOf<T>>>) {
-			ensure_root(origin)?;
-			Self::ensure_sorted(&curve)?;
-			for point in &curve {
-				Self::check_new_reward_taxation(point.reward, point.taxation)?;
-			}
-
-			Curve::<T>::put(curve);
-			Self::deposit_event(Event::<T>::CurveSet);
-		}
-
-		/// Fund the donation address with coin-holder initiated taxation.
-		#[weight = T::WeightInfo::fund()]
-		fn fund(origin, amount: BalanceOf<T>) {
-			ensure_root(origin)?;
-
-			let treasury_id = T::DonationDestination::get();
-			drop(T::Currency::deposit_creating(&treasury_id, amount));
-
-			Self::deposit_event(Event::<T>::Funded(amount));
-		}
-
-		/// Set additional per-block rewards.
-		#[weight = T::WeightInfo::set_additional_rewards()]
-		fn set_additional_rewards(origin, rewards: Vec<(T::AccountId, BalanceOf<T>)>) {
-			ensure_root(origin)?;
-
-			for (_, reward) in &rewards {
-				ensure!(reward >= &T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
-			}
-
-			AdditionalRewards::<T>::put(rewards);
-			Self::deposit_event(Event::<T>::AdditionalRewardsSet);
+			Self::do_update_reward_locks(&target, locks, current_number);
 		}
 	}
 }
@@ -306,38 +267,15 @@ decl_module! {
 const REWARDS_ID: LockIdentifier = *b"rewards ";
 
 impl<T: Config> Module<T> {
-	fn ensure_sorted(curve: &[CurvePoint<T::BlockNumber, BalanceOf<T>>]) -> Result<(), Error<T>> {
-		// Check curve is reverse sorted by block number
-		ensure!(curve.windows(2).all(|w| w[0].start > w[1].start), Error::<T>::NotSorted);
-		Ok(())
-	}
-
-	fn check_new_reward_taxation(reward: BalanceOf<T>, taxation: Perbill) -> Result<(), Error<T>> {
-		let tax = taxation * reward;
-		let miner = reward.saturating_sub(tax);
-
-		ensure!(miner >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
-
-		Ok(())
-	}
-
 	fn do_reward(author: &T::AccountId, reward: BalanceOf<T>, when: T::BlockNumber) {
-		let treasury_id = T::DonationDestination::get();
-		let tax = Self::taxation() * reward;
-		let donate = min(
-			tax,
-			Self::author_donation().map(|dp| dp * reward).unwrap_or(Zero::zero())
-		);
-
-		let miner_total = reward.saturating_sub(tax);
+		let miner_total = reward;
 
 		let miner_reward_locks = T::GenerateRewardLocks::generate_reward_locks(
 			when,
-			miner_total
+			miner_total,
 		);
 
 		drop(T::Currency::deposit_creating(&author, miner_total));
-		drop(T::Currency::deposit_creating(&treasury_id, donate));
 
 		if miner_reward_locks.len() > 0 {
 			let mut locks = Self::reward_locks(&author);
@@ -348,16 +286,11 @@ impl<T: Config> Module<T> {
 				locks.insert(new_lock_number, new_balance);
 			}
 
-			Self::do_update_locks(&author, locks, when);
-		}
-
-		let additional_rewards = Self::additional_rewards();
-		for (additional_destination, additional_reward) in additional_rewards {
-			T::Currency::deposit_creating(&additional_destination, additional_reward);
+			Self::do_update_reward_locks(&author, locks, when);
 		}
 	}
 
-	fn do_update_locks(
+	fn do_update_reward_locks(
 		author: &T::AccountId,
 		mut locks: BTreeMap<T::BlockNumber, BalanceOf<T>>,
 		current_number: T::BlockNumber
@@ -385,6 +318,14 @@ impl<T: Config> Module<T> {
 		);
 
 		<Self as Store>::RewardLocks::insert(author, locks);
+	}
+
+	fn do_mints(
+		mints: &BTreeMap<T::AccountId, BalanceOf<T>>,
+	) {
+		for (destination, mint) in mints {
+			drop(T::Currency::deposit_creating(&destination, *mint));
+		}
 	}
 }
 
@@ -461,11 +402,8 @@ impl<T: Config> ProvideInherent for Module<T> {
 	type Error = InherentError;
 	const INHERENT_IDENTIFIER: InherentIdentifier = INHERENT_IDENTIFIER;
 
-	fn create_inherent(data: &InherentData) -> Option<Self::Call> {
-		let (author_raw, donation) = data.get_data::<InherentType>(&INHERENT_IDENTIFIER).ok()??;
-		let _author = T::AccountId::decode(&mut &author_raw[..]).ok()?;
-
-		Some(Call::note_author_prefs(donation))
+	fn create_inherent(_data: &InherentData) -> Option<Self::Call> {
+		None
 	}
 
 	fn check_inherent(_call: &Self::Call, _data: &InherentData) -> result::Result<(), Self::Error> {

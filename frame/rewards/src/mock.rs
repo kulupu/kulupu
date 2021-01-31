@@ -26,7 +26,7 @@ use frame_support::{
 	impl_outer_origin, impl_outer_event, parameter_types, traits::OnInitialize
 };
 use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup}, testing::{Digest, DigestItem, Header}, Perbill,
+	traits::{BlakeTwo256, IdentityLookup}, testing::{Digest, DigestItem, Header},
 };
 use frame_system::{self as system, InitKind};
 use sp_std::collections::btree_map::BTreeMap;
@@ -152,9 +152,7 @@ pub fn new_test_ext(author: u64) -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	GenesisConfig::<Test> {
 		reward: 60,
-		taxation: Perbill::from_percent(10),
-		curve: vec![],
-		additional_rewards: vec![],
+		mints: BTreeMap::new(),
 	}.assimilate_storage(&mut t).unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
