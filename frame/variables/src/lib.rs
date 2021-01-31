@@ -61,7 +61,7 @@ decl_module! {
 			Self::deposit_event(Event::U32Changed(key, value));
 		}
 
-		#[weight = 0]
+		#[weight = T::DbWeight::get().writes(1)]
 		fn set_u64(origin, key: H256, value: u64) {
 			ensure_root(origin)?;
 
