@@ -166,6 +166,7 @@ parameter_types! {
 		.build_or_panic();
 	pub const Version: RuntimeVersion = VERSION;
 	pub const DbWeight: RuntimeDbWeight = frame_support::weights::constants::RocksDbWeight::get();
+	pub const SS58Prefix: u8 = 16;
 }
 
 impl system::Config for Runtime {
@@ -190,6 +191,7 @@ impl system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
+	type SS58Prefix = SS58Prefix;
 }
 
 parameter_types! {
@@ -509,7 +511,10 @@ where
 
 parameter_types! {
 	pub const CandidacyBond: Balance = 1 * DOLLARS;
-	pub const VotingBond: Balance = 5 * CENTS;
+	// 1 storage item created, key size is 32 bytes, value size is 16+16.
+	pub const VotingBondBase: Balance = deposit(1, 64);
+	// additional data per vote is 32 bytes (account id).
+	pub const VotingBondFactor: Balance = deposit(0, 32);
 	/// Daily council elections.
 	pub const TermDuration: BlockNumber = 24 * HOURS;
 	pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
@@ -538,12 +543,12 @@ impl elections_phragmen::Config for Runtime {
 	type InitializeMembers = Council;
 	type CurrencyToVote = frame_support::traits::U128CurrencyToVote;
 	type CandidacyBond = CandidacyBond;
-	type VotingBond = VotingBond;
-	type LoserCandidate = Treasury;
-	type BadReport = Treasury;
-	type KickedMember = Treasury;
+	type VotingBondBase = VotingBondBase;
+	type VotingBondFactor = VotingBondFactor;
 	type DesiredMembers = DesiredMembers;
 	type DesiredRunnersUp = DesiredRunnersUp;
+	type LoserCandidate = Treasury;
+	type KickedMember = Treasury;
 	type TermDuration = TermDuration;
 	type ModuleId = ElectionsPhragmenModuleId;
 	type WeightInfo = ();
@@ -607,25 +612,38 @@ impl treasury::Config for Runtime {
 		collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
 		system::EnsureRoot<AccountId>,
 	>;
-	type Tippers = ElectionsPhragmen;
-	type TipCountdown = TipCountdown;
-	type TipFindersFee = TipFindersFee;
-	type TipReportDepositBase = TipReportDepositBase;
-	type DataDepositPerByte = DataDepositPerByte;
 	type Event = Event;
 	type OnSlash = Treasury;
 	type ProposalBond = ProposalBond;
 	type ProposalBondMinimum = ProposalBondMinimum;
 	type SpendPeriod = SpendPeriod;
+	type SpendFunds = Bounties;
 	type Burn = Burn;
+	type BurnDestination = ();
+	type ModuleId = TreasuryModuleId;
+	type WeightInfo = ();
+}
+
+impl bounties::Config for Runtime {
+	type Event = Event;
 	type BountyDepositBase = BountyDepositBase;
 	type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
 	type BountyUpdatePeriod = BountyUpdatePeriod;
-	type MaximumReasonLength = MaximumReasonLength;
 	type BountyCuratorDeposit = BountyCuratorDeposit;
 	type BountyValueMinimum = BountyValueMinimum;
-	type BurnDestination = ();
-	type ModuleId = TreasuryModuleId;
+	type DataDepositPerByte = DataDepositPerByte;
+	type MaximumReasonLength = MaximumReasonLength;
+	type WeightInfo = ();
+}
+
+impl tips::Config for Runtime {
+	type Event = Event;
+	type DataDepositPerByte = DataDepositPerByte;
+	type MaximumReasonLength = MaximumReasonLength;
+	type Tippers = ElectionsPhragmen;
+	type TipCountdown = TipCountdown;
+	type TipFindersFee = TipFindersFee;
+	type TipReportDepositBase = TipReportDepositBase;
 	type WeightInfo = ();
 }
 
@@ -753,6 +771,18 @@ impl variables::Config for Runtime {
 	type Event = Event;
 }
 
+pub struct PhragmenElectionDepositRuntimeUpgrade;
+impl elections_phragmen::migrations_3_0_0::V2ToV3 for PhragmenElectionDepositRuntimeUpgrade {
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Module = ElectionsPhragmen;
+}
+impl frame_support::traits::OnRuntimeUpgrade for PhragmenElectionDepositRuntimeUpgrade {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		elections_phragmen::migrations_3_0_0::apply::<Self>(5 * CENTS, DOLLARS)
+	}
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -779,6 +809,8 @@ construct_runtime!(
 		ElectionsPhragmen: elections_phragmen::{Module, Call, Storage, Event<T>, Config<T>} = 8,
 		TechnicalMembership: membership::<Instance1>::{Module, Call, Storage, Event<T>, Config<T>} = 9,
 		Treasury: treasury::{Module, Call, Storage, Event<T>, Config} = 10,
+		Bounties: bounties::{Module, Call, Storage, Event<T>} = 22,
+		Tips: tips::{Module, Call, Storage, Event<T>} = 23,
 
 		// Identity.
 		Identity: identity::{Module, Call, Storage, Event<T>} = 11,
@@ -913,6 +945,12 @@ impl_runtime_apis! {
 			len: u32,
 		) -> pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo<Balance> {
 			TransactionPayment::query_info(uxt, len)
+		}
+		fn query_fee_details(
+			uxt: <Block as BlockT>::Extrinsic,
+			len: u32,
+		) -> pallet_transaction_payment_rpc_runtime_api::FeeDetails<Balance> {
+			TransactionPayment::query_fee_details(uxt, len)
 		}
 	}
 

@@ -7,7 +7,7 @@ edition = "2018"
 
 [dependencies]
 serde = { version = "1.0", optional = true, features = ["derive"] }
-codec = { package = "parity-scale-codec", version = "1.0.0", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 sp-version = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
@@ -43,6 +43,8 @@ identity = { package = "pallet-identity", git = "https://github.com/paritytech/s
 proxy = { package = "pallet-proxy", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 vesting = { package = "pallet-vesting", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 multisig = { package = "pallet-multisig", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+tips = { package = "pallet-tips", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+bounties = { package = "pallet-bounties", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
 eras = { package = "pallet-eras", path = "../frame/eras", default-features = false }
 difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", default-features = false }
@@ -97,6 +99,8 @@ std = [
 	"proxy/std",
 	"vesting/std",
 	"multisig/std",
+	"tips/std",
+	"bounties/std",
 	"rewards/std",
 	"eras/std",
 	"difficulty/std",

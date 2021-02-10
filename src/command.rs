@@ -260,7 +260,7 @@ pub fn run() -> sc_cli::Result<()> {
 						)
 					}
 				}
-			)
+			).map_err(sc_cli::Error::Service)
 		},
 	}
 }

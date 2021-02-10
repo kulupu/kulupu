@@ -21,7 +21,7 @@
 
 use crate::*;
 use crate::mock::*;
-use sp_runtime::testing::{Digest, DigestItem};
+use sp_runtime::{Digest, testing::DigestItem};
 use frame_system::InitKind;
 use frame_support::{assert_ok, assert_noop};
 use frame_support::error::BadOrigin;
@@ -45,9 +45,8 @@ fn run_to_block(n: u64, author: u64) {
 		System::initialize(
 			&current_block,
 			&parent_hash,
-			&Default::default(),
 			&Digest { logs: vec![pre_digest] },
-			InitKind::Full
+			InitKind::Full,
 		);
 		System::set_block_number(current_block);
 
