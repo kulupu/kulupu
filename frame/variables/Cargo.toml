@@ -8,7 +8,7 @@ description = "Variable storage to reduce the need of runtime upgrades."
 
 [dependencies]
 serde = { version = "1.0.101", optional = true }
-codec = { package = "parity-scale-codec", version = "1.3.0", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }

@@ -19,37 +19,33 @@
 
 //! Mock runtime for tests
 
-use crate::{Module, Config, GenesisConfig};
+use super::*;
+use crate as pallet_rewards;
+
 use sp_core::H256;
 use codec::Encode;
-use frame_support::{
-	impl_outer_origin, impl_outer_event, parameter_types, traits::OnInitialize
-};
+use frame_support::{parameter_types, traits::OnInitialize};
 use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup}, testing::{Digest, DigestItem, Header},
+	Digest, traits::{BlakeTwo256, IdentityLookup}, testing::{DigestItem, Header},
 };
 use frame_system::{self as system, InitKind};
 use sp_std::collections::btree_map::BTreeMap;
 
-impl_outer_origin! {
-	pub enum Origin for Test {}
-}
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+type Block = frame_system::mocking::MockBlock<Test>;
 
-mod pallet_rewards {
-	pub use crate::Event;
-}
-
-impl_outer_event! {
-	pub enum Event for Test {
-		frame_system<T>,
-		pallet_balances<T>,
-		pallet_rewards<T>,
+frame_support::construct_runtime! {
+	pub enum Test where
+		Block = Block,
+		NodeBlock = Block,
+		UncheckedExtrinsic = UncheckedExtrinsic,
+	{
+		System: frame_system::{Module, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+		Rewards: pallet_rewards::{Module, Call, Storage, Config<T>, Event<T>},
 	}
 }
 
-// Configure a mock runtime to test the pallet.
-#[derive(Clone, Eq, PartialEq)]
-pub struct Test;
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
 }
@@ -60,7 +56,7 @@ type BlockNumber = u64;
 impl system::Config for Test {
 	type BaseCallFilter = ();
 	type Origin = Origin;
-	type Call = ();
+	type Call = Call;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
 	type Hash = H256;
@@ -72,13 +68,14 @@ impl system::Config for Test {
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = ();
 	type Version = ();
-	type PalletInfo = ();
+	type PalletInfo = PalletInfo;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
+	type SS58Prefix = ();
 }
 
 parameter_types! {
@@ -135,7 +132,7 @@ parameter_types! {
 	pub DonationDestination: u64 = 255;
 }
 
-impl Config for Test {
+impl pallet_rewards::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
@@ -143,14 +140,10 @@ impl Config for Test {
 	type WeightInfo = ();
 }
 
-pub type System = frame_system::Module<Test>;
-pub type Balances = pallet_balances::Module<Test>;
-pub type Rewards = Module<Test>;
-
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext(author: u64) -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	GenesisConfig::<Test> {
+	pallet_rewards::GenesisConfig::<Test> {
 		reward: 60,
 		mints: BTreeMap::new(),
 	}.assimilate_storage(&mut t).unwrap();
@@ -163,9 +156,8 @@ pub fn new_test_ext(author: u64) -> sp_io::TestExternalities {
 		System::initialize(
 			&current_block,
 			&parent_hash,
-			&Default::default(),
 			&Digest { logs: vec![pre_digest] },
-			InitKind::Full
+			InitKind::Full,
 		);
 		System::set_block_number(current_block);
 
