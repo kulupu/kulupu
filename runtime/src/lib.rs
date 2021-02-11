@@ -858,6 +858,7 @@ pub type Executive = frame_executive::Executive<
 	system::ChainContext<Runtime>,
 	Runtime,
 	AllModules,
+	PhragmenElectionDepositRuntimeUpgrade,
 >;
 
 impl_runtime_apis! {
