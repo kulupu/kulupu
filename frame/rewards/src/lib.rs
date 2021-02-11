@@ -70,13 +70,7 @@ impl<T: Config> GenerateRewardLocks<T> for () {
 pub trait WeightInfo {
 	fn on_initialize() -> Weight;
 	fn on_finalize() -> Weight;
-	fn note_author_prefs() -> Weight;
-	fn set_reward() -> Weight;
-	fn set_taxation() -> Weight;
 	fn unlock() -> Weight;
-	fn set_curve(_l: u32, ) -> Weight;
-	fn fund() -> Weight;
-	fn set_additional_rewards() -> Weight;
 }
 
 /// Config for rewards.

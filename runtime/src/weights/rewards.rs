@@ -41,36 +41,8 @@ impl<T: system::Config> rewards::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
-	fn note_author_prefs() -> Weight {
-		(11_699_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn set_reward() -> Weight {
-		(41_890_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn set_taxation() -> Weight {
-		(38_872_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
 	fn unlock() -> Weight {
 		(94_964_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn set_curve(l: u32, ) -> Weight {
-		(34_301_000 as Weight)
-			.saturating_add((103_000 as Weight).saturating_mul(l as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn fund() -> Weight {
-		(55_119_000 as Weight)
-	}
-	fn set_additional_rewards() -> Weight {
-		(41_890_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}

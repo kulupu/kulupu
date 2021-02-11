@@ -102,28 +102,6 @@ benchmarks! {
 		assert!(RewardLocks::<T>::get(&author).iter().count() > 0);
 	}
 
-	// Constant time
-	note_author_prefs { }: _(RawOrigin::None, Perbill::from_percent(50))
-	verify {
-		assert!(AuthorDonation::exists());
-	}
-
-	// Constant time
-	set_reward {
-		let new_reward = BalanceOf::<T>::max_value();
-	}: _(RawOrigin::Root, new_reward)
-	verify {
-		assert_last_event::<T>(Event::<T>::RewardChanged(new_reward).into());
-	}
-
-	// Constant time
-	set_taxation {
-		let new_taxation = Perbill::from_percent(50);
-	}: _(RawOrigin::Root, new_taxation)
-	verify {
-		assert_last_event::<T>(Event::<T>::TaxationChanged(new_taxation).into());
-	}
-
 	// Worst case: Target user has `max_locks` which are all unlocked during this call.
 	unlock {
 		let miner = account("miner", 0, 0);
@@ -135,39 +113,6 @@ benchmarks! {
 	}: _(RawOrigin::Signed(caller), miner.clone())
 	verify {
 		assert_eq!(RewardLocks::<T>::get(&miner).iter().count(), 0);
-	}
-
-	set_curve {
-		let l in 0 .. 1_000;
-
-		let mut curve = Vec::new();
-		// Sorted in reverse
-		for i in (0 .. l).rev() {
-			curve.push(CurvePoint {
-				start: i.into(),
-				reward: T::Currency::minimum_balance() + i.into(),
-				taxation: Perbill::from_parts(i.into()),
-			});
-		}
-	}: _(RawOrigin::Root, curve)
-	verify {
-		assert_last_event::<T>(Event::<T>::CurveSet.into());
-	}
-
-	// Constant time
-	fund {
-		let amount = BalanceOf::<T>::from(10000u32);
-	}: _(RawOrigin::Root, amount)
-	verify {
-		assert_last_event::<T>(Event::<T>::Funded(amount).into());
-	}
-
-	// Constant time
-	set_additional_rewards {
-		let new_reward = (T::AccountId::default(), BalanceOf::<T>::max_value());
-	}: _(RawOrigin::Root, new_reward)
-	verify {
-		assert_last_event::<T>(Event::<T>::AdditionalRewardsSet);
 	}
 }
 
