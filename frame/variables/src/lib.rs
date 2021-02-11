@@ -37,6 +37,10 @@ decl_storage! {
 		pub U32s: map hasher(blake2_128_concat) Vec<u8> => Option<u32>;
 		/// u64 storage values.
 		pub U64s: map hasher(blake2_128_concat) Vec<u8> => Option<u64>;
+		/// U128 storage values.
+		pub U128s: map hasher(blake2_128_concat) Vec<u8> => Option<u128>;
+		/// Bool storage values.
+		pub Bools: map hasher(blake2_128_concat) Vec<u8> => Option<bool>;
 	}
 }
 
@@ -46,6 +50,10 @@ decl_event! {
 		U32Changed(Vec<u8>, u32),
 		/// U64 value changed.
 		U64Changed(Vec<u8>, u64),
+		/// U128 value changed.
+		U128Changed(Vec<u8>, u128),
+		/// Bool value changed.
+		BoolChanged(Vec<u8>, bool),
 	}
 }
 
@@ -67,6 +75,22 @@ decl_module! {
 
 			U64s::insert(key.clone(), value);
 			Self::deposit_event(Event::U64Changed(key, value));
+		}
+
+		#[weight = 0]
+		fn set_u128(origin, key: Vec<u8>, value: u128) {
+			ensure_root(origin)?;
+
+			U128s::insert(key.clone(), value);
+			Self::deposit_event(Event::U128Changed(key, value));
+		}
+
+		#[weight = 0]
+		fn set_bool(origin, key: Vec<u8>, value: bool) {
+			ensure_root(origin)?;
+
+			Bools::insert(key.clone(), value);
+			Self::deposit_event(Event::BoolChanged(key, value));
 		}
 	}
 }
