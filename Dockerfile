@@ -20,8 +20,7 @@ LABEL maintainer "wei@that.world"
 LABEL description="Kulupu builder."
 
 ARG PROFILE=release
-ARG STABLE=1.47.0
-ARG NIGHTLY=nightly-2020-10-23
+ARG STABLE=1.49.0
 WORKDIR /rustbuilder
 COPY . /rustbuilder/kulupu
 
@@ -35,11 +34,10 @@ ENV CARGO_HOME "/rustbuilder/.cargo"
 RUN curl -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
 ENV PATH "$PATH:/rustbuilder/.cargo/bin"
 RUN rustup update $STABLE
-RUN rustup update $NIGHTLY
 
 # BUILD RUNTIME AND BINARY
-RUN rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY
-RUN cd /rustbuilder/kulupu && RUSTUP_TOOLCHAIN=$STABLE WASM_BUILD_TOOLCHAIN=$NIGHTLY RANDOMX_ARCH=default cargo build --$PROFILE --locked
+RUN rustup target add wasm32-unknown-unknown --toolchain $STABLE
+RUN cd /rustbuilder/kulupu && RUSTUP_TOOLCHAIN=$STABLE WASM_BUILD_TOOLCHAIN=$STABLE RUSTC_BOOTSTRAP=1 RANDOMX_ARCH=default cargo build --$PROFILE --locked
 # ===== END FIRST STAGE ======
 
 # ===== START SECOND STAGE ======
