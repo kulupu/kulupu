@@ -38,7 +38,7 @@ use sp_runtime::{
 	FixedPointNumber,
 };
 use sp_runtime::traits::{
-	BlakeTwo256, Block as BlockT, StaticLookup,
+	BlakeTwo256, Block as BlockT,
 	Verify, IdentifyAccount, Convert, ConvertInto,
 };
 use sp_api::impl_runtime_apis;
@@ -826,7 +826,7 @@ construct_runtime!(
 );
 
 /// The address format for describing accounts.
-pub type Address = <Indices as StaticLookup>::Source;
+pub type Address = sp_runtime::MultiAddress<AccountId, AccountIndex>;
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 /// Block type as expected by this runtime.
