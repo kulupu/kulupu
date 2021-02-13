@@ -2662,7 +2662,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu"
-version = "2.5.1"
+version = "2.5.0"
 dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -2763,7 +2763,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-runtime"
-version = "2.5.1"
+version = "2.5.0"
 dependencies = [
  "frame-benchmarking",
  "frame-executive",
