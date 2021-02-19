@@ -23,7 +23,7 @@
 use codec::{Encode, Decode};
 #[cfg(feature = "std")]
 use serde::{Serialize, Deserialize};
-use sp_std::prelude::*;
+use sp_std::{cmp, prelude::*};
 use sp_runtime::RuntimeDebug;
 use frame_support::{
     ensure, decl_storage, decl_module, decl_event, decl_error, 
@@ -73,18 +73,16 @@ decl_error! {
         CampaignLockEndBeforeCampaignEnd,
         /// Campaign does not exist.
         CampaignNotExists,
-        /// Already participated in a campaign.
-        AlreadyParticipated,
         /// Invalid lock end block.
         InvalidLockEndBlock,
 	}
 }
 
 decl_event! {
-	pub enum Event<T> where Balance = BalanceOf<T>, AccountId = <T as frame_system::Config>::AccountId {
+	pub enum Event<T> where AccountId = <T as frame_system::Config>::AccountId {
         CampaignCreated(CampaignIdentifier),
         CampaignExpired(CampaignIdentifier),
-        Locked(CampaignIdentifier, AccountId, Balance),
+        Locked(CampaignIdentifier, AccountId),
         Unlocked(CampaignIdentifier, AccountId),
 	}
 }
@@ -126,16 +124,23 @@ decl_module! {
         #[weight = 0]
         fn lock(origin, amount: BalanceOf<T>, identifier: CampaignIdentifier, lock_end_block: T::BlockNumber) {
             let account_id = ensure_signed(origin)?;
-            let info = Campaigns::<T>::get(&identifier).ok_or(Error::<T>::CampaignNotExists)?;
+            let campaign_info = Campaigns::<T>::get(&identifier).ok_or(Error::<T>::CampaignNotExists)?;
             
-            ensure!(!Locks::<T>::contains_key(&account_id, &identifier), Error::<T>::AlreadyParticipated);
-            ensure!(lock_end_block > info.min_lock_end_block, Error::<T>::InvalidLockEndBlock);
+            ensure!(lock_end_block > campaign_info.min_lock_end_block, Error::<T>::InvalidLockEndBlock);
             
+            let lock_info = match Locks::<T>::get(&account_id, &identifier) {
+                Some(mut lock_info) => {
+                    lock_info.end_block = cmp::max(lock_end_block, lock_info.end_block);
+                    lock_info
+                },
+                None => LockInfo { end_block: lock_end_block },
+            };
+
             let lock_identifier = [b'd', b'r', b'o', b'p', identifier[0], identifier[1], identifier[2], identifier[3]];
             T::Currency::extend_lock(lock_identifier, &account_id, amount, WithdrawReasons::all());
             
-            Locks::<T>::insert(account_id.clone(), identifier, LockInfo { end_block: lock_end_block });
-            Self::deposit_event(Event::<T>::Locked(identifier, account_id, amount));
+            Locks::<T>::insert(account_id.clone(), identifier, lock_info);
+            Self::deposit_event(Event::<T>::Locked(identifier, account_id));
         }
 
         #[weight = 0]
