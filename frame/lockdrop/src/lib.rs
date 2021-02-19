@@ -235,7 +235,7 @@ impl<T: Config> Module<T> {
         child::ChildInfo::new_default(T::Hashing::hash(&buf[..]).as_ref())
     }
 
-    pub fn child_data_put(identifier: &CampaignIdentifier, account_id: &T::AccountId, data: &ChildLockData<T>) {
+    fn child_data_put(identifier: &CampaignIdentifier, account_id: &T::AccountId, data: &ChildLockData<T>) {
         account_id.using_encoded(|account_id| child::put(&Self::child_info(identifier), &account_id, &data))
     }
 
