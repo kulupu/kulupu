@@ -26,7 +26,7 @@ use serde::{Serialize, Deserialize};
 use sp_std::{cmp, prelude::*};
 use sp_runtime::RuntimeDebug;
 use frame_support::{
-    ensure, decl_storage, decl_module, decl_event, decl_error, 
+    ensure, decl_storage, decl_module, decl_event, decl_error,
     traits::{Currency, LockableCurrency, WithdrawReasons, LockIdentifier},
 };
 use frame_system::{ensure_root, ensure_signed};
@@ -76,6 +76,8 @@ decl_storage! {
 
 decl_error! {
 	pub enum Error for Module<T: Config> {
+        /// The given campaign name was used in the past.
+        CampaignIdentifierUsedInPast,
         /// The given campaign trying to create has already existed.
         CampaignAlreadyExists,
         /// Campaign end block must be in the future.
@@ -111,6 +113,9 @@ decl_module! {
         #[weight = 0]
         fn create_campaign(origin, identifier: CampaignIdentifier, end_block: T::BlockNumber, min_lock_end_block: T::BlockNumber) {
             ensure_root(origin)?;
+
+            let campaign_name_used_in_past = Locks::<T>::iter_prefix_values(identifier).next().is_some();
+            ensure!(!campaign_name_used_in_past, Error::<T>::CampaignIdentifierUsedInPast);
 
             ensure!(!Campaigns::<T>::contains_key(&identifier), Error::<T>::CampaignAlreadyExists);
             
