@@ -27,7 +27,7 @@ use sp_std::{cmp, prelude::*};
 use sp_runtime::RuntimeDebug;
 use frame_support::{
     ensure, decl_storage, decl_module, decl_event, decl_error, 
-    traits::{Currency, LockableCurrency, WithdrawReasons},
+    traits::{Currency, LockableCurrency, WithdrawReasons, LockIdentifier},
 };
 use frame_system::{ensure_root, ensure_signed};
 
@@ -157,7 +157,7 @@ decl_module! {
                 None => LockInfo { balance: amount, end_block: lock_end_block },
             };
 
-            let lock_identifier = [b'd', b'r', b'o', b'p', identifier[0], identifier[1], identifier[2], identifier[3]];
+            let lock_identifier = Self::lock_identifier(identifier);
             T::Currency::extend_lock(lock_identifier, &account_id, amount, WithdrawReasons::all());
             
             Locks::<T>::insert(identifier, account_id.clone(), lock_info);
@@ -174,12 +174,18 @@ decl_module! {
                 if current_number > info.end_block {
                     Locks::<T>::remove(identifier, account_id.clone());
 
-                    let lock_identifier = [b'd', b'r', b'o', b'p', identifier[0], identifier[1], identifier[2], identifier[3]];
+                    let lock_identifier = Self::lock_identifier(identifier);
                     T::Currency::remove_lock(lock_identifier, &account_id);
 
                     Self::deposit_event(Event::<T>::Unlocked(identifier, account_id));
                 }
             }
         }
+    }
+}
+
+impl<T: Config> Module<T> {
+    fn lock_identifier(identifier: CampaignIdentifier) -> LockIdentifier {
+        [b'd', b'r', b'o', b'p', identifier[0], identifier[1], identifier[2], identifier[3]]
     }
 }
