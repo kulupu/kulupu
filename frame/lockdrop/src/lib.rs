@@ -43,6 +43,7 @@ pub struct CampaignInfo<T: Config> {
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct LockInfo<T: Config> {
+    balance: BalanceOf<T>,
     end_block: T::BlockNumber,
 }
 
@@ -73,6 +74,10 @@ decl_error! {
         CampaignLockEndBeforeCampaignEnd,
         /// Campaign does not exist.
         CampaignNotExists,
+        /// Campaign has already expired.
+        CampaignAlreadyExpired,
+        /// Attempt to lock less than what is already locked.
+        AttemptedToLockLess,
         /// Invalid lock end block.
         InvalidLockEndBlock,
 	}
@@ -126,14 +131,20 @@ decl_module! {
             let account_id = ensure_signed(origin)?;
             let campaign_info = Campaigns::<T>::get(&identifier).ok_or(Error::<T>::CampaignNotExists)?;
             
+            let current_number = frame_system::Module::<T>::block_number();
+            ensure!(current_number <= campaign_info.end_block, Error::<T>::CampaignAlreadyExpired);
             ensure!(lock_end_block > campaign_info.min_lock_end_block, Error::<T>::InvalidLockEndBlock);
             
             let lock_info = match Locks::<T>::get(&account_id, &identifier) {
                 Some(mut lock_info) => {
+                    ensure!(amount >= lock_info.balance, Error::<T>::AttemptedToLockLess);
+                    ensure!(lock_end_block >= lock_info.end_block, Error::<T>::AttemptedToLockLess);
+
+                    lock_info.balance = cmp::max(amount, lock_info.balance);
                     lock_info.end_block = cmp::max(lock_end_block, lock_info.end_block);
                     lock_info
                 },
-                None => LockInfo { end_block: lock_end_block },
+                None => LockInfo { balance: amount, end_block: lock_end_block },
             };
 
             let lock_identifier = [b'd', b'r', b'o', b'p', identifier[0], identifier[1], identifier[2], identifier[3]];
