@@ -78,4 +78,5 @@ members = [
 	"pow",
 	"frame/rewards",
 	"frame/eras",
+	"frame/lockdrop",
 ]

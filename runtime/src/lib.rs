@@ -783,6 +783,11 @@ impl frame_support::traits::OnRuntimeUpgrade for PhragmenElectionDepositRuntimeU
 	}
 }
 
+impl lockdrop::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -822,6 +827,7 @@ construct_runtime!(
 		Proxy: proxy::{Module, Call, Storage, Event<T>} = 15,
 		Vesting: vesting::{Module, Call, Storage, Event<T>, Config<T>} = 16,
 		Variables: variables::{Module, Call, Storage, Event} = 21,
+		Lockdrop: lockdrop::{Module, Call, Storage, Event<T>} = 24,
 	}
 );
 
