@@ -31,6 +31,8 @@ use frame_support::{
 };
 use frame_system::{ensure_root, ensure_signed};
 
+pub const MAX_PAYLOAD_LEN: usize = 32;
+
 pub type CampaignIdentifier = [u8; 4];
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
@@ -47,6 +49,14 @@ pub struct LockInfo<T: Config> {
     end_block: T::BlockNumber,
 }
 
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct ChildLockData<T: Config> {
+    balance: BalanceOf<T>,
+    end_block: T::BlockNumber,
+    payload: Option<Vec<u8>>,
+}
+
 pub trait Config: frame_system::Config { 
     /// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
@@ -60,7 +70,7 @@ pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system:
 decl_storage! {
 	trait Store for Module<T: Config> as Eras {
         Campaigns get(fn campaigns): map hasher(blake2_128_concat) CampaignIdentifier => Option<CampaignInfo<T>>;
-        Locks get(fn locks): double_map hasher(blake2_128_concat) T::AccountId, hasher(blake2_128_concat) CampaignIdentifier => Option<LockInfo<T>>;
+        Locks get(fn locks): double_map hasher(blake2_128_concat) CampaignIdentifier, hasher(blake2_128_concat) T::AccountId => Option<LockInfo<T>>;
 	}
 }
 
@@ -135,7 +145,7 @@ decl_module! {
             ensure!(current_number <= campaign_info.end_block, Error::<T>::CampaignAlreadyExpired);
             ensure!(lock_end_block > campaign_info.min_lock_end_block, Error::<T>::InvalidLockEndBlock);
             
-            let lock_info = match Locks::<T>::get(&account_id, &identifier) {
+            let lock_info = match Locks::<T>::get(&identifier, &account_id) {
                 Some(mut lock_info) => {
                     ensure!(amount >= lock_info.balance, Error::<T>::AttemptedToLockLess);
                     ensure!(lock_end_block >= lock_info.end_block, Error::<T>::AttemptedToLockLess);
@@ -150,7 +160,7 @@ decl_module! {
             let lock_identifier = [b'd', b'r', b'o', b'p', identifier[0], identifier[1], identifier[2], identifier[3]];
             T::Currency::extend_lock(lock_identifier, &account_id, amount, WithdrawReasons::all());
             
-            Locks::<T>::insert(account_id.clone(), identifier, lock_info);
+            Locks::<T>::insert(identifier, account_id.clone(), lock_info);
             Self::deposit_event(Event::<T>::Locked(identifier, account_id));
         }
 
@@ -158,11 +168,11 @@ decl_module! {
         fn unlock(origin, identifier: CampaignIdentifier) {
             let account_id = ensure_signed(origin)?;
 
-            let info = Locks::<T>::get(&account_id, &identifier);
+            let info = Locks::<T>::get(&identifier, &account_id);
             if let Some(info) = info {
                 let current_number = frame_system::Module::<T>::block_number();
                 if current_number > info.end_block {
-                    Locks::<T>::remove(account_id.clone(), identifier);
+                    Locks::<T>::remove(identifier, account_id.clone());
 
                     let lock_identifier = [b'd', b'r', b'o', b'p', identifier[0], identifier[1], identifier[2], identifier[3]];
                     T::Currency::remove_lock(lock_identifier, &account_id);
