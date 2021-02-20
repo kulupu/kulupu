@@ -88,6 +88,8 @@ decl_error! {
 		CampaignEndInThePast,
 		/// Campaign lock block must be after campaign end block.
 		CampaignLockEndBeforeCampaignEnd,
+		/// Payload over length limit.
+		PayloadOverLenLimit,
 		/// Campaign does not exist.
 		CampaignNotExists,
 		/// Campaign has already expired.
@@ -175,6 +177,10 @@ decl_module! {
 		#[weight = 0]
 		fn lock(origin, amount: BalanceOf<T>, identifier: CampaignIdentifier, lock_end_block: T::BlockNumber, payload: Option<Vec<u8>>) {
 			let account_id = ensure_signed(origin)?;
+
+			if let Some(ref payload) = payload {
+				ensure!(payload.len() <= T::PayloadLenLimit::get() as usize, Error::<T>::PayloadOverLenLimit);
+			}
 			let campaign_info = Campaigns::<T>::get(&identifier).ok_or(Error::<T>::CampaignNotExists)?;
 
 			let current_number = frame_system::Module::<T>::block_number();
