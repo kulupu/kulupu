@@ -25,6 +25,8 @@
 mod fee;
 mod weights;
 
+extern crate system as frame_system;
+
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -370,7 +372,7 @@ impl rewards::Config for Runtime {
 	type Currency = Balances;
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
-	type WeightInfo = weights::rewards::WeightInfo<Runtime>;
+	type WeightInfo = crate::weights::rewards::WeightInfo<Self>;
 }
 
 pub struct Author;
@@ -783,6 +785,19 @@ impl frame_support::traits::OnRuntimeUpgrade for PhragmenElectionDepositRuntimeU
 	}
 }
 
+parameter_types! {
+	pub const PayloadLenLimit: u32 = 32;
+	pub const RemoveKeysLimit: u32 = 1024;
+}
+
+impl lockdrop::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type PayloadLenLimit = PayloadLenLimit;
+	type RemoveKeysLimit = RemoveKeysLimit;
+	type WeightInfo = crate::weights::lockdrop::WeightInfo<Self>;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -822,6 +837,7 @@ construct_runtime!(
 		Proxy: proxy::{Module, Call, Storage, Event<T>} = 15,
 		Vesting: vesting::{Module, Call, Storage, Event<T>, Config<T>} = 16,
 		Variables: variables::{Module, Call, Storage, Event} = 21,
+		Lockdrop: lockdrop::{Module, Call, Storage, Event<T>} = 24,
 	}
 );
 
@@ -1018,6 +1034,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, vesting, Vesting);
 
 			add_benchmark!(params, batches, rewards, Rewards);
+			add_benchmark!(params, batches, lockdrop, Lockdrop);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)

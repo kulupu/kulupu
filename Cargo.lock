@@ -2782,6 +2782,7 @@ dependencies = [
  "pallet-eras",
  "pallet-identity",
  "pallet-indices",
+ "pallet-lockdrop",
  "pallet-membership",
  "pallet-multisig",
  "pallet-proxy",
@@ -4021,6 +4022,22 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-lockdrop"
+version = "2.5.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]

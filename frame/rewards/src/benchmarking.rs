@@ -25,9 +25,9 @@ use frame_benchmarking::{benchmarks, account, whitelisted_caller};
 use frame_support::traits::{OnInitialize, OnFinalize};
 use sp_runtime::traits::Bounded;
 
-fn assert_last_event<T: Trait>(generic_event: <T as Trait>::Event) {
+fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 	let events = frame_system::Module::<T>::events();
-	let system_event: <T as frame_system::Trait>::Event = generic_event.into();
+	let system_event: <T as frame_system::Config>::Event = generic_event.into();
 	// compare to the last event record
 	let EventRecord { event, .. } = &events[events.len() - 1];
 	assert_eq!(event, &system_event);
@@ -35,7 +35,7 @@ fn assert_last_event<T: Trait>(generic_event: <T as Trait>::Event) {
 
 // This function creates a new lock on `who` every block for `num_of_locks`
 // starting at block zero.
-fn create_locks<T: Trait>(who: &T::AccountId, num_of_locks: u32) {
+fn create_locks<T: Config>(who: &T::AccountId, num_of_locks: u32) {
 	let mut locks: BTreeMap<T::BlockNumber, BalanceOf<T>> = BTreeMap::new();
 	let reward = T::Currency::minimum_balance();
 	for i in 0 .. num_of_locks {
@@ -46,17 +46,13 @@ fn create_locks<T: Trait>(who: &T::AccountId, num_of_locks: u32) {
 }
 
 benchmarks! {
-	_ { }
-
-	// Worst case: Author info is in digest, and curve needs to be updated.
+	// Worst case: Author info is in digest.
 	on_initialize {
 		let author: T::AccountId = account("author", 0, 0);
 		let author_digest = DigestItemOf::<T>::PreRuntime(sp_consensus_pow::POW_ENGINE_ID, author.encode());
 		frame_system::Module::<T>::deposit_log(author_digest);
 
 		Reward::<T>::put(T::Currency::minimum_balance());
-		Taxation::put(Perbill::zero());
-		Curve::<T>::put(vec![CurvePoint { start: 0u32.into(), reward: BalanceOf::<T>::max_value(), taxation: Perbill::max_value() }]);
 
 		// Whitelist transient storage items
 		frame_benchmarking::benchmarking::add_to_whitelist(Author::<T>::hashed_key().to_vec().into());
@@ -65,22 +61,17 @@ benchmarks! {
 	}: { crate::Module::<T>::on_initialize(block_number); }
 	verify {
 		assert_eq!(Author::<T>::get(), Some(author));
-		assert_eq!(Reward::<T>::get(), BalanceOf::<T>::max_value());
 	}
 
 	// Worst case: This author already has `max_locks` locked up, produces a new block, and we unlock
 	// everything in addition to creating brand new locks for the new reward.
 	on_finalize {
 		let author: T::AccountId = account("author", 0, 0);
-		let donation = Perbill::from_percent(50);
 		let reward = BalanceOf::<T>::max_value();
-		let taxation = Perbill::from_percent(50);
 
 		// Setup pallet variables
 		Author::<T>::put(&author);
-		AuthorDonation::put(donation);
 		Reward::<T>::put(reward);
-		Taxation::put(taxation);
 
 		// Create existing locks on author.
 		let max_locks = T::GenerateRewardLocks::max_locks();
@@ -92,13 +83,11 @@ benchmarks! {
 
 		// Whitelist transient storage items
 		frame_benchmarking::benchmarking::add_to_whitelist(Author::<T>::hashed_key().to_vec().into());
-		frame_benchmarking::benchmarking::add_to_whitelist(AuthorDonation::hashed_key().to_vec().into());
 
 		let block_number = frame_system::Module::<T>::block_number();
 	}: { crate::Module::<T>::on_finalize(block_number); }
 	verify {
 		assert!(Author::<T>::get().is_none());
-		assert!(AuthorDonation::get().is_none());
 		assert!(RewardLocks::<T>::get(&author).iter().count() > 0);
 	}
 
@@ -114,6 +103,10 @@ benchmarks! {
 	verify {
 		assert_eq!(RewardLocks::<T>::get(&miner).iter().count(), 0);
 	}
+
+	set_schedule {
+
+	}: _(RawOrigin::Root, T::Currency::minimum_balance(), BTreeMap::new(), BTreeMap::new(), BTreeMap::new())
 }
 
 #[cfg(test)]
@@ -127,11 +120,8 @@ mod tests {
 		new_test_ext(0).execute_with(|| {
 			assert_ok!(test_benchmark_on_finalize::<Test>());
 			assert_ok!(test_benchmark_on_initialize::<Test>());
-			assert_ok!(test_benchmark_note_author_prefs::<Test>());
-			assert_ok!(test_benchmark_set_reward::<Test>());
-			assert_ok!(test_benchmark_set_taxation::<Test>());
 			assert_ok!(test_benchmark_unlock::<Test>());
-			assert_ok!(test_benchmark_set_curve::<Test>());
+			assert_ok!(test_benchmark_set_schedule::<Test>());
 		});
 	}
 }

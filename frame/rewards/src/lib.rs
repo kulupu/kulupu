@@ -71,6 +71,7 @@ pub trait WeightInfo {
 	fn on_initialize() -> Weight;
 	fn on_finalize() -> Weight;
 	fn unlock() -> Weight;
+	fn set_schedule() -> Weight;
 }
 
 /// Config for rewards.
@@ -212,7 +213,7 @@ decl_module! {
 			0
 		}
 
-		#[weight = 0]
+		#[weight = T::WeightInfo::set_schedule()]
 		fn set_schedule(
 			origin,
 			reward: BalanceOf<T>,

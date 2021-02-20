@@ -49,6 +49,7 @@ rewards = { package = "pallet-rewards", path = "../frame/rewards", default-featu
 eras = { package = "pallet-eras", path = "../frame/eras", default-features = false }
 difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", default-features = false }
 variables = { package = "pallet-variables", path = "../frame/variables", default-features = false }
+lockdrop = { package = "pallet-lockdrop", path = "../frame/lockdrop", default-features = false }
 
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
@@ -105,6 +106,7 @@ std = [
 	"eras/std",
 	"difficulty/std",
 	"variables/std",
+	"lockdrop/std",
 
 	"frame-system-rpc-runtime-api/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
@@ -130,4 +132,5 @@ runtime-benchmarks = [
 	"multisig/runtime-benchmarks",
 	# Kulupu specific pallets
 	"rewards/runtime-benchmarks",
+	"lockdrop/runtime-benchmarks",
 ]
