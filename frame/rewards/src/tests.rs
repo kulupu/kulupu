@@ -165,13 +165,13 @@ fn reward_locks_work() {
 	});
 }
 
-fn test_curve() -> BTreeMap<u64, u128> {
-	let mut curve = BTreeMap::new();
-	curve.insert(50, 20);
-	curve.insert(40, 25);
-	curve.insert(20, 50);
-	curve.insert(10, 100);
-	curve
+fn test_curve() -> Vec<(u64, u128)> {
+	vec![
+		(50, 20),
+		(40, 25),
+		(20, 50),
+		(10, 100),
+	]
 }
 
 #[test]
