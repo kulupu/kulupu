@@ -14,6 +14,11 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "kulupu
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 
+[dev-dependencies]
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+
 [features]
 default = ["std"]
 std = [
@@ -23,4 +28,7 @@ std = [
 	"sp-runtime/std",
 	"frame-system/std",
 	"frame-support/std",
+	"sp-core/std",
+	"sp-io/std",
+	"pallet-balances/std",
 ]

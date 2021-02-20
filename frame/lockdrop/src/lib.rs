@@ -20,6 +20,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(test)]
+mod tests;
+
 use codec::{Encode, Decode};
 #[cfg(feature = "std")]
 use serde::{Serialize, Deserialize};
@@ -88,6 +91,8 @@ decl_error! {
 		CampaignEndInThePast,
 		/// Campaign lock block must be after campaign end block.
 		CampaignLockEndBeforeCampaignEnd,
+		/// Not enough balance.
+		NotEnoughBalance,
 		/// Payload over length limit.
 		PayloadOverLenLimit,
 		/// Campaign does not exist.
@@ -177,6 +182,8 @@ decl_module! {
 		#[weight = 0]
 		fn lock(origin, amount: BalanceOf<T>, identifier: CampaignIdentifier, lock_end_block: T::BlockNumber, payload: Option<Vec<u8>>) {
 			let account_id = ensure_signed(origin)?;
+
+			ensure!(T::Currency::free_balance(&account_id) >= amount, Error::<T>::NotEnoughBalance);
 
 			if let Some(ref payload) = payload {
 				ensure!(payload.len() <= T::PayloadLenLimit::get() as usize, Error::<T>::PayloadOverLenLimit);
