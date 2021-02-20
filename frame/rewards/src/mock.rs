@@ -29,7 +29,7 @@ use sp_runtime::{
 	Digest, traits::{BlakeTwo256, IdentityLookup}, testing::{DigestItem, Header},
 };
 use frame_system::{self as system, InitKind};
-use sp_std::collections::btree_map::BTreeMap;
+use sp_std::{collections::btree_map::BTreeMap, cmp};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -101,18 +101,26 @@ impl crate::GenerateRewardLocks<Test> for GenerateRewardLocks {
 	fn generate_reward_locks(
 		current_block: BlockNumber,
 		total_reward: Balance,
+		lock_parameters: Option<LockParameters>,
 	) -> BTreeMap<BlockNumber, Balance> {
 		let mut locks = BTreeMap::new();
 		let locked_reward = total_reward.saturating_sub(1 * DOLLARS);
 
 		if locked_reward > 0 {
-			const TOTAL_LOCK_PERIOD: BlockNumber = 100 * DAYS;
-			const DIVIDE: BlockNumber = 10;
+			let total_lock_period: BlockNumber;
+			let divide: BlockNumber;
 
-			for i in 0..DIVIDE {
-				let one_locked_reward = locked_reward / DIVIDE as u128;
+			if let Some(lock_parameters) = lock_parameters {
+				total_lock_period = u64::from(lock_parameters.period) * DAYS;
+				divide = u64::from(lock_parameters.divide);
+			} else {
+				total_lock_period = 100 * DAYS;
+				divide = 10;
+			}
+			for i in 0..divide {
+				let one_locked_reward = locked_reward / divide as u128;
 
-				let estimate_block_number = current_block.saturating_add((i + 1) * (TOTAL_LOCK_PERIOD / DIVIDE));
+				let estimate_block_number = current_block.saturating_add((i + 1) * (total_lock_period / divide));
 				let actual_block_number = estimate_block_number / DAYS * DAYS;
 
 				locks.insert(actual_block_number, one_locked_reward);
@@ -122,14 +130,17 @@ impl crate::GenerateRewardLocks<Test> for GenerateRewardLocks {
 		locks
 	}
 
-	fn max_locks() -> u32 {
-		// Max locks when one unlocks everyday for the `TOTAL_LOCK_PERIOD`.
-		100
+	fn max_locks(lock_bounds: pallet_rewards::LockBounds) -> u32 {
+		// Max locks when a miner mines at least one block every day till the lock period of
+		// the first mined block ends.
+		cmp::max(100, u32::from(lock_bounds.period_max))
 	}
 }
 
 parameter_types! {
 	pub DonationDestination: u64 = 255;
+	pub const LockBounds: pallet_rewards::LockBounds = pallet_rewards::LockBounds {period_max: 500, period_min: 20,
+																					divide_max: 50, divide_min: 2};
 }
 
 impl pallet_rewards::Config for Test {
@@ -138,6 +149,7 @@ impl pallet_rewards::Config for Test {
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
 	type WeightInfo = ();
+	type LockParametersBounds = LockBounds;
 }
 
 // Build genesis storage according to the mock runtime.

@@ -43,26 +43,41 @@ use frame_support::{
 };
 use frame_system::{ensure_root, ensure_signed};
 
+pub struct LockBounds {
+	pub period_max: u16,
+	pub period_min: u16,
+	pub divide_max: u16,
+	pub divide_min: u16,
+}
+
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LockParameters {
+	pub period: u16,
+	pub divide: u16,
+}
+
 /// Trait for generating reward locks.
 pub trait GenerateRewardLocks<T: Config> {
 	/// Generate reward locks.
 	fn generate_reward_locks(
 		current_block: T::BlockNumber,
 		total_reward: BalanceOf<T>,
+		lock_parameters: Option<LockParameters>,
 	) -> BTreeMap<T::BlockNumber, BalanceOf<T>>;
 
-	fn max_locks() -> u32;
+	fn max_locks(lock_bounds: LockBounds) -> u32;
 }
 
 impl<T: Config> GenerateRewardLocks<T> for () {
 	fn generate_reward_locks(
 		_current_block: T::BlockNumber,
 		_total_reward: BalanceOf<T>,
+		_lock_parameters: Option<LockParameters>,
 	) -> BTreeMap<T::BlockNumber, BalanceOf<T>> {
 		Default::default()
 	}
 
-	fn max_locks() -> u32 {
+	fn max_locks(_lock_bounds: LockBounds) -> u32 {
 		0
 	}
 }
@@ -72,6 +87,7 @@ pub trait WeightInfo {
 	fn on_finalize() -> Weight;
 	fn unlock() -> Weight;
 	fn set_schedule() -> Weight;
+	fn set_lock_params() -> Weight;
 }
 
 /// Config for rewards.
@@ -86,6 +102,8 @@ pub trait Config: frame_system::Config {
 	type GenerateRewardLocks: GenerateRewardLocks<Self>;
 	/// Weights for this pallet.
 	type WeightInfo: WeightInfo;
+	/// Lock Parameters Bounds.
+	type LockParametersBounds: Get<LockBounds>;
 }
 
 /// Type alias for currency balance.
@@ -99,6 +117,10 @@ decl_error! {
 		MintTooLow,
 		/// Reward curve is not sorted.
 		NotSorted,
+		/// Lock parameters are out of bounds.
+		LockParamsOutOfBounds,
+		/// Lock period is not a mutiple of the divide.
+		LockPeriodNotDivisible,
 	}
 }
 
@@ -119,6 +141,9 @@ decl_storage! {
 		/// Mint changes planned in the future.
 		MintChanges get(fn mint_changes): BTreeMap<T::BlockNumber, BTreeMap<T::AccountId, BalanceOf<T>>>;
 
+		/// Lock parameters (period and divide).
+		LockParams get(fn lock_params): Option<LockParameters>;
+
 		StorageVersion build(|_| migrations::StorageVersion::V1): migrations::StorageVersion;
 	}
 }
@@ -135,6 +160,8 @@ decl_event! {
 		Minted(AccountId, Balance),
 		/// Mint has been changed.
 		MintsChanged(BTreeMap<AccountId, Balance>),
+		/// Lock Parameters have been changed.
+		LockParamsChanged(LockParameters),
 	}
 }
 
@@ -247,6 +274,19 @@ decl_module! {
 			Self::deposit_event(RawEvent::ScheduleSet);
 		}
 
+		#[weight = T::WeightInfo::set_lock_params()]
+		fn set_lock_params(origin, lock_params: LockParameters) {
+			ensure_root(origin)?;
+
+			let bounds = T::LockParametersBounds::get();
+			ensure!((bounds.period_min..=bounds.period_max).contains(&lock_params.period) &&
+				(bounds.divide_min..=bounds.divide_max).contains(&lock_params.divide), Error::<T>::LockParamsOutOfBounds);
+			ensure!(lock_params.period % lock_params.divide == 0, Error::<T>::LockPeriodNotDivisible);
+
+			LockParams::put(lock_params);
+			Self::deposit_event(RawEvent::LockParamsChanged(lock_params));
+		}
+
 		/// Unlock any vested rewards for `target` account.
 		#[weight = T::WeightInfo::unlock()]
 		fn unlock(origin, target: T::AccountId) {
@@ -268,6 +308,7 @@ impl<T: Config> Module<T> {
 		let miner_reward_locks = T::GenerateRewardLocks::generate_reward_locks(
 			when,
 			miner_total,
+			LockParams::get(),
 		);
 
 		drop(T::Currency::deposit_creating(&author, miner_total));
