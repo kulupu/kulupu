@@ -22,6 +22,8 @@
 
 #[cfg(test)]
 mod tests;
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 
 use codec::{Encode, Decode};
 #[cfg(feature = "std")]
@@ -31,8 +33,17 @@ use sp_runtime::{RuntimeDebug, traits::Hash};
 use frame_support::{
 	ensure, decl_storage, decl_module, decl_event, decl_error, storage::child,
 	traits::{Currency, LockableCurrency, WithdrawReasons, LockIdentifier, Get},
+	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed};
+
+pub trait WeightInfo {
+	fn create_campaign() -> Weight;
+	fn conclude_campaign() -> Weight;
+	fn remove_expired_campaign() -> Weight;
+	fn lock() -> Weight;
+	fn unlock() -> Weight;
+}
 
 pub type CampaignIdentifier = [u8; 4];
 
@@ -69,6 +80,9 @@ pub trait Config: frame_system::Config {
 	type PayloadLenLimit: Get<u32>;
 	/// Max number of storage keys to remove per extrinsic call.
 	type RemoveKeysLimit: Get<u32>;
+
+	/// Weights for this pallet.
+	type WeightInfo: WeightInfo;
 }
 
 /// Type alias for currency balance.
@@ -123,7 +137,7 @@ decl_module! {
 
 		fn deposit_event() = default;
 
-		#[weight = 0]
+		#[weight = T::WeightInfo::create_campaign()]
 		fn create_campaign(origin, identifier: CampaignIdentifier, end_block: T::BlockNumber, min_lock_end_block: T::BlockNumber) {
 			ensure_root(origin)?;
 
@@ -140,7 +154,7 @@ decl_module! {
 			Self::deposit_event(Event::<T>::CampaignCreated(identifier));
 		}
 
-		#[weight = 0]
+		#[weight = T::WeightInfo::conclude_campaign()]
 		fn conclude_campaign(origin, identifier: CampaignIdentifier) {
 			ensure_signed(origin)?;
 
@@ -158,7 +172,7 @@ decl_module! {
 			});
 		}
 
-		#[weight = 0]
+		#[weight = T::WeightInfo::remove_expired_campaign()]
 		fn remove_expired_campaign(origin, identifier: CampaignIdentifier) {
 			ensure_signed(origin)?;
 
@@ -179,7 +193,7 @@ decl_module! {
 			}
 		}
 
-		#[weight = 0]
+		#[weight = T::WeightInfo::lock()]
 		fn lock(origin, amount: BalanceOf<T>, identifier: CampaignIdentifier, lock_end_block: T::BlockNumber, payload: Option<Vec<u8>>) {
 			let account_id = ensure_signed(origin)?;
 
@@ -216,7 +230,7 @@ decl_module! {
 			Self::deposit_event(Event::<T>::Locked(identifier, account_id));
 		}
 
-		#[weight = 0]
+		#[weight = T::WeightInfo::unlock()]
 		fn unlock(origin, identifier: CampaignIdentifier) {
 			let account_id = ensure_signed(origin)?;
 

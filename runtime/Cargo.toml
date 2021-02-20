@@ -132,4 +132,5 @@ runtime-benchmarks = [
 	"multisig/runtime-benchmarks",
 	# Kulupu specific pallets
 	"rewards/runtime-benchmarks",
+	"lockdrop/runtime-benchmarks",
 ]

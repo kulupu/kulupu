@@ -4030,6 +4030,7 @@ dependencies = [
 name = "pallet-lockdrop"
 version = "2.5.0"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "pallet-balances",

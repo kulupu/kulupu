@@ -22,24 +22,28 @@
 
 use frame_support::weights::{Weight, constants::RocksDbWeight as DbWeight};
 
-impl crate::WeightInfo for () {
-	fn on_initialize() -> Weight {
-		(14_800_000 as Weight)
+impl lockdrop::WeightInfo for () {
+	fn create_campaign() -> Weight {
+		(30_100_000 as Weight)
+			.saturating_add(DbWeight::get().reads(2 as Weight))
+			.saturating_add(DbWeight::get().writes(1 as Weight))
+	}
+	fn conclude_campaign() -> Weight {
+		(77_800_000 as Weight)
+			.saturating_add(DbWeight::get().reads(2 as Weight))
+			.saturating_add(DbWeight::get().writes(1 as Weight))
+	}
+	fn remove_expired_campaign() -> Weight {
+		(9_500_000 as Weight)
+			.saturating_add(DbWeight::get().reads(1 as Weight))
+	}
+	fn lock() -> Weight {
+		(44_100_000 as Weight)
 			.saturating_add(DbWeight::get().reads(2 as Weight))
 			.saturating_add(DbWeight::get().writes(2 as Weight))
 	}
-	fn on_finalize() -> Weight {
-		(121_500_000 as Weight)
-			.saturating_add(DbWeight::get().reads(5 as Weight))
-			.saturating_add(DbWeight::get().writes(3 as Weight))
-	}
 	fn unlock() -> Weight {
-		(46_000_000 as Weight)
+		(7_200_000 as Weight)
 			.saturating_add(DbWeight::get().reads(1 as Weight))
-			.saturating_add(DbWeight::get().writes(1 as Weight))
-	}
-	fn set_schedule() -> Weight {
-		(32_900_000 as Weight)
-			.saturating_add(DbWeight::get().writes(4 as Weight))
 	}
 }
