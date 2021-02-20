@@ -30,7 +30,7 @@ mod default_weights;
 mod migrations;
 
 use codec::{Encode, Decode};
-use sp_std::{result, ops::Bound::Included, prelude::*, collections::btree_map::BTreeMap};
+use sp_std::{result, iter::FromIterator, ops::Bound::Included, prelude::*, collections::btree_map::BTreeMap};
 use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
 use sp_inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
 use sp_consensus_pow::POW_ENGINE_ID;
@@ -217,11 +217,17 @@ decl_module! {
 		fn set_schedule(
 			origin,
 			reward: BalanceOf<T>,
-			mints: BTreeMap<T::AccountId, BalanceOf<T>>,
-			reward_changes: BTreeMap<T::BlockNumber, BalanceOf<T>>,
-			mint_changes: BTreeMap<T::BlockNumber, BTreeMap<T::AccountId, BalanceOf<T>>>,
+			mints: Vec<(T::AccountId, BalanceOf<T>)>,
+			reward_changes: Vec<(T::BlockNumber, BalanceOf<T>)>,
+			mint_changes: Vec<(T::BlockNumber, Vec<(T::AccountId, BalanceOf<T>)>)>,
 		) {
 			ensure_root(origin)?;
+
+			let mints = BTreeMap::from_iter(mints.into_iter());
+			let reward_changes = BTreeMap::from_iter(reward_changes.into_iter());
+			let mint_changes = BTreeMap::from_iter(
+				mint_changes.into_iter().map(|(k, v)| (k, BTreeMap::from_iter(v.into_iter())))
+			);
 
 			ensure!(reward >= T::Currency::minimum_balance(), Error::<T>::RewardTooLow);
 			for (_, mint) in &mints {
