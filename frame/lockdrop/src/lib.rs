@@ -24,6 +24,7 @@
 mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+mod default_weights;
 
 use codec::{Encode, Decode};
 #[cfg(feature = "std")]

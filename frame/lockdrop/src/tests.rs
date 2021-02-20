@@ -82,6 +82,7 @@ impl pallet_lockdrop::Config for Test {
 	type Currency = Balances;
 	type PayloadLenLimit = PayloadLenLimit;
 	type RemoveKeysLimit = RemoveKeysLimit;
+	type WeightInfo = ();
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

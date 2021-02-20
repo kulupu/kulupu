@@ -22,7 +22,7 @@
 
 use frame_support::weights::{Weight, constants::RocksDbWeight as DbWeight};
 
-impl lockdrop::WeightInfo for () {
+impl crate::WeightInfo for () {
 	fn create_campaign() -> Weight {
 		(30_100_000 as Weight)
 			.saturating_add(DbWeight::get().reads(2 as Weight))
