@@ -786,7 +786,7 @@ impl frame_support::traits::OnRuntimeUpgrade for PhragmenElectionDepositRuntimeU
 }
 
 parameter_types! {
-	pub const PayloadLenLimit: u32 = 32;
+	pub const PayloadLenLimit: u32 = 1024;
 	pub const RemoveKeysLimit: u32 = 1024;
 }
 
