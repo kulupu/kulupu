@@ -31,7 +31,7 @@ extern crate system as frame_system;
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use sp_std::{collections::btree_map::BTreeMap, cmp::{min, max}, prelude::*};
+use sp_std::{collections::btree_map::BTreeMap, cmp::{min, max}, prelude::*, cmp};
 use codec::{Encode, Decode};
 use sp_core::{OpaqueMetadata, u32_trait::{_1, _2, _4, _5}};
 use sp_runtime::{
@@ -336,18 +336,26 @@ impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
 	fn generate_reward_locks(
 		current_block: BlockNumber,
 		total_reward: Balance,
+		lock_parameters: Option<rewards::LockParameters>,
 	) -> BTreeMap<BlockNumber, Balance> {
 		let mut locks = BTreeMap::new();
 		let locked_reward = total_reward.saturating_sub(1 * DOLLARS);
 
 		if locked_reward > 0 {
-			const TOTAL_LOCK_PERIOD: BlockNumber = 100 * DAYS;
-			const DIVIDE: BlockNumber = 10;
+			let total_lock_period: BlockNumber;
+			let divide: BlockNumber;
 
-			for i in 0..DIVIDE {
-				let one_locked_reward = locked_reward / DIVIDE as u128;
+			if let Some(lock_parameters) = lock_parameters {
+				total_lock_period = u32::from(lock_parameters.period) * DAYS;
+				divide = u32::from(lock_parameters.divide);
+			} else {
+				total_lock_period = 100 * DAYS;
+				divide = 10;
+			}
+			for i in 0..divide {
+				let one_locked_reward = locked_reward / divide as u128;
 
-				let estimate_block_number = current_block.saturating_add((i + 1) * (TOTAL_LOCK_PERIOD / DIVIDE));
+				let estimate_block_number = current_block.saturating_add((i + 1) * (total_lock_period / divide));
 				let actual_block_number = estimate_block_number / DAYS * DAYS;
 
 				locks.insert(actual_block_number, one_locked_reward);
@@ -357,14 +365,17 @@ impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
 		locks
 	}
 
-	fn max_locks() -> u32 {
-		// Max locks when for 10 consecutive days, 10 incremental locks are created.
-		100
+	fn max_locks(lock_bounds: rewards::LockBounds) -> u32 {
+		// Max locks when a miner mines at least one block every day till the lock period of
+		// the first mined block ends.
+		cmp::max(100, u32::from(lock_bounds.period_max))
 	}
 }
 
 parameter_types! {
 	pub DonationDestination: AccountId = Treasury::account_id();
+	pub const LockBounds: rewards::LockBounds = rewards::LockBounds {period_max: 500, period_min: 20,
+																	divide_max: 50, divide_min: 2};
 }
 
 impl rewards::Config for Runtime {
@@ -373,6 +384,7 @@ impl rewards::Config for Runtime {
 	type DonationDestination = DonationDestination;
 	type GenerateRewardLocks = GenerateRewardLocks;
 	type WeightInfo = crate::weights::rewards::WeightInfo<Self>;
+	type LockParametersBounds = LockBounds;
 }
 
 pub struct Author;

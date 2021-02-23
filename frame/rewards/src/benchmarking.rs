@@ -74,7 +74,7 @@ benchmarks! {
 		Reward::<T>::put(reward);
 
 		// Create existing locks on author.
-		let max_locks = T::GenerateRewardLocks::max_locks();
+		let max_locks = T::GenerateRewardLocks::max_locks(T::LockParametersBounds::get());
 		create_locks::<T>(&author, max_locks);
 
 		// Move to a point where all locks would unlock.
@@ -94,7 +94,7 @@ benchmarks! {
 	// Worst case: Target user has `max_locks` which are all unlocked during this call.
 	unlock {
 		let miner = account("miner", 0, 0);
-		let max_locks = T::GenerateRewardLocks::max_locks();
+		let max_locks = T::GenerateRewardLocks::max_locks(T::LockParametersBounds::get());
 		create_locks::<T>(&miner, max_locks);
 		let caller = whitelisted_caller();
 		frame_system::Module::<T>::set_block_number(max_locks.into());
@@ -107,6 +107,11 @@ benchmarks! {
 	set_schedule {
 
 	}: _(RawOrigin::Root, T::Currency::minimum_balance(), BTreeMap::new(), BTreeMap::new(), BTreeMap::new())
+
+	// Worst case: a new lock params is set.
+	set_lock_params {
+
+	}: _(RawOrigin::Root, LockParameters {period: 150, divide: 25} )
 }
 
 #[cfg(test)]
@@ -122,6 +127,7 @@ mod tests {
 			assert_ok!(test_benchmark_on_initialize::<Test>());
 			assert_ok!(test_benchmark_unlock::<Test>());
 			assert_ok!(test_benchmark_set_schedule::<Test>());
+			assert_ok!(test_benchmark_set_lock_params::<Test>());
 		});
 	}
 }
