@@ -23,6 +23,7 @@ use kulupu_primitives::DOLLARS;
 use kulupu_runtime::{
 	BalancesConfig, GenesisConfig, IndicesConfig, SystemConfig,
 	DifficultyConfig, ErasConfig, AccountId, RewardsConfig, WASM_BINARY,
+	ContractsConfig,
 };
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
@@ -38,6 +39,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		move || testnet_genesis(
 			wasm_binary,
 			U256::from(1000),
+			true, // enable println in smart contracts for dev env
 		),
 		vec![],
 		None,
@@ -61,6 +63,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		move || testnet_genesis(
 			wasm_binary,
 			U256::from(200),
+			false, // disable println for local network
 		),
 		vec![],
 		None,
@@ -84,7 +87,7 @@ pub fn mainnet_config() -> ChainSpec {
 		.expect("Mainnet config included is valid")
 }
 
-fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256) -> GenesisConfig {
+fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256, enable_println: bool) -> GenesisConfig {
 	GenesisConfig {
 		system: Some(SystemConfig {
 			code: wasm_binary.to_vec(),
@@ -110,6 +113,12 @@ fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256) -> GenesisConfi
 		rewards: Some(RewardsConfig {
 			reward: 60 * DOLLARS,
 			mints: Default::default(),
+		}),
+		contracts: Some(ContractsConfig {
+			current_schedule: contracts::Schedule {
+				enable_println, // this should only be enabled on development chains
+				..Default::default()
+			},
 		}),
 	}
 }
@@ -156,6 +165,14 @@ pub fn mainnet_genesis() -> GenesisConfig {
 		rewards: Some(RewardsConfig {
 			reward: 60 * DOLLARS,
 			mints: Default::default(),
+		}),
+		contracts: Some(ContractsConfig {
+			current_schedule: contracts::Schedule {
+				// this should not be enabled for production chains
+				// use `--dev`
+				enable_println: false,
+				..Default::default()
+			},
 		}),
 	}
 }

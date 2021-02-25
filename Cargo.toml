@@ -48,6 +48,8 @@ sc-basic-authorship = { git = "https://github.com/paritytech/substrate", branch 
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
 
+contracts = { package = "pallet-contracts", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+
 pallet-rewards = { path = "frame/rewards" }
 pallet-eras = { path = "frame/eras" }
 kulupu-pow = { path = "pow" }

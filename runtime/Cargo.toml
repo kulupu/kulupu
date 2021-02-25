@@ -26,6 +26,7 @@ kulupu-primitives = { path = "../primitives", default-features = false }
 smallvec = "1.4.0"
 static_assertions = "1.1.0"
 
+# frame
 system = { package = "frame-system", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 balances = { package = "pallet-balances", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 utility = { package = "pallet-utility", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
@@ -45,6 +46,9 @@ vesting = { package = "pallet-vesting", git = "https://github.com/paritytech/sub
 multisig = { package = "pallet-multisig", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 tips = { package = "pallet-tips", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 bounties = { package = "pallet-bounties", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+contracts = { package = "pallet-contracts", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+
+# custom pallets
 rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
 eras = { package = "pallet-eras", path = "../frame/eras", default-features = false }
 difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", default-features = false }
@@ -102,6 +106,8 @@ std = [
 	"multisig/std",
 	"tips/std",
 	"bounties/std",
+	"contracts/std",
+
 	"rewards/std",
 	"eras/std",
 	"difficulty/std",
@@ -130,6 +136,7 @@ runtime-benchmarks = [
 	"proxy/runtime-benchmarks",
 	"vesting/runtime-benchmarks",
 	"multisig/runtime-benchmarks",
+	"contracts/runtime-benchmarks",
 	# Kulupu specific pallets
 	"rewards/runtime-benchmarks",
 	"lockdrop/runtime-benchmarks",
