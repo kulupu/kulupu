@@ -300,6 +300,9 @@ pub fn mine<B, C>(
 		&author,
 	).map_err(|_| sc_consensus_pow::Error::<B>::Other(
 		"Unable to mine: fetch pair from author failed".to_string(),
+	))?
+	.ok_or(sc_consensus_pow::Error::<B>::Other(
+		"Unable to mine: key not found in keystore".to_string(),
 	))?;
 
 	let maybe_seal = match version {
