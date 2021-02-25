@@ -43,6 +43,7 @@ sc-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch 
 sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
 sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sc-telemetry = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
 sc-basic-authorship = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
