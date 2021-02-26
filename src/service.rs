@@ -18,6 +18,7 @@
 
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::str::FromStr;
 use std::time::Duration;
@@ -25,7 +26,8 @@ use std::thread;
 use parking_lot::Mutex;
 use codec::Encode;
 use sp_runtime::{Perbill, generic::BlockId, traits::Bounded};
-use sp_core::{H256, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
+use sp_core::{H256, Pair, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
+use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use sc_service::{error::{Error as ServiceError}, Configuration, TaskManager};
 use sc_executor::native_executor_instance;
 use sc_client_api::backend::RemoteBackend;
@@ -44,23 +46,41 @@ native_executor_instance!(
 );
 
 pub fn decode_author(
-	author: Option<&str>,
-) -> Result<Option<kulupu_pow::app::Public>, String> {
+	author: Option<&str>, keystore: SyncCryptoStorePtr, keystore_path: Option<PathBuf>,
+) -> Result<kulupu_pow::app::Public, String> {
 	if let Some(author) = author {
 		if author.starts_with("0x") {
-			Ok(Some(kulupu_pow::app::Public::unchecked_from(
+			Ok(kulupu_pow::app::Public::unchecked_from(
 				H256::from_str(&author[2..]).map_err(|_| "Invalid author account".to_string())?
-			).into()))
+			).into())
 		} else {
 			let (address, version) = kulupu_pow::app::Public::from_ss58check_with_version(author)
 				.map_err(|_| "Invalid author address".to_string())?;
 			if version != Ss58AddressFormat::KulupuAccount {
 				return Err("Invalid author version".to_string())
 			}
-			Ok(Some(address))
+			Ok(address)
 		}
 	} else {
-		Ok(None)
+		info!("The node is configured for mining, but no author key is provided.");
+
+		let (pair, phrase, _) = kulupu_pow::app::Pair::generate_with_phrase(None);
+
+		SyncCryptoStore::insert_unknown(
+			&*keystore.as_ref(),
+			kulupu_pow::app::ID,
+			&phrase,
+			pair.public().as_ref(),
+		).map_err(|e| format!("Registering mining key failed: {:?}", e))?;
+
+		info!("Generated a mining key with address: {}", pair.public().to_ss58check_with_version(Ss58AddressFormat::KulupuAccount));
+
+		match keystore_path {
+			Some(path) => info!("You can go to {:?} to find the seed phrase of the mining key.", path),
+			None => warn!("Keystore is not local. This means that your mining key will be lost when exiting the program. This should only happen if you are in dev mode."),
+		}
+
+		Ok(pair.public())
 	}
 }
 
@@ -70,7 +90,7 @@ type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
 /// Inherent data provider for Kulupu.
 pub fn kulupu_inherent_data_providers(
-	author: Option<kulupu_pow::app::Public>, donate: bool,
+	donate: bool,
 ) -> Result<sp_inherents::InherentDataProviders, ServiceError> {
 	let inherent_data_providers = sp_inherents::InherentDataProviders::new();
 
@@ -81,26 +101,24 @@ pub fn kulupu_inherent_data_providers(
 			.map_err(sp_consensus::Error::InherentData)?;
 	}
 
-	if let Some(author) = author {
-		let encoded_author = author.encode();
+	let fake_author = kulupu_pow::app::Public::default().encode();
 
-		if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER_V0) {
-			inherent_data_providers
-				.register_provider(pallet_rewards::InherentDataProviderV0(
-					encoded_author.clone(),
-				))
-				.map_err(Into::into)
-				.map_err(sp_consensus::Error::InherentData)?;
-		}
+	if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER_V0) {
+		inherent_data_providers
+			.register_provider(pallet_rewards::InherentDataProviderV0(
+				fake_author.clone(),
+			))
+			.map_err(Into::into)
+			.map_err(sp_consensus::Error::InherentData)?;
+	}
 
-		if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER) {
-			inherent_data_providers
-				.register_provider(pallet_rewards::InherentDataProvider(
-					(encoded_author, if donate { Perbill::max_value() } else { Perbill::zero() })
-				))
-				.map_err(Into::into)
-				.map_err(sp_consensus::Error::InherentData)?;
-		}
+	if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER_V1) {
+		inherent_data_providers
+			.register_provider(pallet_rewards::InherentDataProviderV1(
+				(fake_author.clone(), if donate { Perbill::max_value() } else { Perbill::zero() })
+			))
+			.map_err(Into::into)
+			.map_err(sp_consensus::Error::InherentData)?;
 	}
 
 	Ok(inherent_data_providers)
@@ -108,7 +126,6 @@ pub fn kulupu_inherent_data_providers(
 
 pub fn new_partial(
 	config: &Configuration,
-	author: Option<&str>,
 	check_inherents_after: u32,
 	donate: bool,
 	enable_weak_subjectivity: bool,
@@ -119,7 +136,6 @@ pub fn new_partial(
 	sc_consensus_pow::PowBlockImport<Block, kulupu_pow::weak_sub::WeakSubjectiveBlockImport<Block, Arc<FullClient>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, sp_consensus::AlwaysCanAuthor>,
 >, ServiceError> {
 	let inherent_data_providers = crate::service::kulupu_inherent_data_providers(
-		decode_author(author)?,
 		donate,
 	)?;
 
@@ -188,7 +204,7 @@ pub fn new_full(
 		client, backend, mut task_manager, import_queue, keystore_container,
 		select_chain, transaction_pool, inherent_data_providers,
 		other: pow_block_import,
-	} = new_partial(&config, author, check_inherents_after, donate, enable_weak_subjectivity)?;
+	} = new_partial(&config, check_inherents_after, donate, enable_weak_subjectivity)?;
 
 	let (network, network_status_sinks, system_rpc_tx, network_starter) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
@@ -228,6 +244,8 @@ pub fn new_full(
 	let telemetry_span = TelemetrySpan::new();
 	let _telemetry_span_entered = telemetry_span.enter();
 
+	let keystore_path = config.keystore.path().map(|p| p.to_owned());
+
 	let (_rpc_handlers, _telemetry_connection_notifier) = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
 		network: network.clone(),
 		client: client.clone(),
@@ -242,7 +260,7 @@ pub fn new_full(
 	})?;
 
 	if role.is_authority() {
-		let author = decode_author(author)?;
+		let author = decode_author(author, keystore_container.sync_keystore(), keystore_path)?;
 		let algorithm = kulupu_pow::RandomXAlgorithm::new(
 			client.clone(),
 		);
@@ -261,7 +279,7 @@ pub fn new_full(
 			algorithm,
 			proposer,
 			network.clone(),
-			author.clone().map(|a| a.encode()),
+			Some(author.encode()),
 			inherent_data_providers.clone(),
 			Duration::new(10, 0),
 			Duration::new(10, 0),
@@ -321,7 +339,6 @@ pub fn new_full(
 /// Builds a new service for a light client.
 pub fn new_light(
 	config: Configuration,
-	author: Option<&str>,
 	check_inherents_after: u32,
 	donate: bool,
 	enable_weak_subjectivity: bool,
@@ -339,7 +356,7 @@ pub fn new_light(
 
 	let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-	let inherent_data_providers = kulupu_inherent_data_providers(decode_author(author)?, donate)?;
+	let inherent_data_providers = kulupu_inherent_data_providers(donate)?;
 
 	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
 
