@@ -17,14 +17,17 @@
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
 use serde_json::json;
-use sp_core::{U256, crypto::UncheckedFrom};
+use sp_core::{U256, crypto::UncheckedFrom, Public, Pair, sr25519};
+use sp_runtime::traits::{Verify, IdentifyAccount};
 use sc_service::ChainType;
 use kulupu_primitives::DOLLARS;
 use kulupu_runtime::{
 	BalancesConfig, GenesisConfig, IndicesConfig, SystemConfig,
 	DifficultyConfig, ErasConfig, AccountId, RewardsConfig, WASM_BINARY,
-	ContractsConfig,
+	ContractsConfig, Signature,
 };
+
+type AccountPublic = <Signature as Verify>::Signer;
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
@@ -87,6 +90,20 @@ pub fn mainnet_config() -> ChainSpec {
 		.expect("Mainnet config included is valid")
 }
 
+/// Helper function to generate a crypto pair from seed
+pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
+	TPublic::Pair::from_string(&format!("//{}", seed), None)
+		.expect("static values are valid; qed")
+		.public()
+}
+
+/// Helper function to generate an account ID from seed
+pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId where
+	AccountPublic: From<<TPublic::Pair as Pair>::Public>
+{
+	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
+}
+
 fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256, enable_println: bool) -> GenesisConfig {
 	GenesisConfig {
 		system: Some(SystemConfig {
@@ -94,7 +111,16 @@ fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256, enable_println:
 			changes_trie_config: Default::default(),
 		}),
 		balances: Some(BalancesConfig {
-			balances: vec![],
+			balances: vec![
+				(
+					get_account_id_from_seed::<sr25519::Public>("Alice"),
+					10_000_000 * DOLLARS
+				),
+				(
+					get_account_id_from_seed::<sr25519::Public>("Bob"),
+					10_000_000 * DOLLARS
+				),
+			],
 		}),
 		indices: Some(IndicesConfig {
 			indices: vec![],
