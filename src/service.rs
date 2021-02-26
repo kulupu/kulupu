@@ -45,19 +45,23 @@ native_executor_instance!(
 
 pub fn decode_author(
 	author: Option<&str>,
-) -> Option<kulupu_pow::app::Public> {
-	author.map(|author| {
+) -> Result<Option<kulupu_pow::app::Public>, String> {
+	if let Some(author) = author {
 		if author.starts_with("0x") {
-			kulupu_pow::app::Public::unchecked_from(
-				H256::from_str(&author[2..]).expect("Invalid author account")
-			).into()
+			Ok(Some(kulupu_pow::app::Public::unchecked_from(
+				H256::from_str(&author[2..]).map_err(|_| "Invalid author account".to_string())?
+			).into()))
 		} else {
 			let (address, version) = kulupu_pow::app::Public::from_ss58check_with_version(author)
-				.expect("Invalid author address");
-			assert!(version == Ss58AddressFormat::KulupuAccount, "Invalid author version");
-			address
+				.map_err(|_| "Invalid author address".to_string())?;
+			if version != Ss58AddressFormat::KulupuAccount {
+				return Err("Invalid author version".to_string())
+			}
+			Ok(Some(address))
 		}
-	})
+	} else {
+		Ok(None)
+	}
 }
 
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
@@ -115,7 +119,7 @@ pub fn new_partial(
 	sc_consensus_pow::PowBlockImport<Block, kulupu_pow::weak_sub::WeakSubjectiveBlockImport<Block, Arc<FullClient>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, sp_consensus::AlwaysCanAuthor>,
 >, ServiceError> {
 	let inherent_data_providers = crate::service::kulupu_inherent_data_providers(
-		decode_author(author),
+		decode_author(author)?,
 		donate,
 	)?;
 
@@ -238,7 +242,7 @@ pub fn new_full(
 	})?;
 
 	if role.is_authority() {
-		let author = decode_author(author);
+		let author = decode_author(author)?;
 		let algorithm = kulupu_pow::RandomXAlgorithm::new(
 			client.clone(),
 		);
@@ -335,7 +339,7 @@ pub fn new_light(
 
 	let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-	let inherent_data_providers = kulupu_inherent_data_providers(decode_author(author), donate)?;
+	let inherent_data_providers = kulupu_inherent_data_providers(decode_author(author)?, donate)?;
 
 	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
 
