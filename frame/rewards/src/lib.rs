@@ -30,9 +30,9 @@ mod default_weights;
 mod migrations;
 
 use codec::{Encode, Decode};
-use sp_std::{result, iter::FromIterator, ops::Bound::Included, prelude::*, collections::btree_map::BTreeMap};
+use sp_std::{iter::FromIterator, ops::Bound::Included, prelude::*, collections::btree_map::BTreeMap};
 use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
-use sp_inherents::{InherentIdentifier, InherentData, ProvideInherent, IsFatalError};
+use sp_inherents::{InherentIdentifier, InherentData, IsFatalError};
 use sp_consensus_pow::POW_ENGINE_ID;
 #[cfg(feature = "std")]
 use sp_inherents::ProvideInherentData;
@@ -372,7 +372,7 @@ impl<T: Config> Module<T> {
 }
 
 pub const INHERENT_IDENTIFIER_V0: InherentIdentifier = *b"rewards_";
-pub const INHERENT_IDENTIFIER: InherentIdentifier = *b"rewards1";
+pub const INHERENT_IDENTIFIER_V1: InherentIdentifier = *b"rewards1";
 
 #[derive(Encode, Decode, RuntimeDebug)]
 pub enum InherentError { }
@@ -387,7 +387,7 @@ impl InherentError {
 	/// Try to create an instance ouf of the given identifier and data.
 	#[cfg(feature = "std")]
 	pub fn try_from(id: &InherentIdentifier, data: &[u8]) -> Option<Self> {
-		if id == &INHERENT_IDENTIFIER {
+		if id == &INHERENT_IDENTIFIER_V1 || id == &INHERENT_IDENTIFIER_V0 {
 			<InherentError as codec::Decode>::decode(&mut &data[..]).ok()
 		} else {
 			None
@@ -419,36 +419,22 @@ impl ProvideInherentData for InherentDataProviderV0 {
 pub type InherentType = (Vec<u8>, Perbill);
 
 #[cfg(feature = "std")]
-pub struct InherentDataProvider(pub InherentType);
+pub struct InherentDataProviderV1(pub InherentType);
 
 #[cfg(feature = "std")]
-impl ProvideInherentData for InherentDataProvider {
+impl ProvideInherentData for InherentDataProviderV1 {
 	fn inherent_identifier(&self) -> &'static InherentIdentifier {
-		&INHERENT_IDENTIFIER
+		&INHERENT_IDENTIFIER_V1
 	}
 
 	fn provide_inherent_data(
 		&self,
 		inherent_data: &mut InherentData
 	) -> Result<(), sp_inherents::Error> {
-		inherent_data.put_data(INHERENT_IDENTIFIER, &self.0)
+		inherent_data.put_data(INHERENT_IDENTIFIER_V1, &self.0)
 	}
 
 	fn error_to_string(&self, error: &[u8]) -> Option<String> {
-		InherentError::try_from(&INHERENT_IDENTIFIER, error).map(|e| format!("{:?}", e))
-	}
-}
-
-impl<T: Config> ProvideInherent for Module<T> {
-	type Call = Call<T>;
-	type Error = InherentError;
-	const INHERENT_IDENTIFIER: InherentIdentifier = INHERENT_IDENTIFIER;
-
-	fn create_inherent(_data: &InherentData) -> Option<Self::Call> {
-		None
-	}
-
-	fn check_inherent(_call: &Self::Call, _data: &InherentData) -> result::Result<(), Self::Error> {
-		Ok(())
+		InherentError::try_from(&INHERENT_IDENTIFIER_V1, error).map(|e| format!("{:?}", e))
 	}
 }
