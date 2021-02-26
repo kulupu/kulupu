@@ -876,7 +876,7 @@ construct_runtime!(
 		// PoW consensus and era support.
 		Difficulty: difficulty::{Module, Call, Storage, Config} = 19,
 		Eras: eras::{Module, Call, Storage, Config<T>} = 20,
-		Rewards: rewards::{Module, Call, Inherent, Storage, Event<T>, Config<T>} = 4,
+		Rewards: rewards::{Module, Call, Storage, Event<T>, Config<T>} = 4,
 
 		// Governance.
 		Democracy: democracy::{Module, Call, Storage, Config, Event<T>} = 5,
