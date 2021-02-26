@@ -2793,6 +2793,8 @@ dependencies = [
  "pallet-bounties",
  "pallet-collective",
  "pallet-contracts",
+ "pallet-contracts-primitives",
+ "pallet-contracts-rpc-runtime-api",
  "pallet-democracy",
  "pallet-difficulty",
  "pallet-elections-phragmen",

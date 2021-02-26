@@ -46,7 +46,11 @@ vesting = { package = "pallet-vesting", git = "https://github.com/paritytech/sub
 multisig = { package = "pallet-multisig", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 tips = { package = "pallet-tips", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 bounties = { package = "pallet-bounties", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-contracts = { package = "pallet-contracts", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+
+# contract specific packages
+contracts = { git = "https://github.com/paritytech/substrate", branch = "kulupu", package = "pallet-contracts", default-features = false }
+pallet-contracts-primitives = { git = "https://github.com/paritytech/substrate", branch = "kulupu", package = "pallet-contracts-primitives", default-features = false }
+pallet-contracts-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", package = "pallet-contracts-rpc-runtime-api", default-features = false }
 
 # custom pallets
 rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
@@ -106,7 +110,10 @@ std = [
 	"multisig/std",
 	"tips/std",
 	"bounties/std",
+
 	"contracts/std",
+	"pallet-contracts-primitives/std",
+	"pallet-contracts-rpc-runtime-api/std",
 
 	"rewards/std",
 	"eras/std",
