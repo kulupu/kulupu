@@ -20,7 +20,7 @@
 
 use std::sync::Arc;
 
-use kulupu_runtime::{opaque::Block, AccountId, Balance, Index};
+use kulupu_runtime::{opaque::Block, AccountId, Balance, Index, BlockNumber};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderMetadata, HeaderBackend};
 use sp_block_builder::BlockBuilder;
@@ -64,16 +64,12 @@ pub fn create_full<C, P>(
 	io.extend_with(
 		SystemApi::to_delegate(FullSystem::new(client.clone(), pool, deny_unsafe))
 	);
-	// Making synchronous calls in light client freezes the browser currently,
-	// more context: https://github.com/paritytech/substrate/pull/3480
-	// These RPCs should use an asynchronous caller instead.
-	io.extend_with(
-		ContractsApi::to_delegate(Contracts::new(client.clone()))
-	);
 	io.extend_with(
 		TransactionPaymentApi::to_delegate(TransactionPayment::new(client.clone()))
 	);
-
+	io.extend_with(
+		ContractsApi::to_delegate(Contracts::new(client.clone()))
+	);
 	// Extend this RPC with a custom API by using the following syntax.
 	// `YourRpcStruct` should have a reference to a client, which is needed
 	// to call into the runtime.
