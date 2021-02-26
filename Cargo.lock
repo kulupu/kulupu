@@ -2686,6 +2686,7 @@ dependencies = [
  "kulupu-runtime",
  "log",
  "pallet-contracts",
+ "pallet-contracts-rpc",
  "pallet-eras",
  "pallet-rewards",
  "pallet-transaction-payment-rpc",
@@ -3996,6 +3997,37 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "pallet-contracts-rpc"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate?branch=kulupu#debec916998233a287fb9e5a099c08d5e4a23db2"
+dependencies = [
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "pallet-contracts-primitives",
+ "pallet-contracts-rpc-runtime-api",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-rpc",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-contracts-rpc-runtime-api"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate?branch=kulupu#debec916998233a287fb9e5a099c08d5e4a23db2"
+dependencies = [
+ "pallet-contracts-primitives",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
