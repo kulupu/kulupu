@@ -52,6 +52,7 @@ use transaction_payment::{TargetedFeeAdjustment, Multiplier};
 use system::{limits, EnsureRoot};
 use static_assertions::const_assert;
 use crate::fee::WeightToFee;
+use contracts::weights::WeightInfo;
 
 // A few exports that help ease life for downstream crates.
 pub use sp_runtime::{Permill, Perbill};
@@ -810,6 +811,54 @@ impl lockdrop::Config for Runtime {
 	type WeightInfo = crate::weights::lockdrop::WeightInfo<Self>;
 }
 
+parameter_types! {
+	pub const TombstoneDeposit: Balance = deposit(
+		1,
+		sp_std::mem::size_of::<contracts::ContractInfo<Runtime>>() as u32
+	);
+	pub const DepositPerContract: Balance = TombstoneDeposit::get();
+	pub const DepositPerStorageByte: Balance = deposit(0, 1);
+	pub const DepositPerStorageItem: Balance = deposit(1, 0);
+	pub RentFraction: Perbill = Perbill::from_rational_approximation(1u32, 30 * DAYS);
+	pub const SurchargeReward: Balance = 150 * MILLICENTS;
+	pub const SignedClaimHandicap: u32 = 2;
+	pub const MaxDepth: u32 = 32;
+	pub const MaxValueSize: u32 = 16 * 1024;
+	// The lazy deletion runs inside on_initialize.
+	pub DeletionWeightLimit: Weight = AVERAGE_ON_INITIALIZE_RATIO *
+		BlockWeights::get().max_block;
+	// The weight needed for decoding the queue should be less or equal than a fifth
+	// of the overall weight dedicated to the lazy deletion.
+	pub DeletionQueueDepth: u32 = ((DeletionWeightLimit::get() / (
+			<Runtime as contracts::Config>::WeightInfo::on_initialize_per_queue_item(1) -
+			<Runtime as contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
+		)) / 5) as u32;
+	pub MaxCodeSize: u32 = 128 * 1024;
+}
+
+impl contracts::Config for Runtime {
+	type Time = Timestamp;
+	type Randomness = RandomnessCollectiveFlip;
+	type Currency = Balances;
+	type Event = Event;
+	type RentPayment = ();
+	type SignedClaimHandicap = SignedClaimHandicap;
+	type TombstoneDeposit = TombstoneDeposit;
+	type DepositPerContract = DepositPerContract;
+	type DepositPerStorageByte = DepositPerStorageByte;
+	type DepositPerStorageItem = DepositPerStorageItem;
+	type RentFraction = RentFraction;
+	type SurchargeReward = SurchargeReward;
+	type MaxDepth = MaxDepth;
+	type MaxValueSize = MaxValueSize;
+	type WeightPrice = transaction_payment::Module<Self>;
+	type WeightInfo = contracts::weights::SubstrateWeight<Self>;
+	type ChainExtension = ();
+	type DeletionQueueDepth = DeletionQueueDepth;
+	type DeletionWeightLimit = DeletionWeightLimit;
+	type MaxCodeSize = MaxCodeSize;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -839,10 +888,7 @@ construct_runtime!(
 		Bounties: bounties::{Module, Call, Storage, Event<T>} = 22,
 		Tips: tips::{Module, Call, Storage, Event<T>} = 23,
 
-		// Identity.
 		Identity: identity::{Module, Call, Storage, Event<T>} = 11,
-
-		// Utility module.
 		Utility: utility::{Module, Call, Event} = 12,
 		Scheduler: scheduler::{Module, Call, Storage, Event<T>} = 13,
 		Multisig: multisig::{Module, Call, Storage, Event<T>} = 14,
@@ -850,6 +896,7 @@ construct_runtime!(
 		Vesting: vesting::{Module, Call, Storage, Event<T>, Config<T>} = 16,
 		Variables: variables::{Module, Call, Storage, Event} = 21,
 		Lockdrop: lockdrop::{Module, Call, Storage, Event<T>} = 24,
+		Contracts: contracts::{Module, Call, Config<T>, Storage, Event<T>},
 	}
 );
 
