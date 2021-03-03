@@ -41,6 +41,25 @@ impl Default for Config {
 	}
 }
 
+#[derive(Debug)]
+pub enum Error {
+	CacheAllocationFailed,
+}
+
+impl Error {
+	pub fn description(&self) -> &'static str {
+		match self {
+			Error::CacheAllocationFailed => "Randomx cache allocation failed. Check your available ram.",
+		}
+	}
+}
+
+impl From<Error> for String {
+	fn from(e: Error) -> Self {
+		e.description().to_string()
+	}
+}
+
 pub enum CacheMode {
 	Full,
 	Light,
@@ -48,6 +67,7 @@ pub enum CacheMode {
 
 pub unsafe trait WithCacheMode {
 	fn has_dataset() -> bool;
+	fn has_large_pages(config: &Config) -> bool;
 	fn randomx_flags(config: &Config) -> sys::randomx_flags;
 	fn description() -> &'static str;
 }
@@ -55,6 +75,7 @@ pub unsafe trait WithCacheMode {
 pub enum WithFullCacheMode { }
 unsafe impl WithCacheMode for WithFullCacheMode {
 	fn has_dataset() -> bool { true }
+	fn has_large_pages(config: &Config) -> bool { config.large_pages }
 	fn randomx_flags(config: &Config) -> sys::randomx_flags {
 		unsafe {
 			let mut flags = sys::randomx_get_flags() | sys::randomx_flags_RANDOMX_FLAG_FULL_MEM;
@@ -74,6 +95,7 @@ unsafe impl WithCacheMode for WithFullCacheMode {
 pub enum WithLightCacheMode { }
 unsafe impl WithCacheMode for WithLightCacheMode {
 	fn has_dataset() -> bool { false }
+	fn has_large_pages(_config: &Config) -> bool { false }
 	fn randomx_flags(config: &Config) -> sys::randomx_flags {
 		unsafe {
 			let mut flags = sys::randomx_get_flags();
@@ -99,32 +121,57 @@ unsafe impl<M: WithCacheMode> Send for Cache<M> { }
 unsafe impl<M: WithCacheMode> Sync for Cache<M> { }
 
 impl<M: WithCacheMode> Cache<M> {
-	pub fn new(key: &[u8], config: &Config) -> Self {
+	pub fn new(key: &[u8], config: &Config) -> Result<Self, Error> {
 		let flags = M::randomx_flags(config);
 
-		let cache_ptr = unsafe {
-			let ptr = sys::randomx_alloc_cache(flags);
+		let (cache_ptr, dataset_ptr) = unsafe {
+			if M::has_dataset() {
+				let cache_ptr = sys::randomx_alloc_cache(flags);
+				let dataset_ptr = sys::randomx_alloc_dataset(flags);
+
+				if cache_ptr.is_null() && dataset_ptr.is_null() {
+					return Err(Error::CacheAllocationFailed)
+				} else if cache_ptr.is_null() {
+					sys::randomx_release_dataset(dataset_ptr);
+					return Err(Error::CacheAllocationFailed)
+				} else if dataset_ptr.is_null() {
+					sys::randomx_release_cache(cache_ptr);
+					return Err(Error::CacheAllocationFailed)
+				}
+
+				(cache_ptr, Some(dataset_ptr))
+			} else {
+				let cache_ptr = sys::randomx_alloc_cache(flags);
+
+				if cache_ptr.is_null() {
+					return Err(Error::CacheAllocationFailed)
+				}
+
+				(cache_ptr, None)
+			}
+		};
+
+		let mut ret = Self { cache_ptr, dataset_ptr, _marker: PhantomData };
+		ret.reinit(&key[..]);
+
+		Ok(ret)
+	}
+
+	pub fn reinit(&mut self, key: &[u8]) -> () {
+		let (cache_ptr, dataset_ptr) = (self.cache_ptr, self.dataset_ptr);
+
+		unsafe {
 			sys::randomx_init_cache(
-				ptr,
+				cache_ptr,
 				key.as_ptr() as *const std::ffi::c_void,
 				key.len() as u64
 			);
 
-			ptr
-		};
-
-		let dataset_ptr = if M::has_dataset() {
-			Some(unsafe {
-				let ptr = sys::randomx_alloc_dataset(flags);
+			if let Some(dataset_ptr) = dataset_ptr {
 				let count = sys::randomx_dataset_item_count();
-				sys::randomx_init_dataset(ptr, cache_ptr, 0, count);
-				ptr
-			})
-		} else {
-			None
-		};
-
-		Self { cache_ptr, dataset_ptr, _marker: PhantomData }
+				sys::randomx_init_dataset(dataset_ptr, cache_ptr, 0, count);
+			};
+		}
 	}
 }
 
@@ -242,21 +289,42 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn should_create_light_vm() {
-		let cache = Arc::new(LightCache::new(&b"RandomX example key"[..], &Default::default()));
+	fn should_create_light_vm() -> Result<(), String>{
+		let cache = Arc::new(LightCache::new(&b"RandomX example key"[..], &Default::default())?);
 		let mut vm = LightVM::new(cache, &Default::default());
 		let hash = vm.calculate(&b"RandomX example input"[..]);
 		assert_eq!(hash, [69, 167, 169, 170, 66, 104, 77, 15, 73, 13, 233, 6, 227, 92, 143, 244, 95, 153, 4, 251, 223, 169, 78, 126, 236, 216, 174, 147, 1, 213, 223, 59]);
+
+		Ok(())
 	}
 
 	#[test]
-	fn should_work_with_full_vm() {
-		let light_cache = Arc::new(LightCache::new(&b"RandomX example key"[..], &Default::default()));
+	fn should_work_with_full_vm() -> Result<(), String> {
+		let light_cache = Arc::new(LightCache::new(&b"RandomX example key"[..], &Default::default())?);
 		let mut light_vm = LightVM::new(light_cache, &Default::default());
 		let hash = light_vm.calculate(&b"RandomX example input"[..]);
-		let full_cache = Arc::new(FullCache::new(&b"RandomX example key"[..], &Default::default()));
+		let full_cache = Arc::new(FullCache::new(&b"RandomX example key"[..], &Default::default())?);
 		let mut full_vm = FullVM::new(full_cache, &Default::default());
 		let full_hash = full_vm.calculate(&b"RandomX example input"[..]);
 		assert_eq!(hash, full_hash);
+
+		Ok(())
+	}
+
+	#[test]
+	fn reinit_should_work() -> Result<(), String>{
+		let mut cache = LightCache::new(&b"RandomX example key"[..], &Default::default())?;
+		cache.reinit(&b"RandomX example key 2"[..]);
+		let mut vm = LightVM::new(Arc::new(cache), &Default::default());
+		let hash = vm.calculate(&b"RandomX example input"[..]);
+		assert_eq!(hash, [208, 248, 45, 177, 219, 199, 20, 92, 252, 84, 146, 189, 60, 215, 194, 136, 241, 83, 230, 39, 98, 102, 158, 107, 182, 237, 168, 201, 144, 17, 53, 68]);
+
+		let mut cache = FullCache::new(&b"RandomX example key"[..], &Default::default())?;
+		cache.reinit(&b"RandomX example key 2"[..]);
+		let mut vm = FullVM::new(Arc::new(cache), &Default::default());
+		let hash = vm.calculate(&b"RandomX example input"[..]);
+		assert_eq!(hash, [208, 248, 45, 177, 219, 199, 20, 92, 252, 84, 146, 189, 60, 215, 194, 136, 241, 83, 230, 39, 98, 102, 158, 107, 182, 237, 168, 201, 144, 17, 53, 68]);
+
+		Ok(())
 	}
 }

@@ -117,6 +117,14 @@ impl<C> Clone for RandomXAlgorithm<C> {
 	}
 }
 
+impl<B> From<compute::Error> for sc_consensus_pow::Error<B> where
+	B: sp_runtime::traits::Block
+{
+	fn from(e: compute::Error) -> Self {
+		sc_consensus_pow::Error::<B>::Other(e.description().to_string())
+	}
+}
+
 impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi<B>,
 	C::Api: DifficultyApi<B, Difficulty> + AlgorithmApi<B>,
@@ -179,7 +187,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 
 				// No pre-digest check is needed for V1 algorithm.
 
-				let (computed_seal, computed_work) = compute.seal_and_work(ComputeMode::Sync);
+				let (computed_seal, computed_work) = compute.seal_and_work(ComputeMode::Sync)?;
 
 				if computed_seal != seal {
 					return Ok(false)
@@ -221,7 +229,7 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				let (computed_seal, computed_work) = compute.seal_and_work(
 					seal.signature.clone(),
 					ComputeMode::Sync,
-				);
+				)?;
 
 				if computed_seal != seal {
 					return Ok(false)
@@ -234,6 +242,30 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				Ok(true)
 			},
 		}
+	}
+}
+
+#[derive(Debug)]
+pub enum Error<B> where
+	B: sp_runtime::traits::Block,
+{
+	Consensus(sc_consensus_pow::Error<B>),
+	Compute(compute::Error),
+}
+
+impl<B> From<sc_consensus_pow::Error<B>> for Error<B> where
+	B: sp_runtime::traits::Block,
+{
+	fn from(e: sc_consensus_pow::Error<B>) -> Self {
+		Error::Consensus(e)
+	}
+}
+
+impl<B> From<compute::Error> for Error<B> where
+	B: sp_runtime::traits::Block,
+{
+	fn from(e: compute::Error) -> Self {
+		Error::Compute(e)
 	}
 }
 
@@ -262,7 +294,7 @@ pub fn mine<B, C>(
 	difficulty: Difficulty,
 	round: u32,
 	stats: &Arc<Mutex<Stats>>,
-) -> Result<Option<RawSeal>, sc_consensus_pow::Error<B>> where
+) -> Result<Option<RawSeal>, Error<B>> where
 	B: BlockT<Hash=H256>,
 	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi<B>,
 	C::Api: DifficultyApi<B, Difficulty> + AlgorithmApi<B>,
@@ -273,12 +305,12 @@ pub fn mine<B, C>(
 		)?;
 
 	let version = match version_raw {
-		kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => RandomXAlgorithmVersion::V1,
-		kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => RandomXAlgorithmVersion::V2,
-		_ => return Err(sc_consensus_pow::Error::<B>::Other(
+		kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => Ok(RandomXAlgorithmVersion::V1),
+		kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => Ok(RandomXAlgorithmVersion::V2),
+		_ => Err(sc_consensus_pow::Error::<B>::Other(
 			"Unknown algorithm identifier".to_string()
 		)),
-	};
+	}?;
 
 	let mut rng = SmallRng::from_rng(&mut thread_rng())
 		.map_err(|e| sc_consensus_pow::Error::Environment(
@@ -425,5 +457,5 @@ pub fn mine<B, C>(
 		}
 	}
 
-	Ok(maybe_seal)
+	Ok(maybe_seal?)
 }
