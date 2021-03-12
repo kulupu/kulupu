@@ -68,7 +68,7 @@ frame-system-benchmarking = { git = "https://github.com/paritytech/substrate", b
 hex-literal = { version = "0.2.1", optional = true }
 
 [build-dependencies]
-wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "2.0.0" }
+wasm-builder = { package = "substrate-wasm-builder", version = "4.0.0" }
 
 [features]
 default = ["std"]
