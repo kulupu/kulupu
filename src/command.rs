@@ -84,7 +84,7 @@ pub fn run() -> sc_cli::Result<()> {
 
 	let mut randomx_config = kulupu_pow::compute::Config::new();
 	if cli.randomx_flags.contains(&RandomxFlag::LargePages) {
-		warn!("Largepages flag is experimental and known to cause node instability. It is currently not recommended to run with this flag in a production environment.")
+		warn!("Largepages flag is experimental and known to cause node instability. It is currently not recommended to run with this flag in a production environment.");
 		randomx_config.large_pages = true;
 	}
 	if cli.randomx_flags.contains(&RandomxFlag::Secure) {
