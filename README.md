@@ -40,6 +40,7 @@ Install Rust and required tools:
 
 ```bash
 curl https://sh.rustup.rs -sSf | sh
+source $HOME/.cargo/env
 ./scripts/init.sh
 ```
 
