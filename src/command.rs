@@ -17,7 +17,7 @@
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
 use std::{path::PathBuf, fs::File, io::Write};
-use log::info;
+use log::{info, warn};
 use sp_core::{hexdisplay::HexDisplay, crypto::{Pair, Ss58Codec, Ss58AddressFormat}};
 use sp_keystore::SyncCryptoStore;
 use sc_cli::{SubstrateCli, ChainSpec, Role, RuntimeVersion};
@@ -84,6 +84,7 @@ pub fn run() -> sc_cli::Result<()> {
 
 	let mut randomx_config = kulupu_pow::compute::Config::new();
 	if cli.randomx_flags.contains(&RandomxFlag::LargePages) {
+		warn!("Largepages flag is experimental and known to cause node instability. It is currently not recommended to run with this flag in a production environment.");
 		randomx_config.large_pages = true;
 	}
 	if cli.randomx_flags.contains(&RandomxFlag::Secure) {
