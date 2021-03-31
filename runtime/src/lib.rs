@@ -859,6 +859,16 @@ impl contracts::Config for Runtime {
 	type MaxCodeSize = MaxCodeSize;
 }
 
+parameter_types! {
+	pub ProofLimit: u32 = 1024;
+}
+
+impl atomic_swap::Config for Runtime {
+	type Event = Event;
+	type SwapAction = atomic_swap::BalanceSwapAction<Self::AccountId, Balances>;
+	type ProofLimit = ProofLimit;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -896,7 +906,8 @@ construct_runtime!(
 		Vesting: vesting::{Module, Call, Storage, Event<T>, Config<T>} = 16,
 		Variables: variables::{Module, Call, Storage, Event} = 21,
 		Lockdrop: lockdrop::{Module, Call, Storage, Event<T>} = 24,
-		Contracts: contracts::{Module, Call, Config<T>, Storage, Event<T>},
+		Contracts: contracts::{Module, Call, Config<T>, Storage, Event<T>} = 25,
+		AtomicSwap: atomic_swap::{Module, Call, Storage, Event<T>} = 26,
 	}
 );
 
