@@ -124,6 +124,22 @@ pub fn kulupu_inherent_data_providers(
 	Ok(inherent_data_providers)
 }
 
+type PowBlockImport = sc_consensus_pow::PowBlockImport<
+	Block,
+	kulupu_pow::weak_sub::WeakSubjectiveBlockImport<
+		Block,
+		Arc<FullClient>,
+		FullClient,
+		FullSelectChain,
+		kulupu_pow::RandomXAlgorithm<FullClient>,
+		kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm
+	>,
+	FullClient,
+	FullSelectChain,
+	kulupu_pow::RandomXAlgorithm<FullClient>,
+	sp_consensus::AlwaysCanAuthor,
+>;
+
 pub fn new_partial(
 	config: &Configuration,
 	check_inherents_after: u32,
@@ -134,7 +150,7 @@ pub fn new_partial(
 	sp_consensus::DefaultImportQueue<Block, FullClient>,
 	sc_transaction_pool::FullPool<Block, FullClient>,
 	(
-		sc_consensus_pow::PowBlockImport<Block, kulupu_pow::weak_sub::WeakSubjectiveBlockImport<Block, Arc<FullClient>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, sp_consensus::AlwaysCanAuthor>,
+		PowBlockImport,
 		Option<Telemetry>,
 	),
 >, ServiceError> {
