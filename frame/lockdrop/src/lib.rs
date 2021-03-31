@@ -183,7 +183,6 @@ decl_module! {
 				if current_number > info.end_block && info.child_root.is_some() {
 					match Self::child_kill(&identifier) {
 						child::KillChildStorageResult::AllRemoved(_) => {
-							Campaigns::<T>::remove(identifier);
 							Self::deposit_event(Event::<T>::CampaignRemoved(identifier));
 						},
 						child::KillChildStorageResult::SomeRemaining(_) => {
