@@ -120,7 +120,7 @@ fn create_campaign_lock_works() {
 		assert_noop!(Lockdrop::lock(Origin::signed(2), 5000, TEST_CAMPAIGN, 40, None), Error::<Test>::NotEnoughBalance);
 		assert_noop!(Lockdrop::lock(Origin::signed(2), 2000, TEST_CAMPAIGN, 25, None), Error::<Test>::InvalidLockEndBlock);
 		assert_storage_noop!(Lockdrop::conclude_campaign(Origin::signed(3), TEST_CAMPAIGN).unwrap());
-		assert_storage_noop!(Lockdrop::remove_expired_campaign(Origin::signed(3), TEST_CAMPAIGN).unwrap());
+		assert_storage_noop!(Lockdrop::remove_expired_child_storage(Origin::signed(3), TEST_CAMPAIGN).unwrap());
 
 		run_to_block(15);
 		assert_storage_noop!(Lockdrop::unlock(Origin::signed(1), TEST_CAMPAIGN).unwrap());
@@ -133,7 +133,7 @@ fn create_campaign_lock_works() {
 		assert_eq!(Balances::usable_balance(2), 2000);
 
 		assert_ok!(Lockdrop::conclude_campaign(Origin::signed(3), TEST_CAMPAIGN));
-		assert_ok!(Lockdrop::remove_expired_campaign(Origin::signed(3), TEST_CAMPAIGN));
+		assert_ok!(Lockdrop::remove_expired_child_storage(Origin::signed(3), TEST_CAMPAIGN));
 
 		run_to_block(23);
 		assert_storage_noop!(Lockdrop::unlock(Origin::signed(1), TEST_CAMPAIGN).unwrap());

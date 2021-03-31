@@ -33,7 +33,7 @@ impl crate::WeightInfo for () {
 			.saturating_add(DbWeight::get().reads(2 as Weight))
 			.saturating_add(DbWeight::get().writes(1 as Weight))
 	}
-	fn remove_expired_campaign() -> Weight {
+	fn remove_expired_child_storage() -> Weight {
 		(9_500_000 as Weight)
 			.saturating_add(DbWeight::get().reads(1 as Weight))
 	}

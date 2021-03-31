@@ -61,7 +61,7 @@ impl<T: frame_system::Config> lockdrop::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn remove_expired_campaign() -> Weight {
+	fn remove_expired_child_storage() -> Weight {
 		(9_500_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 	}
