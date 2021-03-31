@@ -158,27 +158,28 @@ impl<B, I, C, S, Pow, Reorg> WeakSubjectiveBlockImport<B, I, C, S, Pow, Reorg> w
 	}
 }
 
+#[async_trait::async_trait]
 impl<B, I, C, S, Pow, Reorg> BlockImport<B> for WeakSubjectiveBlockImport<B, I, C, S, Pow, Reorg> where
 	B: BlockT,
 	I: BlockImport<B, Transaction = sp_api::TransactionFor<C, B>> + Send + Sync,
 	I::Error: Into<ConsensusError>,
-	C: ProvideRuntimeApi<B> + HeaderMetadata<B> + BlockOf + AuxStore + Send + Sync,
+	C: ProvideRuntimeApi<B> + HeaderMetadata<B> + BlockOf + AuxStore + Send + Sync + 'static,
 	C::Error: Debug,
 	S: SelectChain<B>,
-	Pow: PowAlgorithm<B, Difficulty=U256>,
-	Reorg: WeakSubjectiveAlgorithm,
+	Pow: PowAlgorithm<B, Difficulty=U256> + Send,
+	Reorg: WeakSubjectiveAlgorithm + Send,
 {
 	type Error = ConsensusError;
 	type Transaction = sp_api::TransactionFor<C, B>;
 
-	fn check_block(
+	async fn check_block(
 		&mut self,
 		block: BlockCheckParams<B>,
 	) -> Result<ImportResult, Self::Error> {
-		self.inner.check_block(block).map_err(Into::into)
+		self.inner.check_block(block).await.map_err(Into::into)
 	}
 
-	fn import_block(
+	async fn import_block(
 		&mut self,
 		mut block: BlockImportParams<B, Self::Transaction>,
 		new_cache: HashMap<CacheKeyId, Vec<u8>>,
@@ -237,7 +238,7 @@ impl<B, I, C, S, Pow, Reorg> BlockImport<B> for WeakSubjectiveBlockImport<B, I, 
 			}
 		}
 
-		self.inner.import_block(block, new_cache).map_err(Into::into)
+		self.inner.import_block(block, new_cache).await.map_err(Into::into)
 	}
 }
 

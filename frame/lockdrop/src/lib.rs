@@ -147,7 +147,7 @@ decl_module! {
 
 			ensure!(!Campaigns::<T>::contains_key(&identifier), Error::<T>::CampaignAlreadyExists);
 
-			let current_number = frame_system::Module::<T>::block_number();
+			let current_number = frame_system::Pallet::<T>::block_number();
 			ensure!(end_block > current_number, Error::<T>::CampaignEndInThePast);
 			ensure!(min_lock_end_block > end_block, Error::<T>::CampaignLockEndBeforeCampaignEnd);
 
@@ -162,7 +162,7 @@ decl_module! {
 			Campaigns::<T>::mutate(&identifier, |info| {
 				if let Some(ref mut info) = info {
 					if info.child_root.is_none() {
-						let current_number = frame_system::Module::<T>::block_number();
+						let current_number = frame_system::Pallet::<T>::block_number();
 						if current_number > info.end_block {
 							let child_root = Self::child_root(&identifier);
 							info.child_root = Some(child_root.clone());
@@ -179,7 +179,7 @@ decl_module! {
 
 			let info = Campaigns::<T>::get(&identifier);
 			if let Some(info) = info {
-				let current_number = frame_system::Module::<T>::block_number();
+				let current_number = frame_system::Pallet::<T>::block_number();
 				if current_number > info.end_block && info.child_root.is_some() {
 					match Self::child_kill(&identifier) {
 						child::KillChildStorageResult::AllRemoved(_) => {
@@ -204,7 +204,7 @@ decl_module! {
 			}
 			let campaign_info = Campaigns::<T>::get(&identifier).ok_or(Error::<T>::CampaignNotExists)?;
 
-			let current_number = frame_system::Module::<T>::block_number();
+			let current_number = frame_system::Pallet::<T>::block_number();
 			ensure!(current_number <= campaign_info.end_block, Error::<T>::CampaignAlreadyExpired);
 			ensure!(lock_end_block > campaign_info.min_lock_end_block, Error::<T>::InvalidLockEndBlock);
 
@@ -236,7 +236,7 @@ decl_module! {
 
 			let info = Locks::<T>::get(&identifier, &account_id);
 			if let Some(info) = info {
-				let current_number = frame_system::Module::<T>::block_number();
+				let current_number = frame_system::Pallet::<T>::block_number();
 				if current_number > info.end_block {
 					Locks::<T>::remove(identifier, account_id.clone());
 

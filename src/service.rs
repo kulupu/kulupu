@@ -31,9 +31,9 @@ use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use sc_service::{error::{Error as ServiceError}, Configuration, TaskManager};
 use sc_executor::native_executor_instance;
 use sc_client_api::backend::RemoteBackend;
+use sc_telemetry::{Telemetry, TelemetryWorker};
 use kulupu_runtime::{self, opaque::Block, RuntimeApi};
 use log::*;
-use sc_telemetry::TelemetrySpan;
 
 pub use sc_executor::NativeExecutor;
 
@@ -124,6 +124,22 @@ pub fn kulupu_inherent_data_providers(
 	Ok(inherent_data_providers)
 }
 
+type PowBlockImport = sc_consensus_pow::PowBlockImport<
+	Block,
+	kulupu_pow::weak_sub::WeakSubjectiveBlockImport<
+		Block,
+		Arc<FullClient>,
+		FullClient,
+		FullSelectChain,
+		kulupu_pow::RandomXAlgorithm<FullClient>,
+		kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm
+	>,
+	FullClient,
+	FullSelectChain,
+	kulupu_pow::RandomXAlgorithm<FullClient>,
+	sp_consensus::AlwaysCanAuthor,
+>;
+
 pub fn new_partial(
 	config: &Configuration,
 	check_inherents_after: u32,
@@ -133,15 +149,36 @@ pub fn new_partial(
 	FullClient, FullBackend, FullSelectChain,
 	sp_consensus::DefaultImportQueue<Block, FullClient>,
 	sc_transaction_pool::FullPool<Block, FullClient>,
-	sc_consensus_pow::PowBlockImport<Block, kulupu_pow::weak_sub::WeakSubjectiveBlockImport<Block, Arc<FullClient>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm>, FullClient, FullSelectChain, kulupu_pow::RandomXAlgorithm<FullClient>, sp_consensus::AlwaysCanAuthor>,
+	(
+		PowBlockImport,
+		Option<Telemetry>,
+	),
 >, ServiceError> {
 	let inherent_data_providers = crate::service::kulupu_inherent_data_providers(
 		donate,
 	)?;
 
+	let telemetry = config.telemetry_endpoints.clone()
+		.filter(|x| !x.is_empty())
+		.map(|endpoints| -> Result<_, sc_telemetry::Error> {
+			let worker = TelemetryWorker::new(16)?;
+			let telemetry = worker.handle().new_telemetry(endpoints);
+			Ok((worker, telemetry))
+		})
+		.transpose()?;
+
 	let (client, backend, keystore_container, task_manager) =
-		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(&config)?;
+		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
+			&config,
+			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+		)?;
 	let client = Arc::new(client);
+
+	let telemetry = telemetry
+		.map(|(worker, telemetry)| {
+			task_manager.spawn_handle().spawn("telemetry", worker.run());
+			telemetry
+		});
 
 	let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
@@ -186,7 +223,7 @@ pub fn new_partial(
 	Ok(sc_service::PartialComponents {
 		client, backend, task_manager, import_queue, keystore_container,
 		select_chain, transaction_pool, inherent_data_providers,
-		other: pow_block_import,
+		other: (pow_block_import, telemetry),
 	})
 }
 
@@ -203,7 +240,7 @@ pub fn new_full(
 	let sc_service::PartialComponents {
 		client, backend, mut task_manager, import_queue, keystore_container,
 		select_chain, transaction_pool, inherent_data_providers,
-		other: pow_block_import,
+		other: (pow_block_import, mut telemetry),
 	} = new_partial(&config, check_inherents_after, donate, enable_weak_subjectivity)?;
 
 	let (network, network_status_sinks, system_rpc_tx, network_starter) =
@@ -219,7 +256,7 @@ pub fn new_full(
 
 	if config.offchain_worker.enabled {
 		sc_service::build_offchain_workers(
-			&config, backend.clone(), task_manager.spawn_handle(), client.clone(), network.clone(),
+			&config, task_manager.spawn_handle(), client.clone(), network.clone(),
 		);
 	}
 
@@ -241,12 +278,9 @@ pub fn new_full(
 		})
 	};
 
-	let telemetry_span = TelemetrySpan::new();
-	let _telemetry_span_entered = telemetry_span.enter();
-
 	let keystore_path = config.keystore.path().map(|p| p.to_owned());
 
-	let (_rpc_handlers, _telemetry_connection_notifier) = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
+	let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
 		network: network.clone(),
 		client: client.clone(),
 		keystore: keystore_container.sync_keystore(),
@@ -256,7 +290,7 @@ pub fn new_full(
 		on_demand: None,
 		remote_blockchain: None,
 		backend, network_status_sinks, system_rpc_tx, config,
-		telemetry_span: Some(telemetry_span.clone()),
+		telemetry: telemetry.as_mut(),
 	})?;
 
 	if role.is_authority() {
@@ -270,6 +304,7 @@ pub fn new_full(
 			client.clone(),
 			transaction_pool.clone(),
 			prometheus_registry.as_ref(),
+			telemetry.as_ref().map(|x| x.handle()),
 		);
 
 		let (worker, worker_task) = sc_consensus_pow::start_mining_worker(
@@ -343,8 +378,28 @@ pub fn new_light(
 	donate: bool,
 	enable_weak_subjectivity: bool,
 ) -> Result<TaskManager, ServiceError> {
+	let telemetry = config.telemetry_endpoints.clone()
+		.filter(|x| !x.is_empty())
+		.map(|endpoints| -> Result<_, sc_telemetry::Error> {
+			let transport = None;
+
+			let worker = TelemetryWorker::with_transport(16, transport)?;
+			let telemetry = worker.handle().new_telemetry(endpoints);
+			Ok((worker, telemetry))
+		})
+		.transpose()?;
+
 	let (client, backend, keystore_container, mut task_manager, on_demand) =
-		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(&config)?;
+		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(
+			&config,
+			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+		)?;
+
+	let mut telemetry = telemetry
+		.map(|(worker, telemetry)| {
+			task_manager.spawn_handle().spawn("telemetry", worker.run());
+			telemetry
+		});
 
 	let transaction_pool = Arc::new(sc_transaction_pool::BasicPool::new_light(
 		config.transaction_pool.clone(),
@@ -401,12 +456,9 @@ pub fn new_light(
 
 	if config.offchain_worker.enabled {
 		sc_service::build_offchain_workers(
-			&config, backend.clone(), task_manager.spawn_handle(), client.clone(), network.clone(),
+			&config, task_manager.spawn_handle(), client.clone(), network.clone(),
 		);
 	}
-
-	let telemetry_span = TelemetrySpan::new();
-	let _telemetry_span_entered = telemetry_span.enter();
 
 	sc_service::spawn_tasks(sc_service::SpawnTasksParams {
 		remote_blockchain: Some(backend.remote_blockchain()),
@@ -421,7 +473,7 @@ pub fn new_light(
 		network,
 		network_status_sinks,
 		system_rpc_tx,
-		telemetry_span: Some(telemetry_span.clone()),
+		telemetry: telemetry.as_mut(),
 	 })?;
 
 	 network_starter.start_network();

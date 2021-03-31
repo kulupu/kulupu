@@ -14,6 +14,7 @@ lazy_static = "1.4"
 parking_lot = "0.10.0"
 humantime = "2.0.1"
 once_cell = "1.5"
+async-trait = "0.1.42"
 sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
 sp-consensus = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
 sp-consensus-pow = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }

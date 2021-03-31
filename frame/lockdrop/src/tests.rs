@@ -21,9 +21,9 @@ frame_support::construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		Lockdrop: pallet_lockdrop::{Module, Call, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Lockdrop: pallet_lockdrop::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -87,10 +87,10 @@ impl pallet_lockdrop::Config for Test {
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let t = GenesisConfig {
-		frame_system: Some(Default::default()),
-		pallet_balances: Some(pallet_balances::GenesisConfig {
+		frame_system: Default::default(),
+		pallet_balances: pallet_balances::GenesisConfig {
 			balances: vec![(1, 1000), (2, 2000)],
-		}),
+		},
 	}.build_storage().unwrap();
 	t.into()
 }

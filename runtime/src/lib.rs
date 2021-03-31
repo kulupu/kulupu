@@ -503,7 +503,7 @@ where
 	R::Balance: Into<u128>,
 {
 	fn factor() -> u128 {
-		let issuance: u128 = <balances::Module<R>>::total_issuance().into();
+		let issuance: u128 = <balances::Pallet<R>>::total_issuance().into();
 		(issuance / u64::max_value() as u128).max(1)
 	}
 }
@@ -812,14 +812,14 @@ impl lockdrop::Config for Runtime {
 }
 
 parameter_types! {
-	pub const TombstoneDeposit: Balance = deposit(
+	pub TombstoneDeposit: Balance = deposit(
 		1,
-		sp_std::mem::size_of::<contracts::ContractInfo<Runtime>>() as u32
+		<contracts::Pallet<Runtime>>::contract_info_size(),
 	);
-	pub const DepositPerContract: Balance = TombstoneDeposit::get();
+	pub DepositPerContract: Balance = TombstoneDeposit::get();
 	pub const DepositPerStorageByte: Balance = deposit(0, 1);
 	pub const DepositPerStorageItem: Balance = deposit(1, 0);
-	pub RentFraction: Perbill = Perbill::from_rational_approximation(1u32, 30 * DAYS);
+	pub RentFraction: Perbill = Perbill::from_rational(1u32, 30 * DAYS);
 	pub const SurchargeReward: Balance = 150 * MILLICENTS;
 	pub const SignedClaimHandicap: u32 = 2;
 	pub const MaxDepth: u32 = 32;
@@ -876,38 +876,38 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		// Basic stuff.
-		System: system::{Module, Call, Storage, Config, Event<T>} = 0,
-		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage} = 17,
-		Timestamp: timestamp::{Module, Call, Storage, Inherent} = 1,
-		Indices: indices::{Module, Call, Storage, Config<T>, Event<T>} = 2,
-		Balances: balances::{Module, Call, Storage, Config<T>, Event<T>} = 3,
-		TransactionPayment: transaction_payment::{Module, Storage} = 18,
+		System: system::{Pallet, Call, Storage, Config, Event<T>} = 0,
+		RandomnessCollectiveFlip: randomness_collective_flip::{Pallet, Call, Storage} = 17,
+		Timestamp: timestamp::{Pallet, Call, Storage, Inherent} = 1,
+		Indices: indices::{Pallet, Call, Storage, Config<T>, Event<T>} = 2,
+		Balances: balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 3,
+		TransactionPayment: transaction_payment::{Pallet, Storage} = 18,
 
 		// PoW consensus and era support.
-		Difficulty: difficulty::{Module, Call, Storage, Config} = 19,
-		Eras: eras::{Module, Call, Storage, Config<T>} = 20,
-		Rewards: rewards::{Module, Call, Storage, Event<T>, Config<T>} = 4,
+		Difficulty: difficulty::{Pallet, Call, Storage, Config} = 19,
+		Eras: eras::{Pallet, Call, Storage, Config<T>} = 20,
+		Rewards: rewards::{Pallet, Call, Storage, Event<T>, Config<T>} = 4,
 
 		// Governance.
-		Democracy: democracy::{Module, Call, Storage, Config, Event<T>} = 5,
-		Council: collective::<Instance1>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>} = 6,
-		TechnicalCommittee: collective::<Instance2>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>} = 7,
-		ElectionsPhragmen: elections_phragmen::{Module, Call, Storage, Event<T>, Config<T>} = 8,
-		TechnicalMembership: membership::<Instance1>::{Module, Call, Storage, Event<T>, Config<T>} = 9,
-		Treasury: treasury::{Module, Call, Storage, Event<T>, Config} = 10,
-		Bounties: bounties::{Module, Call, Storage, Event<T>} = 22,
-		Tips: tips::{Module, Call, Storage, Event<T>} = 23,
+		Democracy: democracy::{Pallet, Call, Storage, Config, Event<T>} = 5,
+		Council: collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 6,
+		TechnicalCommittee: collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 7,
+		ElectionsPhragmen: elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 8,
+		TechnicalMembership: membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 9,
+		Treasury: treasury::{Pallet, Call, Storage, Event<T>, Config} = 10,
+		Bounties: bounties::{Pallet, Call, Storage, Event<T>} = 22,
+		Tips: tips::{Pallet, Call, Storage, Event<T>} = 23,
 
-		Identity: identity::{Module, Call, Storage, Event<T>} = 11,
-		Utility: utility::{Module, Call, Event} = 12,
-		Scheduler: scheduler::{Module, Call, Storage, Event<T>} = 13,
-		Multisig: multisig::{Module, Call, Storage, Event<T>} = 14,
-		Proxy: proxy::{Module, Call, Storage, Event<T>} = 15,
-		Vesting: vesting::{Module, Call, Storage, Event<T>, Config<T>} = 16,
-		Variables: variables::{Module, Call, Storage, Event} = 21,
-		Lockdrop: lockdrop::{Module, Call, Storage, Event<T>} = 24,
-		Contracts: contracts::{Module, Call, Config<T>, Storage, Event<T>} = 25,
-		AtomicSwap: atomic_swap::{Module, Call, Storage, Event<T>} = 26,
+		Identity: identity::{Pallet, Call, Storage, Event<T>} = 11,
+		Utility: utility::{Pallet, Call, Event} = 12,
+		Scheduler: scheduler::{Pallet, Call, Storage, Event<T>} = 13,
+		Multisig: multisig::{Pallet, Call, Storage, Event<T>} = 14,
+		Proxy: proxy::{Pallet, Call, Storage, Event<T>} = 15,
+		Vesting: vesting::{Pallet, Call, Storage, Event<T>, Config<T>} = 16,
+		Variables: variables::{Pallet, Call, Storage, Event} = 21,
+		Lockdrop: lockdrop::{Pallet, Call, Storage, Event<T>} = 24,
+		Contracts: contracts::{Pallet, Call, Config<T>, Storage, Event<T>} = 25,
+		AtomicSwap: atomic_swap::{Pallet, Call, Storage, Event<T>} = 26,
 	}
 );
 
@@ -943,7 +943,7 @@ pub type Executive = frame_executive::Executive<
 	Block,
 	system::ChainContext<Runtime>,
 	Runtime,
-	AllModules,
+	AllPallets,
 	PhragmenElectionDepositRuntimeUpgrade,
 >;
 
@@ -989,7 +989,7 @@ impl_runtime_apis! {
 		}
 
 		fn random_seed() -> <Block as BlockT>::Hash {
-			RandomnessCollectiveFlip::random_seed()
+			RandomnessCollectiveFlip::random_seed().0
 		}
 	}
 
@@ -1043,7 +1043,7 @@ impl_runtime_apis! {
 
 	impl sp_consensus_pow::TimestampApi<Block, u64> for Runtime {
 		fn timestamp() -> u64 {
-			timestamp::Module::<Runtime>::get()
+			timestamp::Pallet::<Runtime>::get()
 		}
 	}
 
