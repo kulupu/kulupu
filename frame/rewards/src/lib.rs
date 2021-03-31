@@ -32,7 +32,9 @@ mod migrations;
 use codec::{Encode, Decode};
 use sp_std::{iter::FromIterator, ops::Bound::Included, prelude::*, collections::btree_map::BTreeMap};
 use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
-use sp_inherents::{InherentIdentifier, InherentData, IsFatalError};
+use sp_inherents::{InherentIdentifier, IsFatalError};
+#[cfg(feature = "std")]
+use sp_inherents::InherentData;
 use sp_consensus_pow::POW_ENGINE_ID;
 #[cfg(feature = "std")]
 use sp_inherents::ProvideInherentData;
@@ -172,7 +174,7 @@ decl_module! {
 		fn deposit_event() = default;
 
 		fn on_initialize(now: T::BlockNumber) -> Weight {
-			let author = frame_system::Module::<T>::digest()
+			let author = frame_system::Pallet::<T>::digest()
 				.logs
 				.iter()
 				.filter_map(|s| s.as_pre_runtime())
@@ -299,7 +301,7 @@ decl_module! {
 			ensure_signed(origin)?;
 
 			let locks = Self::reward_locks(&target);
-			let current_number = frame_system::Module::<T>::block_number();
+			let current_number = frame_system::Pallet::<T>::block_number();
 			Self::do_update_reward_locks(&target, locks, current_number);
 		}
 	}

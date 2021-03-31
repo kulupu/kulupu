@@ -24,8 +24,7 @@ use codec::{Encode, Decode};
 use sp_std::cmp::{min, max};
 use sp_core::U256;
 use sp_runtime::traits::UniqueSaturatedInto;
-use sp_timestamp::OnTimestampSet;
-use frame_support::{decl_storage, decl_module, traits::Get};
+use frame_support::{decl_storage, decl_module, traits::{Get, OnTimestampSet}};
 use kulupu_primitives::{
 	DIFFICULTY_ADJUST_WINDOW, DIFFICULTY_DAMP_FACTOR, CLAMP_FACTOR,
 	MIN_DIFFICULTY, MAX_DIFFICULTY, Difficulty,

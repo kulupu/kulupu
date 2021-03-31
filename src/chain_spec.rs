@@ -23,8 +23,7 @@ use sc_service::ChainType;
 use kulupu_primitives::DOLLARS;
 use kulupu_runtime::{
 	BalancesConfig, GenesisConfig, IndicesConfig, SystemConfig,
-	DifficultyConfig, ErasConfig, AccountId, RewardsConfig, WASM_BINARY,
-	ContractsConfig, Signature,
+	DifficultyConfig, ErasConfig, AccountId, RewardsConfig, WASM_BINARY, Signature,
 };
 
 type AccountPublic = <Signature as Verify>::Signer;
@@ -104,13 +103,13 @@ pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId where
 	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256, enable_println: bool) -> GenesisConfig {
+fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256, _enable_println: bool) -> GenesisConfig {
 	GenesisConfig {
-		system: Some(SystemConfig {
+		system: SystemConfig {
 			code: wasm_binary.to_vec(),
 			changes_trie_config: Default::default(),
-		}),
-		balances: Some(BalancesConfig {
+		},
+		balances: BalancesConfig {
 			balances: vec![
 				(
 					get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -121,31 +120,26 @@ fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256, enable_println:
 					10_000_000 * DOLLARS
 				),
 			],
-		}),
-		indices: Some(IndicesConfig {
+		},
+		indices: IndicesConfig {
 			indices: vec![],
-		}),
-		difficulty: Some(DifficultyConfig {
+		},
+		difficulty: DifficultyConfig {
 			initial_difficulty,
-		}),
-		collective_Instance1: Some(Default::default()),
-		collective_Instance2: Some(Default::default()),
-		democracy: Some(Default::default()),
-		treasury: Some(Default::default()),
-		elections_phragmen: Some(Default::default()),
-		eras: Some(Default::default()),
-		membership_Instance1: Some(Default::default()),
-		vesting: Some(Default::default()),
-		rewards: Some(RewardsConfig {
+		},
+		collective_Instance1: Default::default(),
+		collective_Instance2: Default::default(),
+		democracy: Default::default(),
+		treasury: Default::default(),
+		elections_phragmen: Default::default(),
+		eras: Default::default(),
+		membership_Instance1: Default::default(),
+		vesting: Default::default(),
+		rewards: RewardsConfig {
 			reward: 60 * DOLLARS,
 			mints: Default::default(),
-		}),
-		contracts: Some(ContractsConfig {
-			current_schedule: contracts::Schedule {
-				enable_println, // this should only be enabled on development chains
-				..Default::default()
-			},
-		}),
+		},
+		contracts: Default::default(),
 	}
 }
 
@@ -155,24 +149,24 @@ pub fn mainnet_genesis() -> GenesisConfig {
 	let era_state = crate::eras::era0_state();
 
 	GenesisConfig {
-		system: Some(SystemConfig {
+		system: SystemConfig {
 			code: include_bytes!("../res/eras/1/3-swamp-bottom/kulupu_runtime.compact.wasm").to_vec(),
 			changes_trie_config: Default::default(),
-		}),
-		balances: Some(BalancesConfig {
+		},
+		balances: BalancesConfig {
 			balances: era_state.balances.into_iter().map(|balance| {
 				(AccountId::unchecked_from(balance.address), balance.balance.as_u128())
 			}).collect(),
-		}),
-		indices: Some(IndicesConfig {
+		},
+		indices: IndicesConfig {
 			indices: era_state.indices.into_iter().map(|index| {
 				(index.index, AccountId::unchecked_from(index.address))
 			}).collect(),
-		}),
-		difficulty: Some(DifficultyConfig {
+		},
+		difficulty: DifficultyConfig {
 			initial_difficulty: era_state.difficulty,
-		}),
-		eras: Some(ErasConfig {
+		},
+		eras: ErasConfig {
 			past_eras: vec![
 				pallet_eras::Era {
 					genesis_block_hash: era_state.previous_era.genesis_block_hash,
@@ -180,25 +174,18 @@ pub fn mainnet_genesis() -> GenesisConfig {
 					final_state_root: era_state.previous_era.final_state_root,
 				}
 			],
-		}),
-		collective_Instance1: Some(Default::default()),
-		collective_Instance2: Some(Default::default()),
-		democracy: Some(Default::default()),
-		treasury: Some(Default::default()),
-		elections_phragmen: Some(Default::default()),
-		membership_Instance1: Some(Default::default()),
-		vesting: None,
-		rewards: Some(RewardsConfig {
+		},
+		collective_Instance1: Default::default(),
+		collective_Instance2: Default::default(),
+		democracy: Default::default(),
+		treasury: Default::default(),
+		elections_phragmen: Default::default(),
+		membership_Instance1: Default::default(),
+		vesting: Default::default(),
+		rewards: RewardsConfig {
 			reward: 60 * DOLLARS,
 			mints: Default::default(),
-		}),
-		contracts: Some(ContractsConfig {
-			current_schedule: contracts::Schedule {
-				// this should not be enabled for production chains
-				// use `--dev`
-				enable_println: false,
-				..Default::default()
-			},
-		}),
+		},
+		contracts: Default::default(),
 	}
 }
