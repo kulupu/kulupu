@@ -2,7 +2,7 @@
 name = "kulupu-randomx-sys"
 description = "FFI bindings for RandomX"
 license = "GPL-3.0-or-later"
-version = "2.6.0"
+version = "2.7.0"
 authors = ["Wei Tang <wei@that.world>"]
 edition = "2018"
 

@@ -2764,7 +2764,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu"
-version = "2.6.1"
+version = "2.7.0"
 dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -2815,7 +2815,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-pow"
-version = "2.6.0"
+version = "2.7.0"
 dependencies = [
  "async-trait",
  "humantime 2.1.0",
@@ -2844,7 +2844,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-primitives"
-version = "2.6.0"
+version = "2.7.0"
 dependencies = [
  "parity-scale-codec",
  "sp-api",
@@ -2853,7 +2853,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-randomx"
-version = "2.6.0"
+version = "2.7.0"
 dependencies = [
  "criterion",
  "kulupu-randomx-sys",
@@ -2861,7 +2861,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-randomx-sys"
-version = "2.6.0"
+version = "2.7.0"
 dependencies = [
  "bindgen",
  "cmake",
@@ -2869,7 +2869,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu-runtime"
-version = "2.6.1"
+version = "2.7.0"
 dependencies = [
  "frame-benchmarking",
  "frame-executive",
@@ -4190,7 +4190,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-difficulty"
-version = "2.6.0"
+version = "2.7.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4221,7 +4221,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-eras"
-version = "2.6.0"
+version = "2.7.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4265,7 +4265,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-lockdrop"
-version = "2.6.0"
+version = "2.7.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -4340,7 +4340,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-rewards"
-version = "2.6.0"
+version = "2.7.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -4483,7 +4483,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-variables"
-version = "2.6.0"
+version = "2.7.0"
 dependencies = [
  "frame-support",
  "frame-system",
