@@ -41,7 +41,7 @@ use frame_system::{ensure_root, ensure_signed};
 pub trait WeightInfo {
 	fn create_campaign() -> Weight;
 	fn conclude_campaign() -> Weight;
-	fn remove_expired_campaign() -> Weight;
+	fn remove_expired_child_storage() -> Weight;
 	fn lock() -> Weight;
 	fn unlock() -> Weight;
 }
@@ -125,8 +125,8 @@ decl_event! {
 	pub enum Event<T> where AccountId = <T as frame_system::Config>::AccountId {
 		CampaignCreated(CampaignIdentifier),
 		CampaignConcluded(CampaignIdentifier, Vec<u8>),
-		CampaignRemoved(CampaignIdentifier),
-		CampaignPartiallyRemoved(CampaignIdentifier),
+		ChildStorageRemoved(CampaignIdentifier),
+		ChildStoragePartiallyRemoved(CampaignIdentifier),
 		Locked(CampaignIdentifier, AccountId),
 		Unlocked(CampaignIdentifier, AccountId),
 	}
@@ -173,8 +173,8 @@ decl_module! {
 			});
 		}
 
-		#[weight = T::WeightInfo::remove_expired_campaign()]
-		fn remove_expired_campaign(origin, identifier: CampaignIdentifier) {
+		#[weight = T::WeightInfo::remove_expired_child_storage()]
+		fn remove_expired_child_storage(origin, identifier: CampaignIdentifier) {
 			ensure_signed(origin)?;
 
 			let info = Campaigns::<T>::get(&identifier);
@@ -183,10 +183,10 @@ decl_module! {
 				if current_number > info.end_block && info.child_root.is_some() {
 					match Self::child_kill(&identifier) {
 						child::KillChildStorageResult::AllRemoved(_) => {
-							Self::deposit_event(Event::<T>::CampaignRemoved(identifier));
+							Self::deposit_event(Event::<T>::ChildStorageRemoved(identifier));
 						},
 						child::KillChildStorageResult::SomeRemaining(_) => {
-							Self::deposit_event(Event::<T>::CampaignPartiallyRemoved(identifier));
+							Self::deposit_event(Event::<T>::ChildStoragePartiallyRemoved(identifier));
 						}
 					}
 				}
