@@ -22,16 +22,19 @@ mod v2;
 pub use self::v1::{ComputeV1, SealV1};
 pub use self::v2::{ComputeV2, SealV2};
 pub use randomx::Config;
+pub use randomx::Error as RandomxError;
 
 use log::info;
 use codec::{Encode, Decode};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::cell::RefCell;
+use parking_lot::Mutex;
 use sp_core::H256;
 use lazy_static::lazy_static;
 use lru_cache::LruCache;
 use once_cell::sync::OnceCell;
 use kulupu_randomx as randomx;
+use randomx::WithCacheMode;
 use kulupu_primitives::Difficulty;
 
 lazy_static! {
@@ -48,6 +51,27 @@ thread_local! {
 
 static GLOBAL_CONFIG: OnceCell<Config> = OnceCell::new();
 static DEFAULT_CONFIG: Config = Config::new();
+
+#[derive(Debug)]
+pub enum Error {
+	CacheNotAvailable,
+	Randomx(RandomxError),
+}
+
+impl Error {
+	pub fn description(&self) -> &'static str { 
+		match self {
+			Error::Randomx(e) => e.description(),
+			Error::CacheNotAvailable => "Randomx cache not available",
+		}
+	}
+}
+
+impl From<Error> for String {
+	fn from(e: Error) -> Self {
+		e.description().to_string()
+	}
+}
 
 pub fn global_config() -> &'static Config {
 	GLOBAL_CONFIG.get().unwrap_or(&DEFAULT_CONFIG)
@@ -76,6 +100,12 @@ pub struct Calculation {
 	pub nonce: H256,
 }
 
+impl From<RandomxError> for Error {
+	fn from(e: RandomxError) -> Self {
+		Error::Randomx(e)
+	}
+}
+
 fn need_new_vm<M: randomx::WithCacheMode>(
 	key_hash: &H256,
 	machine: &RefCell<Option<(H256, randomx::VM<M>)>>,
@@ -89,24 +119,19 @@ fn need_new_vm<M: randomx::WithCacheMode>(
 	need_new_vm
 }
 
-fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
+fn do_new_vm<M: randomx::WithCacheMode>(
 	key_hash: &H256,
 	machine: &RefCell<Option<(H256, randomx::VM<M>)>>,
-	shared_caches: &Arc<Mutex<LruCache<H256, Arc<randomx::Cache<M>>>>>,
-	mut f_pre: FPre,
-	f_validate: FValidate,
-	round: usize,
-) -> Option<R> where
-	FPre: FnMut() -> (Vec<u8>, I),
-	FValidate: Fn(H256, I) -> Loop<Option<R>>,
-{
-	if need_new_vm(key_hash, machine) {
-		let mut ms = machine.borrow_mut();
+	shared_caches: &Mutex<LruCache<H256, Arc<randomx::Cache<M>>>>,
+	f_has_large_pages: fn(&Config) -> bool,
+) -> Result<(), Error> {
+	let mut shared_caches = shared_caches.lock();
 
-		let mut shared_caches = shared_caches.lock().expect("Mutex poisioned");
-
+	if !f_has_large_pages(global_config()) {
 		if let Some(cache) = shared_caches.get_mut(key_hash) {
-			*ms = Some((*key_hash, randomx::VM::new(cache.clone(), global_config())));
+			machine.replace(Some((*key_hash, randomx::VM::new(cache.clone(), global_config()))));
+
+			Ok(())
 		} else {
 			info!(
 				target: "kulupu-randomx",
@@ -114,10 +139,73 @@ fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
 				M::description(),
 				key_hash,
 			);
-			let cache = Arc::new(randomx::Cache::new(&key_hash[..], global_config()));
+
+			let cache = Arc::new(randomx::Cache::new(&key_hash[..], global_config())?);
+
 			shared_caches.insert(*key_hash, cache.clone());
-			*ms = Some((*key_hash, randomx::VM::new(cache, global_config())));
+			machine.replace(Some((*key_hash, randomx::VM::new(cache, global_config()))));
+
+			Ok(())
 		}
+	} else {	
+		if let Some(cache) = shared_caches.get_mut(key_hash) {
+			machine.replace(Some((*key_hash, randomx::VM::new(cache.clone(), global_config()))));
+
+			Ok(())
+		} else {
+			let info = format!(
+				"At block boundary, generating new RandomX {} cache with key hash {} ...",
+				M::description(),
+				key_hash,
+			);
+
+			if shared_caches.is_empty() {
+				info!(target: "kulupu-randomx", "{}", info);
+				let cache = Arc::new(randomx::Cache::new(&key_hash[..], global_config())?);
+
+				shared_caches.insert(*key_hash, cache.clone());
+				machine.replace(Some((*key_hash, randomx::VM::new(cache, global_config()))));
+
+				Ok(())
+			} else {
+				machine.replace(None);
+				let key_to_replace = (*shared_caches)
+						.iter()
+						.find(|&(_, cache)| Arc::strong_count(cache) == 1)
+						.and_then(|(key, _)| Some(*key))
+						.ok_or(Error::CacheNotAvailable)?;
+
+				info!(target: "kulupu-randomx", "{}", info);
+				let mut cache = shared_caches
+						.remove(&key_to_replace)
+						.expect("That key should still be in the lru cache.");
+
+				Arc::get_mut(&mut cache)
+						.expect("The mutable reference should be available as strong_count is 1.")
+						.reinit(&key_hash[..]);
+				shared_caches.insert(*key_hash, cache.clone());
+				machine.replace(Some((*key_hash, randomx::VM::new(cache, global_config()))));
+
+				Ok(())
+			}
+		}
+	}
+}
+
+fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
+	key_hash: &H256,
+	machine: &RefCell<Option<(H256, randomx::VM<M>)>>,
+	shared_caches: &Arc<Mutex<LruCache<H256, Arc<randomx::Cache<M>>>>>,
+	mut f_pre: FPre,
+	f_validate: FValidate,
+	f_has_large_pages: fn(&Config) -> bool,
+	round: usize,
+) -> Result<Option<R>, Error> where
+	FPre: FnMut() -> (Vec<u8>, I),
+	FValidate: Fn(H256, I) -> Loop<Option<R>>,
+{
+	if need_new_vm(key_hash, machine) {
+		do_new_vm(key_hash, machine, shared_caches, f_has_large_pages)?
 	}
 
 	let mut ms = machine.borrow_mut();
@@ -179,7 +267,7 @@ fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
 		})
 		.expect("Local MACHINES always set to Some above; qed");
 
-	ret
+	Ok(ret)
 }
 
 pub fn loop_raw<FPre, I, FValidate, R>(
@@ -188,7 +276,7 @@ pub fn loop_raw<FPre, I, FValidate, R>(
 	f_pre: FPre,
 	f_validate: FValidate,
 	round: usize,
-) -> Option<R> where
+) -> Result<Option<R>, Error> where
 	FPre: FnMut() -> (Vec<u8>, I),
 	FValidate: Fn(H256, I) -> Loop<Option<R>>,
 {
@@ -201,6 +289,7 @@ pub fn loop_raw<FPre, I, FValidate, R>(
 					&FULL_SHARED_CACHES,
 					f_pre,
 					f_validate,
+					randomx::WithFullCacheMode::has_large_pages,
 					round,
 				)
 			}),
@@ -213,6 +302,7 @@ pub fn loop_raw<FPre, I, FValidate, R>(
 						&FULL_SHARED_CACHES,
 						f_pre,
 						f_validate,
+						randomx::WithFullCacheMode::has_large_pages,
 						round,
 					))
 				} else {
@@ -230,6 +320,7 @@ pub fn loop_raw<FPre, I, FValidate, R>(
 							&LIGHT_SHARED_CACHES,
 							f_pre,
 							f_validate,
+							randomx::WithLightCacheMode::has_large_pages,
 							round,
 						)
 					})
@@ -239,14 +330,14 @@ pub fn loop_raw<FPre, I, FValidate, R>(
 	}
 }
 
-pub fn compute<T: Encode>(key_hash: &H256, input: &T, mode: ComputeMode) -> H256 {
-	loop_raw(
+pub fn compute<T: Encode>(key_hash: &H256, input: &T, mode: ComputeMode) -> Result<H256, Error> {
+	Ok(loop_raw(
 		key_hash,
 		mode,
 		|| (input.encode(), ()),
 		|hash, ()| Loop::Break(Some(hash)),
 		1,
-	).expect("Loop break always returns Some; qed")
+	)?.expect("Loop break always returns Some; qed"))
 }
 
 #[cfg(test)]
@@ -260,16 +351,16 @@ mod tests {
 	}
 
 	#[test]
-	fn randomx_collision() {
+	fn randomx_collision() -> Result<(), String> {
 		let mut compute = ComputeV1 {
 			key_hash: H256::from([210, 164, 216, 149, 3, 68, 116, 1, 239, 110, 111, 48, 180, 102, 53, 180, 91, 84, 242, 90, 101, 12, 71, 70, 75, 83, 17, 249, 214, 253, 71, 89]),
 			pre_hash: H256::default(),
 			difficulty: U256::default(),
 			nonce: H256::default(),
 		};
-		let hash1 = compute.clone().seal_and_work(ComputeMode::Sync);
+		let hash1 = compute.clone().seal_and_work(ComputeMode::Sync)?;
 		U256::one().to_big_endian(&mut compute.nonce[..]);
-		let hash2 = compute.seal_and_work(ComputeMode::Sync);
+		let hash2 = compute.seal_and_work(ComputeMode::Sync)?;
 		assert!(hash1.1 != hash2.1);
 
 		let mut compute2 = ComputeV2 {
@@ -278,11 +369,13 @@ mod tests {
 			difficulty: U256::default(),
 			nonce: H256::default(),
 		};
-		let hash3 = compute2.clone().seal_and_work(Default::default(), ComputeMode::Sync);
+		let hash3 = compute2.clone().seal_and_work(Default::default(), ComputeMode::Sync)?;
 		U256::one().to_big_endian(&mut compute2.nonce[..]);
-		let hash4 = compute2.seal_and_work(Default::default(), ComputeMode::Sync);
+		let hash4 = compute2.seal_and_work(Default::default(), ComputeMode::Sync)?;
 		assert!(hash3.1 != hash4.1);
 		assert!(hash1.1 != hash3.1);
 		assert!(hash2.1 != hash4.1);
+
+		Ok(())
 	}
 }

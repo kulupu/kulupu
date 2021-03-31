@@ -48,20 +48,20 @@ impl ComputeV2 {
 		(calculation, signature)
 	}
 
-	pub fn seal_and_work(&self, signature: app::Signature, mode: super::ComputeMode) -> (SealV2, H256) {
+	pub fn seal_and_work(&self, signature: app::Signature, mode: super::ComputeMode) -> Result<(SealV2, H256), super::Error> {
 		let input = self.input(signature.clone());
 
 		let work = super::compute::<(Calculation, app::Signature)>(
 			&self.key_hash,
 			&input,
 			mode,
-		);
+		)?;
 
-		(SealV2 {
+		Ok((SealV2 {
 			nonce: self.nonce,
 			difficulty: self.difficulty,
 			signature,
-		}, work)
+		}, work))
 	}
 
 	pub fn seal(&self, signature: app::Signature) -> SealV2 {

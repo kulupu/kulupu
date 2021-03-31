@@ -33,6 +33,9 @@ use sc_executor::native_executor_instance;
 use sc_client_api::backend::RemoteBackend;
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use kulupu_runtime::{self, opaque::Block, RuntimeApi};
+use kulupu_pow::Error as PowError;
+use kulupu_pow::compute::Error as ComputeError;
+use kulupu_pow::compute::RandomxError;
 use log::*;
 
 pub use sc_executor::NativeExecutor;
@@ -352,6 +355,13 @@ pub fn new_full(
 									}
 								},
 								Ok(None) => (),
+								Err(PowError::Compute(ComputeError::CacheNotAvailable)) => {
+									thread::sleep(Duration::new(1, 0));
+								},
+								Err(PowError::Compute(ComputeError::Randomx(err @ RandomxError::CacheAllocationFailed))) => {
+									warn!("Mining failed: {}", err.description());
+									thread::sleep(Duration::new(10, 0));
+								},
 								Err(err) => {
 									warn!("Mining failed: {:?}", err);
 								},

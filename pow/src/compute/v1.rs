@@ -46,19 +46,19 @@ impl ComputeV1 {
 		calculation
 	}
 
-	pub fn seal_and_work(&self, mode: super::ComputeMode) -> (SealV1, H256) {
+	pub fn seal_and_work(&self, mode: super::ComputeMode) -> Result<(SealV1, H256), super::Error> {
 		let input = self.input();
 
 		let work = super::compute::<Calculation>(
 			&self.key_hash,
 			&input,
 			mode,
-		);
+		)?;
 
-		(SealV1 {
+		Ok((SealV1 {
 			nonce: self.nonce,
 			difficulty: self.difficulty,
-		}, work)
+		}, work))
 	}
 
 	pub fn seal(&self) -> SealV1 {
