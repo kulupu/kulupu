@@ -30,7 +30,7 @@ use sp_runtime::traits::{
 };
 use sp_consensus_pow::{Seal as RawSeal, DifficultyApi};
 use sc_consensus_pow::PowAlgorithm;
-use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore};
+use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore, client::BlockBackend};
 use sc_keystore::LocalKeystore;
 use kulupu_primitives::{Difficulty, AlgorithmApi};
 use rand::{SeedableRng, thread_rng, rngs::SmallRng};
@@ -59,7 +59,7 @@ pub fn key_hash<B, C>(
 	parent: &BlockId<B>
 ) -> Result<H256, sc_consensus_pow::Error<B>> where
 	B: BlockT<Hash=H256>,
-	C: HeaderBackend<B>,
+	C: HeaderBackend<B> + BlockBackend<B>,
 {
 	const PERIOD: u64 = 4096; // ~2.8 days
 	const OFFSET: u64 = 128;  // 2 hours
@@ -77,19 +77,16 @@ pub fn key_hash<B, C>(
 	if parent_number.saturating_sub(key_number) < OFFSET {
 		key_number = key_number.saturating_sub(PERIOD);
 	}
+	
+	let hash = client.block_hash(UniqueSaturatedInto::unique_saturated_into(key_number))
+		.map_err(|e| sc_consensus_pow::Error::Environment(
+			format!("Client execution error: {:?}", e)
+		))?
+		.ok_or(sc_consensus_pow::Error::Environment(
+			format!("Block with number {:?} not found", key_number)
+		))?;
 
-	let mut current = parent_header;
-	while UniqueSaturatedInto::<u64>::unique_saturated_into(*current.number()) != key_number {
-		current = client.header(BlockId::Hash(*current.parent_hash()))
-			.map_err(|e| sc_consensus_pow::Error::Environment(
-				format!("Client execution error: {:?}", e)
-			))?
-			.ok_or(sc_consensus_pow::Error::Environment(
-				format!("Block with hash {:?} not found", current.hash())
-			))?;
-	}
-
-	Ok(current.hash())
+	Ok(hash)
 }
 
 pub enum RandomXAlgorithmVersion {
@@ -126,7 +123,7 @@ impl<B> From<compute::Error> for sc_consensus_pow::Error<B> where
 }
 
 impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
-	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi<B>,
+	C: HeaderBackend<B> + BlockBackend<B> + AuxStore + ProvideRuntimeApi<B>,
 	C::Api: DifficultyApi<B, Difficulty> + AlgorithmApi<B>,
 {
 	type Difficulty = Difficulty;
@@ -296,7 +293,7 @@ pub fn mine<B, C>(
 	stats: &Arc<Mutex<Stats>>,
 ) -> Result<Option<RawSeal>, Error<B>> where
 	B: BlockT<Hash=H256>,
-	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi<B>,
+	C: HeaderBackend<B> + BlockBackend<B> + AuxStore + ProvideRuntimeApi<B>,
 	C::Api: DifficultyApi<B, Difficulty> + AlgorithmApi<B>,
 {
 	let version_raw = client.runtime_api().identifier(parent)
