@@ -17,7 +17,11 @@ fn main() {
 	let dst = config.build();
 
 	if target.contains("pc-windows-msvc") {
-		println!("cargo:rustc-link-search=native={}/build/Release", dst.display());
+		if env::var("PROFILE").expect("PROFILE env not found") == "debug" {
+			println!("cargo:rustc-link-search=native={}/build/Debug", dst.display());
+		} else {
+			println!("cargo:rustc-link-search=native={}/build/Release", dst.display());
+		}
 	} else {
 		println!("cargo:rustc-link-search=native={}/build", dst.display());
 	}
