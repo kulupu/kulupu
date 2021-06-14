@@ -1,6 +1,6 @@
 [package]
 name = "kulupu"
-version = "2.7.0"
+version = "2.7.1-remove-lock"
 authors = ["Wei Tang <wei@that.world>"]
 license = "GPL-3.0-or-later"
 build = "build.rs"

@@ -2764,7 +2764,7 @@ dependencies = [
 
 [[package]]
 name = "kulupu"
-version = "2.7.0"
+version = "2.7.1-remove-lock"
 dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
