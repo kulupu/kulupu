@@ -47,6 +47,7 @@ multisig = { package = "pallet-multisig", git = "https://github.com/paritytech/s
 tips = { package = "pallet-tips", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 bounties = { package = "pallet-bounties", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 atomic-swap = { package = "pallet-atomic-swap", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+assets = { package = "pallet-assets", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
 
 # contract specific packages
 contracts = { git = "https://github.com/paritytech/substrate", branch = "kulupu", package = "pallet-contracts", default-features = false }
