@@ -105,45 +105,14 @@ pub struct CreateInherentDataProviders {
 
 #[async_trait]
 impl sp_inherents::CreateInherentDataProviders<Block, ()> for CreateInherentDataProviders {
-	type InherentDataProviders = ();
+	type InherentDataProviders = sp_timestamp::InherentDataProvider;
 
 	async fn create_inherent_data_providers(
 		&self,
 		_parent: <Block as BlockT>::Hash,
 		_extra_args: (),
 	) -> Result<Self::InherentDataProviders, Box<dyn std::error::Error + Send + Sync>> {
-		unimplemented!()
-	// let inherent_data_providers = sp_inherents::InherentDataProviders::new();
-
-	// if !inherent_data_providers.has_provider(&sp_timestamp::INHERENT_IDENTIFIER) {
-	// 	inherent_data_providers
-	// 		.register_provider(sp_timestamp::InherentDataProvider)
-	// 		.map_err(Into::into)
-	// 		.map_err(sp_consensus::Error::InherentData)?;
-	// }
-
-	// let fake_author = kulupu_pow::app::Public::default().encode();
-
-	// if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER_V0) {
-	// 	inherent_data_providers
-	// 		.register_provider(pallet_rewards::InherentDataProviderV0(
-	// 			fake_author.clone(),
-	// 		))
-	// 		.map_err(Into::into)
-	// 		.map_err(sp_consensus::Error::InherentData)?;
-	// }
-
-	// if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER_V1) {
-	// 	inherent_data_providers
-	// 		.register_provider(pallet_rewards::InherentDataProviderV1(
-	// 			(fake_author.clone(), if donate { Perbill::max_value() } else { Perbill::zero() })
-	// 		))
-	// 		.map_err(Into::into)
-	// 		.map_err(sp_consensus::Error::InherentData)?;
-	// }
-
-		// Ok(inherent_data_providers)
-
+		Ok(sp_timestamp::InherentDataProvider::from_system_time())
 	}
 }
 
