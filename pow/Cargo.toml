@@ -24,6 +24,7 @@ sp-core = { git = "https://github.com/paritytech/substrate" }
 sp-api = { git = "https://github.com/paritytech/substrate" }
 sp-application-crypto = { git = "https://github.com/paritytech/substrate" }
 sc-client-api = { git = "https://github.com/paritytech/substrate" }
+sc-consensus = { git = "https://github.com/paritytech/substrate" }
 sc-consensus-pow = { git = "https://github.com/paritytech/substrate" }
 sc-keystore = { git = "https://github.com/paritytech/substrate" }
 kulupu-primitives = { path = "../primitives" }

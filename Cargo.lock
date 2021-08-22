@@ -2683,6 +2683,7 @@ dependencies = [
  "parking_lot 0.10.2",
  "rand 0.8.4",
  "sc-client-api",
+ "sc-consensus",
  "sc-consensus-pow",
  "sc-keystore",
  "sp-api",
