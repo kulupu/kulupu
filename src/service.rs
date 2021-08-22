@@ -99,9 +99,7 @@ type FullClient =
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
-pub struct CreateInherentDataProviders {
-	donate: bool,
-}
+pub struct CreateInherentDataProviders;
 
 #[async_trait]
 impl sp_inherents::CreateInherentDataProviders<Block, ()> for CreateInherentDataProviders {
@@ -203,7 +201,7 @@ pub fn new_partial(
 		algorithm.clone(),
 		check_inherents_after,
 		select_chain.clone(),
-		CreateInherentDataProviders { donate },
+		CreateInherentDataProviders,
 		sp_consensus::AlwaysCanAuthor,
 	);
 
@@ -312,7 +310,7 @@ pub fn new_full(
 			network.clone(),
 			network.clone(),
 			Some(author.encode()),
-			CreateInherentDataProviders { donate },
+			CreateInherentDataProviders,
 			Duration::new(10, 0),
 			Duration::new(10, 0),
 			sp_consensus::AlwaysCanAuthor,
@@ -440,7 +438,7 @@ pub fn new_light(
 		algorithm.clone(),
 		check_inherents_after,
 		select_chain.clone(),
-		CreateInherentDataProviders { donate },
+		CreateInherentDataProviders,
 		sp_consensus::AlwaysCanAuthor,
 	);
 
