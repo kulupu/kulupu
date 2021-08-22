@@ -9,13 +9,13 @@ description = "Difficulty adjustment module for Kulupu."
 [dependencies]
 serde = { version = "1.0.101", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-timestamp = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-timestamp = { git = "https://github.com/paritytech/substrate", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false }
+pallet-timestamp = { git = "https://github.com/paritytech/substrate", default-features = false }
 
 kulupu-primitives = { path = "../../primitives", default-features = false }
 

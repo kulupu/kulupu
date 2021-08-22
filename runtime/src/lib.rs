@@ -32,10 +32,10 @@ extern crate system as frame_system;
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use sp_std::{collections::btree_map::BTreeMap, cmp::{min, max}, prelude::*, cmp};
-use codec::{Encode, Decode};
+use codec::{Encode, Decode, MaxEncodedLen};
 use sp_core::{OpaqueMetadata, u32_trait::{_1, _2, _4, _5}};
 use sp_runtime::{
-	ApplyExtrinsicResult, Percent, ModuleId, generic, create_runtime_str, MultiSignature,
+	ApplyExtrinsicResult, Percent, generic, create_runtime_str, MultiSignature,
 	RuntimeDebug, Perquintill, transaction_validity::{TransactionValidity, TransactionSource},
 	FixedPointNumber,
 };
@@ -53,6 +53,7 @@ use system::{limits, EnsureRoot};
 use static_assertions::const_assert;
 use crate::fee::WeightToFee;
 use contracts::weights::WeightInfo;
+use frame_support::{PalletId, traits::{Nothing, Everything}};
 
 // A few exports that help ease life for downstream crates.
 pub use sp_runtime::{Permill, Perbill};
@@ -173,7 +174,7 @@ parameter_types! {
 }
 
 impl system::Config for Runtime {
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type Origin = Origin;
@@ -195,7 +196,10 @@ impl system::Config for Runtime {
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = SS58Prefix;
+	type OnSetCode = ();
 }
+
+impl randomness_collective_flip::Config for Runtime { }
 
 parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
@@ -270,6 +274,7 @@ impl timestamp::Config for Runtime {
 parameter_types! {
 	pub const ExistentialDeposit: u128 = 10 * MICROCENTS;
 	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
 }
 
 impl balances::Config for Runtime {
@@ -281,6 +286,8 @@ impl balances::Config for Runtime {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = ();
 }
 
@@ -532,7 +539,7 @@ parameter_types! {
 	pub const VotingBondFactor: Balance = deposit(0, 32);
 	/// Daily council elections.
 	pub const TermDuration: BlockNumber = 24 * HOURS;
-	pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
+	pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
 }
 
 pub enum DesiredMembers { }
@@ -565,7 +572,7 @@ impl elections_phragmen::Config for Runtime {
 	type LoserCandidate = Treasury;
 	type KickedMember = Treasury;
 	type TermDuration = TermDuration;
-	type ModuleId = ElectionsPhragmenModuleId;
+	type PalletId = ElectionsPhragmenPalletId;
 	type WeightInfo = ();
 }
 
@@ -596,6 +603,8 @@ impl membership::Config<membership::Instance1> for Runtime {
 	type PrimeOrigin = system::EnsureRoot<AccountId>;
 	type MembershipInitialized = TechnicalCommittee;
 	type MembershipChanged = TechnicalCommittee;
+	type MaxMembers = TechnicalMaxMembers;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -603,7 +612,7 @@ parameter_types! {
 	pub const ProposalBondMinimum: Balance = 20 * DOLLARS;
 	pub const SpendPeriod: BlockNumber = 6 * DAYS;
 	pub const Burn: Permill = Permill::from_percent(1);
-	pub const TreasuryModuleId: ModuleId = ModuleId(*b"py/trsry");
+	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
@@ -615,6 +624,8 @@ parameter_types! {
 	pub const MaximumReasonLength: u32 = 16384;
 	pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
 	pub const BountyValueMinimum: Balance = 10 * DOLLARS;
+
+	pub const MaxApprovals: u32 = 100;
 }
 
 impl treasury::Config for Runtime {
@@ -635,7 +646,8 @@ impl treasury::Config for Runtime {
 	type SpendFunds = Bounties;
 	type Burn = Burn;
 	type BurnDestination = ();
-	type ModuleId = TreasuryModuleId;
+	type PalletId = TreasuryPalletId;
+	type MaxApprovals = MaxApprovals;
 	type WeightInfo = ();
 }
 
@@ -699,7 +711,7 @@ parameter_types! {
 }
 
 /// The type used to represent the kinds of proxying allowed.
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
 pub enum ProxyType {
 	Any,
 	NonTransfer,
@@ -786,18 +798,6 @@ impl variables::Config for Runtime {
 	type Event = Event;
 }
 
-pub struct PhragmenElectionDepositRuntimeUpgrade;
-impl elections_phragmen::migrations_3_0_0::V2ToV3 for PhragmenElectionDepositRuntimeUpgrade {
-	type AccountId = AccountId;
-	type Balance = Balance;
-	type Module = ElectionsPhragmen;
-}
-impl frame_support::traits::OnRuntimeUpgrade for PhragmenElectionDepositRuntimeUpgrade {
-	fn on_runtime_upgrade() -> frame_support::weights::Weight {
-		elections_phragmen::migrations_3_0_0::apply::<Self>(5 * CENTS, DOLLARS)
-	}
-}
-
 parameter_types! {
 	pub const PayloadLenLimit: u32 = 1024;
 	pub const RemoveKeysLimit: u32 = 1024;
@@ -822,7 +822,6 @@ parameter_types! {
 	pub RentFraction: Perbill = Perbill::from_rational(1u32, 30 * DAYS);
 	pub const SurchargeReward: Balance = 150 * MILLICENTS;
 	pub const SignedClaimHandicap: u32 = 2;
-	pub const MaxDepth: u32 = 32;
 	pub const MaxValueSize: u32 = 16 * 1024;
 	// The lazy deletion runs inside on_initialize.
 	pub DeletionWeightLimit: Weight = AVERAGE_ON_INITIALIZE_RATIO *
@@ -833,7 +832,7 @@ parameter_types! {
 			<Runtime as contracts::Config>::WeightInfo::on_initialize_per_queue_item(1) -
 			<Runtime as contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
 		)) / 5) as u32;
-	pub MaxCodeSize: u32 = 128 * 1024;
+	pub Schedule: contracts::Schedule<Runtime> = Default::default();
 }
 
 impl contracts::Config for Runtime {
@@ -841,6 +840,14 @@ impl contracts::Config for Runtime {
 	type Randomness = RandomnessCollectiveFlip;
 	type Currency = Balances;
 	type Event = Event;
+	type Call = Call;
+	/// The safest default is to allow no calls at all.
+	///
+	/// Runtimes should whitelist dispatchables that are allowed to be called from contracts
+	/// and make sure they are stable. Dispatchables exposed to contracts are not allowed to
+	/// change because that would break already deployed contracts. The `Call` structure itself
+	/// is not allowed to change the indices of existing pallets, too.
+	type CallFilter = Nothing;
 	type RentPayment = ();
 	type SignedClaimHandicap = SignedClaimHandicap;
 	type TombstoneDeposit = TombstoneDeposit;
@@ -849,14 +856,13 @@ impl contracts::Config for Runtime {
 	type DepositPerStorageItem = DepositPerStorageItem;
 	type RentFraction = RentFraction;
 	type SurchargeReward = SurchargeReward;
-	type MaxDepth = MaxDepth;
-	type MaxValueSize = MaxValueSize;
-	type WeightPrice = transaction_payment::Module<Self>;
+	type CallStack = [contracts::Frame<Self>; 31];
+	type WeightPrice = transaction_payment::Pallet<Self>;
 	type WeightInfo = contracts::weights::SubstrateWeight<Self>;
 	type ChainExtension = ();
 	type DeletionQueueDepth = DeletionQueueDepth;
 	type DeletionWeightLimit = DeletionWeightLimit;
-	type MaxCodeSize = MaxCodeSize;
+	type Schedule = Schedule;
 }
 
 parameter_types! {
@@ -877,7 +883,7 @@ construct_runtime!(
 	{
 		// Basic stuff.
 		System: system::{Pallet, Call, Storage, Config, Event<T>} = 0,
-		RandomnessCollectiveFlip: randomness_collective_flip::{Pallet, Call, Storage} = 17,
+		RandomnessCollectiveFlip: randomness_collective_flip::{Pallet, Storage} = 17,
 		Timestamp: timestamp::{Pallet, Call, Storage, Inherent} = 1,
 		Indices: indices::{Pallet, Call, Storage, Config<T>, Event<T>} = 2,
 		Balances: balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 3,
@@ -889,7 +895,7 @@ construct_runtime!(
 		Rewards: rewards::{Pallet, Call, Storage, Event<T>, Config<T>} = 4,
 
 		// Governance.
-		Democracy: democracy::{Pallet, Call, Storage, Config, Event<T>} = 5,
+		Democracy: democracy::{Pallet, Call, Storage, Config<T>, Event<T>} = 5,
 		Council: collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 6,
 		TechnicalCommittee: collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 7,
 		ElectionsPhragmen: elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 8,
@@ -906,7 +912,7 @@ construct_runtime!(
 		Vesting: vesting::{Pallet, Call, Storage, Event<T>, Config<T>} = 16,
 		Variables: variables::{Pallet, Call, Storage, Event} = 21,
 		Lockdrop: lockdrop::{Pallet, Call, Storage, Event<T>} = 24,
-		Contracts: contracts::{Pallet, Call, Config<T>, Storage, Event<T>} = 25,
+		Contracts: contracts::{Pallet, Call, Storage, Event<T>} = 25,
 		AtomicSwap: atomic_swap::{Pallet, Call, Storage, Event<T>} = 26,
 	}
 );
@@ -944,7 +950,6 @@ pub type Executive = frame_executive::Executive<
 	system::ChainContext<Runtime>,
 	Runtime,
 	AllPallets,
-	PhragmenElectionDepositRuntimeUpgrade,
 >;
 
 impl_runtime_apis! {
@@ -987,18 +992,15 @@ impl_runtime_apis! {
 		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
 		}
-
-		fn random_seed() -> <Block as BlockT>::Hash {
-			RandomnessCollectiveFlip::random_seed().0
-		}
 	}
 
 	impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
 		fn validate_transaction(
 			source: TransactionSource,
 			tx: <Block as BlockT>::Extrinsic,
+			block_hash: <Block as BlockT>::Hash,
 		) -> TransactionValidity {
-			Executive::validate_transaction(source, tx)
+			Executive::validate_transaction(source, tx, block_hash)
 		}
 	}
 
@@ -1059,7 +1061,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_contracts_rpc_runtime_api::ContractsApi<Block, AccountId, Balance, BlockNumber> for Runtime {
+	impl pallet_contracts_rpc_runtime_api::ContractsApi<Block, AccountId, Balance, BlockNumber, Hash> for Runtime {
 		fn call(
 			origin: AccountId,
 			dest: AccountId,
@@ -1067,7 +1069,19 @@ impl_runtime_apis! {
 			gas_limit: u64,
 			input_data: Vec<u8>,
 		) -> pallet_contracts_primitives::ContractExecResult {
-			Contracts::bare_call(origin, dest, value, gas_limit, input_data)
+			Contracts::bare_call(origin, dest, value, gas_limit, input_data, true)
+		}
+
+		fn instantiate(
+			origin: AccountId,
+			endowment: Balance,
+			gas_limit: u64,
+			code: pallet_contracts_primitives::Code<Hash>,
+			data: Vec<u8>,
+			salt: Vec<u8>,
+		) -> pallet_contracts_primitives::ContractInstantiateResult<AccountId, BlockNumber>
+		{
+			Contracts::bare_instantiate(origin, endowment, gas_limit, code, data, salt, true, true)
 		}
 
 		fn get_storage(

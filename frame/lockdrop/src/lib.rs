@@ -182,10 +182,10 @@ decl_module! {
 				let current_number = frame_system::Pallet::<T>::block_number();
 				if current_number > info.end_block && info.child_root.is_some() {
 					match Self::child_kill(&identifier) {
-						child::KillChildStorageResult::AllRemoved(_) => {
+						child::KillStorageResult::AllRemoved(_) => {
 							Self::deposit_event(Event::<T>::ChildStorageRemoved(identifier));
 						},
-						child::KillChildStorageResult::SomeRemaining(_) => {
+						child::KillStorageResult::SomeRemaining(_) => {
 							Self::deposit_event(Event::<T>::ChildStoragePartiallyRemoved(identifier));
 						}
 					}
@@ -274,7 +274,7 @@ impl<T: Config> Module<T> {
 		child::root(&Self::child_info(identifier))
 	}
 
-	fn child_kill(identifier: &CampaignIdentifier) -> child::KillChildStorageResult {
+	fn child_kill(identifier: &CampaignIdentifier) -> child::KillStorageResult {
 		child::kill_storage(&Self::child_info(identifier), Some(T::RemoveKeysLimit::get()))
 	}
 }
