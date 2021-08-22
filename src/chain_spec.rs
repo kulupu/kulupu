@@ -127,19 +127,11 @@ fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256, _enable_println
 		difficulty: DifficultyConfig {
 			initial_difficulty,
 		},
-		collective_Instance1: Default::default(),
-		collective_Instance2: Default::default(),
-		democracy: Default::default(),
-		treasury: Default::default(),
-		elections_phragmen: Default::default(),
-		eras: Default::default(),
-		membership_Instance1: Default::default(),
-		vesting: Default::default(),
 		rewards: RewardsConfig {
 			reward: 60 * DOLLARS,
 			mints: Default::default(),
 		},
-		contracts: Default::default(),
+		..Default::default()
 	}
 }
 
@@ -175,17 +167,10 @@ pub fn mainnet_genesis() -> GenesisConfig {
 				}
 			],
 		},
-		collective_Instance1: Default::default(),
-		collective_Instance2: Default::default(),
-		democracy: Default::default(),
-		treasury: Default::default(),
-		elections_phragmen: Default::default(),
-		membership_Instance1: Default::default(),
-		vesting: Default::default(),
 		rewards: RewardsConfig {
 			reward: 60 * DOLLARS,
 			mints: Default::default(),
 		},
-		contracts: Default::default(),
+		..Default::default()
 	}
 }

@@ -17,8 +17,9 @@ structopt = "0.3"
 codec = { package = "parity-scale-codec", version = "2.0.0", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-jsonrpc-core = "15.0.0"
+jsonrpc-core = "18.0.0"
 parking_lot = "0.10.0"
+async-trait = "0.1"
 
 sc-cli = { git = "https://github.com/paritytech/substrate" }
 sc-rpc = { git = "https://github.com/paritytech/substrate" }
@@ -34,6 +35,7 @@ sc-executor = { git = "https://github.com/paritytech/substrate" }
 sc-service = { git = "https://github.com/paritytech/substrate" }
 sp-inherents = { git = "https://github.com/paritytech/substrate" }
 sc-transaction-pool = { git = "https://github.com/paritytech/substrate" }
+sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate" }
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate" }
 sc-network = { git = "https://github.com/paritytech/substrate" }
 sc-consensus-pow = { git = "https://github.com/paritytech/substrate" }
