@@ -14,7 +14,6 @@ sp-inherents = { git = "https://github.com/paritytech/substrate", default-featur
 sp-consensus-pow = { git = "https://github.com/paritytech/substrate", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", default-features = false }
-async-trait = "0.1"
 
 # Benchmarking
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true }

@@ -31,17 +31,14 @@ mod migrations;
 
 use codec::{Encode, Decode};
 use sp_std::{iter::FromIterator, ops::Bound::Included, prelude::*, collections::btree_map::BTreeMap};
-use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
-use sp_inherents::{InherentData, InherentIdentifier};
+use sp_runtime::traits::{Saturating, Zero};
 use sp_consensus_pow::POW_ENGINE_ID;
 use frame_support::{
 	decl_module, decl_storage, decl_error, decl_event, ensure,
 	traits::{Get, Currency, LockIdentifier, LockableCurrency, WithdrawReasons},
-	inherent::IsFatalError,
 	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed};
-use async_trait::async_trait;
 
 pub struct LockBounds {
 	pub period_max: u16,

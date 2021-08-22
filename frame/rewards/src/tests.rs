@@ -162,7 +162,7 @@ fn reward_locks_work() {
 
 		// Cannot transfer more
 		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
-		
+
 		// Change lock params, 50 subperiods long 6 days each (2 coins each subperiod)
 		assert_ok!(Rewards::set_lock_params(Origin::root(), LockParameters {period: 300, divide:50}));
 		// Moving to block 25 to mine it so unlocks will happen on blocks 31,37,43,50,57...325
@@ -171,7 +171,7 @@ fn reward_locks_work() {
 		run_to_block(26, 1);
 		// Now only 1 free coin should be available
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 1));
-		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);	
+		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
 		// Reinitialize the reference BTreeMap and check equality
 		let mut expected_locks = BTreeMap::new();
 		for block in 31..=325 {
@@ -189,7 +189,7 @@ fn reward_locks_work() {
 			if amount > 0 { expected_locks.insert(block, amount); }
 		}
 		assert_eq!(Rewards::reward_locks(1), expected_locks);
-		
+
 		// 22 more is unlocked on block 31
 		System::set_block_number(31);
 		assert_ok!(Rewards::unlock(Origin::signed(1), 1));
@@ -212,7 +212,7 @@ fn curve_works() {
 	new_test_ext(1).execute_with(|| {
 		// Set reward curve
 		assert_ok!(Rewards::set_schedule(Origin::root(), 60, Default::default(), test_curve(), Default::default()));
-		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::ScheduleSet));
+		assert_eq!(last_event(), mock::Event::Rewards(crate::Event::<Test>::ScheduleSet));
 		// Check current reward
 		assert_eq!(Rewards::reward(), 60);
 		run_to_block(9, 1);
@@ -221,7 +221,7 @@ fn curve_works() {
 		// Update successful
 		assert_eq!(Rewards::reward(), 100);
 		// Success reported
-		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::RewardChanged(100)));
+		assert_eq!(last_event(), mock::Event::Rewards(crate::Event::<Test>::RewardChanged(100)));
 		run_to_block(20, 1);
 		assert_eq!(Rewards::reward(), 50);
 		// No change, not part of the curve
@@ -246,10 +246,10 @@ fn set_lock_params_works() {
 		assert_eq!(LockParams::get(), None);
 		// Set lock params
 		assert_ok!(Rewards::set_lock_params(Origin::root(), LockParameters {period: 90, divide:30}));
-		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::LockParamsChanged(LockParameters {period: 90, divide:30})));
+		assert_eq!(last_event(), mock::Event::Rewards(crate::Event::<Test>::LockParamsChanged(LockParameters {period: 90, divide:30})));
 		assert_eq!(LockParams::get(), Some(LockParameters {period: 90, divide:30}));
 		assert_ok!(Rewards::set_lock_params(Origin::root(), LockParameters {period: 300, divide:50}));
-		assert_eq!(last_event(), mock::Event::pallet_rewards(crate::Event::<Test>::LockParamsChanged(LockParameters {period: 300, divide:50})));
+		assert_eq!(last_event(), mock::Event::Rewards(crate::Event::<Test>::LockParamsChanged(LockParameters {period: 300, divide:50})));
 		assert_eq!(LockParams::get(), Some(LockParameters {period: 300, divide:50}));
 		// Check bounds
 		assert_noop!(Rewards::set_lock_params(Origin::root(), LockParameters {period: 600, divide: 10}),

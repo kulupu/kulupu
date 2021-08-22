@@ -4297,7 +4297,6 @@ dependencies = [
 name = "pallet-rewards"
 version = "2.7.0"
 dependencies = [
- "async-trait",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
