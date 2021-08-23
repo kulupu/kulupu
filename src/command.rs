@@ -232,7 +232,7 @@ pub fn run() -> sc_cli::Result<()> {
 			if cfg!(feature = "runtime-benchmarks") {
 				let runner = cli.create_runner(cmd)?;
 
-				runner.sync_run(|config| cmd.run::<kulupu_runtime::Block, service::Executor>(config))
+				runner.sync_run(|config| cmd.run::<kulupu_runtime::Block, crate::service::ExecutorDispatch>(config))
 			} else {
 				Err("Benchmarking wasn't enabled when building the node. \
 				You can enable it with `--features runtime-benchmarks`.".into())

@@ -2,7 +2,7 @@ use super::*;
 
 use frame_support::{
 	assert_ok, assert_noop, parameter_types, assert_storage_noop,
-	traits::{OnInitialize, OnFinalize},
+	traits::{OnInitialize, OnFinalize, Everything},
 };
 use sp_runtime::{
 	testing::Header, BuildStorage,
@@ -34,7 +34,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Test {
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();
@@ -56,6 +56,7 @@ impl frame_system::Config for Test {
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
@@ -69,6 +70,8 @@ impl pallet_balances::Config for Test {
 	type Event = Event;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
+	type MaxReserves = ();
+	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = ();
 }
 
@@ -87,8 +90,8 @@ impl pallet_lockdrop::Config for Test {
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let t = GenesisConfig {
-		frame_system: Default::default(),
-		pallet_balances: pallet_balances::GenesisConfig {
+		system: Default::default(),
+		balances: pallet_balances::GenesisConfig {
 			balances: vec![(1, 1000), (2, 2000)],
 		},
 	}.build_storage().unwrap();

@@ -28,8 +28,11 @@ use sp_blockchain::{
 	well_known_cache_keys::Id as CacheKeyId, HeaderMetadata,
 };
 use sp_consensus::{
-	ImportResult, BlockImportParams, BlockCheckParams, Error as ConsensusError, BlockImport,
-	SelectChain, ForkChoiceStrategy,
+	Error as ConsensusError, SelectChain,
+};
+use sc_consensus::{
+	ImportResult, BlockImportParams, BlockCheckParams, BlockImport,
+	ForkChoiceStrategy,
 };
 use sc_consensus_pow::{PowAlgorithm, PowAux};
 use log::*;
@@ -185,7 +188,7 @@ impl<B, I, C, S, Pow, Reorg> BlockImport<B> for WeakSubjectiveBlockImport<B, I, 
 		new_cache: HashMap<CacheKeyId, Vec<u8>>,
 	) -> Result<ImportResult, Self::Error> {
 		if self.enabled && block.fork_choice != Some(ForkChoiceStrategy::Custom(false)) {
-			let best_header = self.select_chain.best_chain()
+			let best_header = self.select_chain.best_chain().await
 				.map_err(|e| format!("Fetch best chain failed via select chain: {:?}", e))?;
 			let best_hash = best_header.hash();
 

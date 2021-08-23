@@ -15,17 +15,18 @@ parking_lot = "0.10.0"
 humantime = "2.0.1"
 once_cell = "1.5"
 async-trait = "0.1.42"
-sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-consensus = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-consensus-pow = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-application-crypto = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-consensus-pow = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-keystore = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate" }
+sp-consensus = { git = "https://github.com/paritytech/substrate" }
+sp-consensus-pow = { git = "https://github.com/paritytech/substrate" }
+sp-runtime = { git = "https://github.com/paritytech/substrate" }
+sp-inherents = { git = "https://github.com/paritytech/substrate" }
+sp-core = { git = "https://github.com/paritytech/substrate" }
+sp-api = { git = "https://github.com/paritytech/substrate" }
+sp-application-crypto = { git = "https://github.com/paritytech/substrate" }
+sc-client-api = { git = "https://github.com/paritytech/substrate" }
+sc-consensus = { git = "https://github.com/paritytech/substrate" }
+sc-consensus-pow = { git = "https://github.com/paritytech/substrate" }
+sc-keystore = { git = "https://github.com/paritytech/substrate" }
 kulupu-primitives = { path = "../primitives" }
 kulupu-runtime = { path = "../runtime" }
 kulupu-randomx = { path = "randomx" }

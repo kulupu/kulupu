@@ -24,7 +24,7 @@ use crate as pallet_rewards;
 
 use sp_core::H256;
 use codec::Encode;
-use frame_support::{parameter_types, traits::OnInitialize};
+use frame_support::{parameter_types, traits::{OnInitialize, Everything}};
 use sp_runtime::{
 	Digest, traits::{BlakeTwo256, IdentityLookup}, testing::{DigestItem, Header},
 };
@@ -54,7 +54,7 @@ type Balance = u128;
 type BlockNumber = u64;
 
 impl system::Config for Test {
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type Origin = Origin;
 	type Call = Call;
 	type Index = u64;
@@ -76,11 +76,13 @@ impl system::Config for Test {
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
 	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
 }
 
 impl pallet_balances::Config for Test {
@@ -90,6 +92,8 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = ();
 }
 

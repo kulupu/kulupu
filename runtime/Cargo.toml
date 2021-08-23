@@ -8,50 +8,50 @@ edition = "2018"
 [dependencies]
 serde = { version = "1.0", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-version = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-offchain = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-consensus-pow = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-session = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-block-builder = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-frame-executive = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-version = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-offchain = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-consensus-pow = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-session = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-api = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-block-builder = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-transaction-pool = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-inherents = { git = "https://github.com/paritytech/substrate", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false }
+frame-executive = { git = "https://github.com/paritytech/substrate", default-features = false }
 kulupu-primitives = { path = "../primitives", default-features = false }
 smallvec = "1.4.0"
 static_assertions = "1.1.0"
 
 # frame
-system = { package = "frame-system", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-balances = { package = "pallet-balances", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-utility = { package = "pallet-utility", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-indices = { package = "pallet-indices", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-timestamp = { package = "pallet-timestamp", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-transaction-payment = { package = "pallet-transaction-payment", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-randomness-collective-flip = { package = "pallet-randomness-collective-flip", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-collective = { package = "pallet-collective", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-elections-phragmen = { package = "pallet-elections-phragmen", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-membership = { package = "pallet-membership", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-treasury = { package = "pallet-treasury", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-scheduler = { package = "pallet-scheduler", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-identity = { package = "pallet-identity", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-proxy = { package = "pallet-proxy", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-vesting = { package = "pallet-vesting", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-multisig = { package = "pallet-multisig", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-tips = { package = "pallet-tips", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-bounties = { package = "pallet-bounties", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-atomic-swap = { package = "pallet-atomic-swap", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+system = { package = "frame-system", git = "https://github.com/paritytech/substrate", default-features = false }
+balances = { package = "pallet-balances", git = "https://github.com/paritytech/substrate", default-features = false }
+utility = { package = "pallet-utility", git = "https://github.com/paritytech/substrate", default-features = false }
+indices = { package = "pallet-indices", git = "https://github.com/paritytech/substrate", default-features = false }
+timestamp = { package = "pallet-timestamp", git = "https://github.com/paritytech/substrate", default-features = false }
+transaction-payment = { package = "pallet-transaction-payment", git = "https://github.com/paritytech/substrate", default-features = false }
+randomness-collective-flip = { package = "pallet-randomness-collective-flip", git = "https://github.com/paritytech/substrate", default-features = false }
+democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", default-features = false }
+collective = { package = "pallet-collective", git = "https://github.com/paritytech/substrate", default-features = false }
+elections-phragmen = { package = "pallet-elections-phragmen", git = "https://github.com/paritytech/substrate", default-features = false }
+membership = { package = "pallet-membership", git = "https://github.com/paritytech/substrate", default-features = false }
+treasury = { package = "pallet-treasury", git = "https://github.com/paritytech/substrate", default-features = false }
+scheduler = { package = "pallet-scheduler", git = "https://github.com/paritytech/substrate", default-features = false }
+identity = { package = "pallet-identity", git = "https://github.com/paritytech/substrate", default-features = false }
+proxy = { package = "pallet-proxy", git = "https://github.com/paritytech/substrate", default-features = false }
+vesting = { package = "pallet-vesting", git = "https://github.com/paritytech/substrate", default-features = false }
+multisig = { package = "pallet-multisig", git = "https://github.com/paritytech/substrate", default-features = false }
+tips = { package = "pallet-tips", git = "https://github.com/paritytech/substrate", default-features = false }
+bounties = { package = "pallet-bounties", git = "https://github.com/paritytech/substrate", default-features = false }
+atomic-swap = { package = "pallet-atomic-swap", git = "https://github.com/paritytech/substrate", default-features = false }
 
 # contract specific packages
-contracts = { git = "https://github.com/paritytech/substrate", branch = "kulupu", package = "pallet-contracts", default-features = false }
-pallet-contracts-primitives = { git = "https://github.com/paritytech/substrate", branch = "kulupu", package = "pallet-contracts-primitives", default-features = false }
-pallet-contracts-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", package = "pallet-contracts-rpc-runtime-api", default-features = false }
+contracts = { git = "https://github.com/paritytech/substrate", package = "pallet-contracts", default-features = false }
+pallet-contracts-primitives = { git = "https://github.com/paritytech/substrate", package = "pallet-contracts-primitives", default-features = false }
+pallet-contracts-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", package = "pallet-contracts-rpc-runtime-api", default-features = false }
 
 # custom pallets
 rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
@@ -60,12 +60,12 @@ difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", defa
 variables = { package = "pallet-variables", path = "../frame/variables", default-features = false }
 lockdrop = { package = "pallet-lockdrop", path = "../frame/lockdrop", default-features = false }
 
-frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
-pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", default-features = false }
+pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", default-features = false }
 
 # benchmarking
-frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false, optional = true }
-frame-system-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false, optional = true }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true }
+frame-system-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true }
 hex-literal = { version = "0.2.1", optional = true }
 
 [build-dependencies]

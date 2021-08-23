@@ -17,39 +17,41 @@ structopt = "0.3"
 codec = { package = "parity-scale-codec", version = "2.0.0", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-jsonrpc-core = "15.0.0"
+jsonrpc-core = "18.0.0"
 parking_lot = "0.10.0"
+async-trait = "0.1"
 
-sc-cli = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-keystore = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-keystore = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-block-builder = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-rpc-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-timestamp = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-executor = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-service = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-network = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-consensus-pow = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-consensus = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-consensus = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-telemetry = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-sc-basic-authorship = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+sc-cli = { git = "https://github.com/paritytech/substrate" }
+sc-rpc = { git = "https://github.com/paritytech/substrate" }
+sp-keystore = { git = "https://github.com/paritytech/substrate" }
+sc-keystore = { git = "https://github.com/paritytech/substrate" }
+sp-core = { git = "https://github.com/paritytech/substrate" }
+sp-api = { git = "https://github.com/paritytech/substrate" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate" }
+sp-block-builder = { git = "https://github.com/paritytech/substrate" }
+sc-rpc-api = { git = "https://github.com/paritytech/substrate" }
+sp-timestamp = { git = "https://github.com/paritytech/substrate" }
+sc-executor = { git = "https://github.com/paritytech/substrate" }
+sc-service = { git = "https://github.com/paritytech/substrate" }
+sp-inherents = { git = "https://github.com/paritytech/substrate" }
+sc-transaction-pool = { git = "https://github.com/paritytech/substrate" }
+sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate" }
+sp-transaction-pool = { git = "https://github.com/paritytech/substrate" }
+sc-network = { git = "https://github.com/paritytech/substrate" }
+sc-consensus-pow = { git = "https://github.com/paritytech/substrate" }
+sp-consensus = { git = "https://github.com/paritytech/substrate" }
+sc-consensus = { git = "https://github.com/paritytech/substrate" }
+sc-finality-grandpa = { git = "https://github.com/paritytech/substrate" }
+sp-finality-grandpa = { git = "https://github.com/paritytech/substrate" }
+sc-client-api = { git = "https://github.com/paritytech/substrate" }
+sp-runtime = { git = "https://github.com/paritytech/substrate" }
+sc-telemetry = { git = "https://github.com/paritytech/substrate" }
+sc-basic-authorship = { git = "https://github.com/paritytech/substrate" }
+substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate" }
+pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate" }
+pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate" }
 
-contracts = { package = "pallet-contracts", git = "https://github.com/paritytech/substrate", branch = "kulupu", default-features = false }
+contracts = { package = "pallet-contracts", git = "https://github.com/paritytech/substrate", default-features = false }
 
 pallet-rewards = { path = "frame/rewards" }
 pallet-eras = { path = "frame/eras" }
@@ -58,11 +60,11 @@ kulupu-runtime = { path = "runtime" }
 kulupu-primitives = { path = "primitives" }
 
 # benchmarking
-frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
-frame-benchmarking-cli = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate" }
+frame-benchmarking-cli = { git = "https://github.com/paritytech/substrate" }
 
 [build-dependencies]
-substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "kulupu" }
+substrate-build-script-utils = { git = "https://github.com/paritytech/substrate" }
 
 [features]
 default = []

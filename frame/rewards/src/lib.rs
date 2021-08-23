@@ -31,13 +31,8 @@ mod migrations;
 
 use codec::{Encode, Decode};
 use sp_std::{iter::FromIterator, ops::Bound::Included, prelude::*, collections::btree_map::BTreeMap};
-use sp_runtime::{RuntimeDebug, Perbill, traits::{Saturating, Zero}};
-use sp_inherents::{InherentIdentifier, IsFatalError};
-#[cfg(feature = "std")]
-use sp_inherents::InherentData;
+use sp_runtime::traits::{Saturating, Zero};
 use sp_consensus_pow::POW_ENGINE_ID;
-#[cfg(feature = "std")]
-use sp_inherents::ProvideInherentData;
 use frame_support::{
 	decl_module, decl_storage, decl_error, decl_event, ensure,
 	traits::{Get, Currency, LockIdentifier, LockableCurrency, WithdrawReasons},
@@ -370,73 +365,5 @@ impl<T: Config> Module<T> {
 		for (destination, mint) in mints {
 			drop(T::Currency::deposit_creating(&destination, *mint));
 		}
-	}
-}
-
-pub const INHERENT_IDENTIFIER_V0: InherentIdentifier = *b"rewards_";
-pub const INHERENT_IDENTIFIER_V1: InherentIdentifier = *b"rewards1";
-
-#[derive(Encode, Decode, RuntimeDebug)]
-pub enum InherentError { }
-
-impl IsFatalError for InherentError {
-	fn is_fatal_error(&self) -> bool {
-		match *self { }
-	}
-}
-
-impl InherentError {
-	/// Try to create an instance ouf of the given identifier and data.
-	#[cfg(feature = "std")]
-	pub fn try_from(id: &InherentIdentifier, data: &[u8]) -> Option<Self> {
-		if id == &INHERENT_IDENTIFIER_V1 || id == &INHERENT_IDENTIFIER_V0 {
-			<InherentError as codec::Decode>::decode(&mut &data[..]).ok()
-		} else {
-			None
-		}
-	}
-}
-
-#[cfg(feature = "std")]
-pub struct InherentDataProviderV0(pub Vec<u8>);
-
-#[cfg(feature = "std")]
-impl ProvideInherentData for InherentDataProviderV0 {
-	fn inherent_identifier(&self) -> &'static InherentIdentifier {
-		&INHERENT_IDENTIFIER_V0
-	}
-
-	fn provide_inherent_data(
-		&self,
-		inherent_data: &mut InherentData
-	) -> Result<(), sp_inherents::Error> {
-		inherent_data.put_data(INHERENT_IDENTIFIER_V0, &self.0)
-	}
-
-	fn error_to_string(&self, error: &[u8]) -> Option<String> {
-		InherentError::try_from(&INHERENT_IDENTIFIER_V0, error).map(|e| format!("{:?}", e))
-	}
-}
-
-pub type InherentType = (Vec<u8>, Perbill);
-
-#[cfg(feature = "std")]
-pub struct InherentDataProviderV1(pub InherentType);
-
-#[cfg(feature = "std")]
-impl ProvideInherentData for InherentDataProviderV1 {
-	fn inherent_identifier(&self) -> &'static InherentIdentifier {
-		&INHERENT_IDENTIFIER_V1
-	}
-
-	fn provide_inherent_data(
-		&self,
-		inherent_data: &mut InherentData
-	) -> Result<(), sp_inherents::Error> {
-		inherent_data.put_data(INHERENT_IDENTIFIER_V1, &self.0)
-	}
-
-	fn error_to_string(&self, error: &[u8]) -> Option<String> {
-		InherentError::try_from(&INHERENT_IDENTIFIER_V1, error).map(|e| format!("{:?}", e))
 	}
 }

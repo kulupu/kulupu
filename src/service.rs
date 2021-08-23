@@ -25,28 +25,35 @@ use std::time::Duration;
 use std::thread;
 use parking_lot::Mutex;
 use codec::Encode;
-use sp_runtime::{Perbill, generic::BlockId, traits::Bounded};
+use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use sp_core::{H256, Pair, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use sc_service::{error::{Error as ServiceError}, Configuration, TaskManager};
-use sc_executor::native_executor_instance;
 use sc_client_api::backend::RemoteBackend;
 use sc_telemetry::{Telemetry, TelemetryWorker};
+use sc_executor::NativeElseWasmExecutor;
+use sc_consensus::DefaultImportQueue;
 use kulupu_runtime::{self, opaque::Block, RuntimeApi};
 use kulupu_pow::Error as PowError;
 use kulupu_pow::compute::Error as ComputeError;
 use kulupu_pow::compute::RandomxError;
+use async_trait::async_trait;
 use log::*;
 
-pub use sc_executor::NativeExecutor;
-
 // Our native executor instance.
-native_executor_instance!(
-	pub Executor,
-	kulupu_runtime::api::dispatch,
-	kulupu_runtime::native_version,
-	frame_benchmarking::benchmarking::HostFunctions,
-);
+pub struct ExecutorDispatch;
+
+impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
+	type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+
+	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+		kulupu_runtime::api::dispatch(method, data)
+	}
+
+	fn native_version() -> sc_executor::NativeVersion {
+		kulupu_runtime::native_version()
+	}
+}
 
 pub fn decode_author(
 	author: Option<&str>, keystore: SyncCryptoStorePtr, keystore_path: Option<PathBuf>,
@@ -87,44 +94,24 @@ pub fn decode_author(
 	}
 }
 
-type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
+type FullClient =
+	sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
-/// Inherent data provider for Kulupu.
-pub fn kulupu_inherent_data_providers(
-	donate: bool,
-) -> Result<sp_inherents::InherentDataProviders, ServiceError> {
-	let inherent_data_providers = sp_inherents::InherentDataProviders::new();
+pub struct CreateInherentDataProviders;
 
-	if !inherent_data_providers.has_provider(&sp_timestamp::INHERENT_IDENTIFIER) {
-		inherent_data_providers
-			.register_provider(sp_timestamp::InherentDataProvider)
-			.map_err(Into::into)
-			.map_err(sp_consensus::Error::InherentData)?;
+#[async_trait]
+impl sp_inherents::CreateInherentDataProviders<Block, ()> for CreateInherentDataProviders {
+	type InherentDataProviders = sp_timestamp::InherentDataProvider;
+
+	async fn create_inherent_data_providers(
+		&self,
+		_parent: <Block as BlockT>::Hash,
+		_extra_args: (),
+	) -> Result<Self::InherentDataProviders, Box<dyn std::error::Error + Send + Sync>> {
+		Ok(sp_timestamp::InherentDataProvider::from_system_time())
 	}
-
-	let fake_author = kulupu_pow::app::Public::default().encode();
-
-	if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER_V0) {
-		inherent_data_providers
-			.register_provider(pallet_rewards::InherentDataProviderV0(
-				fake_author.clone(),
-			))
-			.map_err(Into::into)
-			.map_err(sp_consensus::Error::InherentData)?;
-	}
-
-	if !inherent_data_providers.has_provider(&pallet_rewards::INHERENT_IDENTIFIER_V1) {
-		inherent_data_providers
-			.register_provider(pallet_rewards::InherentDataProviderV1(
-				(fake_author.clone(), if donate { Perbill::max_value() } else { Perbill::zero() })
-			))
-			.map_err(Into::into)
-			.map_err(sp_consensus::Error::InherentData)?;
-	}
-
-	Ok(inherent_data_providers)
 }
 
 type PowBlockImport = sc_consensus_pow::PowBlockImport<
@@ -141,6 +128,7 @@ type PowBlockImport = sc_consensus_pow::PowBlockImport<
 	FullSelectChain,
 	kulupu_pow::RandomXAlgorithm<FullClient>,
 	sp_consensus::AlwaysCanAuthor,
+	CreateInherentDataProviders,
 >;
 
 pub fn new_partial(
@@ -150,17 +138,13 @@ pub fn new_partial(
 	enable_weak_subjectivity: bool,
 ) -> Result<sc_service::PartialComponents<
 	FullClient, FullBackend, FullSelectChain,
-	sp_consensus::DefaultImportQueue<Block, FullClient>,
+	DefaultImportQueue<Block, FullClient>,
 	sc_transaction_pool::FullPool<Block, FullClient>,
 	(
 		PowBlockImport,
 		Option<Telemetry>,
 	),
 >, ServiceError> {
-	let inherent_data_providers = crate::service::kulupu_inherent_data_providers(
-		donate,
-	)?;
-
 	let telemetry = config.telemetry_endpoints.clone()
 		.filter(|x| !x.is_empty())
 		.map(|endpoints| -> Result<_, sc_telemetry::Error> {
@@ -170,10 +154,17 @@ pub fn new_partial(
 		})
 		.transpose()?;
 
+	let executor = NativeElseWasmExecutor::<ExecutorDispatch>::new(
+		config.wasm_method,
+		config.default_heap_pages,
+		config.max_runtime_instances,
+	);
+
 	let (client, backend, keystore_container, task_manager) =
-		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
+		sc_service::new_full_parts(
 			&config,
 			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+			executor,
 		)?;
 	let client = Arc::new(client);
 
@@ -189,7 +180,7 @@ pub fn new_partial(
 		config.transaction_pool.clone(),
 		config.role.is_authority().into(),
 		config.prometheus_registry(),
-		task_manager.spawn_handle(),
+		task_manager.spawn_essential_handle(),
 		client.clone(),
 	);
 
@@ -210,7 +201,7 @@ pub fn new_partial(
 		algorithm.clone(),
 		check_inherents_after,
 		select_chain.clone(),
-		inherent_data_providers.clone(),
+		CreateInherentDataProviders,
 		sp_consensus::AlwaysCanAuthor,
 	);
 
@@ -218,14 +209,13 @@ pub fn new_partial(
 		Box::new(pow_block_import.clone()),
 		None,
 		algorithm.clone(),
-		inherent_data_providers.clone(),
 		&task_manager.spawn_essential_handle(),
 		config.prometheus_registry(),
 	)?;
 
 	Ok(sc_service::PartialComponents {
 		client, backend, task_manager, import_queue, keystore_container,
-		select_chain, transaction_pool, inherent_data_providers,
+		select_chain, transaction_pool,
 		other: (pow_block_import, telemetry),
 	})
 }
@@ -242,11 +232,11 @@ pub fn new_full(
 ) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client, backend, mut task_manager, import_queue, keystore_container,
-		select_chain, transaction_pool, inherent_data_providers,
+		select_chain, transaction_pool,
 		other: (pow_block_import, mut telemetry),
 	} = new_partial(&config, check_inherents_after, donate, enable_weak_subjectivity)?;
 
-	let (network, network_status_sinks, system_rpc_tx, network_starter) =
+	let (network, system_rpc_tx, network_starter) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
 			config: &config,
 			client: client.clone(),
@@ -255,6 +245,7 @@ pub fn new_full(
 			import_queue,
 			on_demand: None,
 			block_announce_validator_builder: None,
+			warp_sync: None,
 		})?;
 
 	if config.offchain_worker.enabled {
@@ -277,7 +268,7 @@ pub fn new_full(
 				deny_unsafe,
 			};
 
-			crate::rpc::create_full(deps)
+			Ok(crate::rpc::create_full(deps))
 		})
 	};
 
@@ -292,7 +283,7 @@ pub fn new_full(
 		rpc_extensions_builder: rpc_extensions_builder,
 		on_demand: None,
 		remote_blockchain: None,
-		backend, network_status_sinks, system_rpc_tx, config,
+		backend, system_rpc_tx, config,
 		telemetry: telemetry.as_mut(),
 	})?;
 
@@ -317,8 +308,9 @@ pub fn new_full(
 			algorithm,
 			proposer,
 			network.clone(),
+			network.clone(),
 			Some(author.encode()),
-			inherent_data_providers.clone(),
+			CreateInherentDataProviders,
 			Duration::new(10, 0),
 			Duration::new(10, 0),
 			sp_consensus::AlwaysCanAuthor,
@@ -388,21 +380,28 @@ pub fn new_light(
 	donate: bool,
 	enable_weak_subjectivity: bool,
 ) -> Result<TaskManager, ServiceError> {
-	let telemetry = config.telemetry_endpoints.clone()
+	let telemetry = config
+		.telemetry_endpoints
+		.clone()
 		.filter(|x| !x.is_empty())
 		.map(|endpoints| -> Result<_, sc_telemetry::Error> {
-			let transport = None;
-
-			let worker = TelemetryWorker::with_transport(16, transport)?;
+			let worker = TelemetryWorker::new(16)?;
 			let telemetry = worker.handle().new_telemetry(endpoints);
 			Ok((worker, telemetry))
 		})
 		.transpose()?;
 
+	let executor = NativeElseWasmExecutor::<ExecutorDispatch>::new(
+		config.wasm_method,
+		config.default_heap_pages,
+		config.max_runtime_instances,
+	);
+
 	let (client, backend, keystore_container, mut task_manager, on_demand) =
-		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(
+		sc_service::new_light_parts::<Block, RuntimeApi, _>(
 			&config,
 			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+			executor,
 		)?;
 
 	let mut telemetry = telemetry
@@ -411,17 +410,16 @@ pub fn new_light(
 			telemetry
 		});
 
+
 	let transaction_pool = Arc::new(sc_transaction_pool::BasicPool::new_light(
 		config.transaction_pool.clone(),
 		config.prometheus_registry(),
-		task_manager.spawn_handle(),
+		task_manager.spawn_essential_handle(),
 		client.clone(),
 		on_demand.clone(),
 	));
 
 	let select_chain = sc_consensus::LongestChain::new(backend.clone());
-
-	let inherent_data_providers = kulupu_inherent_data_providers(donate)?;
 
 	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
 
@@ -440,7 +438,7 @@ pub fn new_light(
 		algorithm.clone(),
 		check_inherents_after,
 		select_chain.clone(),
-		inherent_data_providers.clone(),
+		CreateInherentDataProviders,
 		sp_consensus::AlwaysCanAuthor,
 	);
 
@@ -448,12 +446,11 @@ pub fn new_light(
 		Box::new(pow_block_import.clone()),
 		None,
 		algorithm.clone(),
-		inherent_data_providers.clone(),
 		&task_manager.spawn_essential_handle(),
 		config.prometheus_registry(),
 	)?;
 
-	let (network, network_status_sinks, system_rpc_tx, network_starter) =
+	let (network, system_rpc_tx, network_starter) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
 			config: &config,
 			client: client.clone(),
@@ -462,6 +459,7 @@ pub fn new_light(
 			import_queue,
 			on_demand: Some(on_demand.clone()),
 			block_announce_validator_builder: None,
+			warp_sync: None,
 		})?;
 
 	if config.offchain_worker.enabled {
@@ -475,13 +473,12 @@ pub fn new_light(
 		transaction_pool,
 		task_manager: &mut task_manager,
 		on_demand: Some(on_demand),
-		rpc_extensions_builder: Box::new(|_, _| ()),
+		rpc_extensions_builder: Box::new(|_, _| Ok(())),
 		config,
 		client,
 		keystore: keystore_container.sync_keystore(),
 		backend,
 		network,
-		network_status_sinks,
 		system_rpc_tx,
 		telemetry: telemetry.as_mut(),
 	 })?;
