@@ -40,7 +40,6 @@ jobs:
   - task: PublishBuildArtifacts@1
     displayName: 'Publish artifacts'
 
-jobs:
 - job: Lint
   pool:
     vmImage: 'ubuntu-latest'
