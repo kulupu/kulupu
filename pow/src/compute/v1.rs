@@ -16,10 +16,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
-use codec::{Encode, Decode};
-use sp_core::H256;
-use kulupu_primitives::Difficulty;
 use super::Calculation;
+use codec::{Decode, Encode};
+use kulupu_primitives::Difficulty;
+use sp_core::H256;
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
 pub struct SealV1 {
@@ -49,16 +49,15 @@ impl ComputeV1 {
 	pub fn seal_and_work(&self, mode: super::ComputeMode) -> Result<(SealV1, H256), super::Error> {
 		let input = self.input();
 
-		let work = super::compute::<Calculation>(
-			&self.key_hash,
-			&input,
-			mode,
-		)?;
+		let work = super::compute::<Calculation>(&self.key_hash, &input, mode)?;
 
-		Ok((SealV1 {
-			nonce: self.nonce,
-			difficulty: self.difficulty,
-		}, work))
+		Ok((
+			SealV1 {
+				nonce: self.nonce,
+				difficulty: self.difficulty,
+			},
+			work,
+		))
 	}
 
 	pub fn seal(&self) -> SealV1 {

@@ -40,6 +40,24 @@ jobs:
   - task: PublishBuildArtifacts@1
     displayName: 'Publish artifacts'
 
+- job: Lint
+  pool:
+    vmImage: 'ubuntu-latest'
+  timeoutInMinutes: 0
+  steps:
+  - script: git submodule update --init --recursive
+    displayName: 'Submodules'
+  - script: |
+      curl -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+      source ~/.cargo/env
+      rustup update $(RUST_STABLE)
+      rustup target add wasm32-unknown-unknown --toolchain $(RUST_STABLE)
+    displayName: 'Rust setup'
+  - script: |
+      source ~/.cargo/env
+      RANDOMX_ARCH=default RUSTUP_TOOLCHAIN=$(RUST_STABLE) WASM_BUILD_TOOLCHAIN=$(RUST_STABLE) RUSTC_BOOTSTRAP=1 cargo fmt --all -- --check
+    displayName: 'Check rustfmt'
+
 - job: WebAssembly
   pool:
     vmImage: 'ubuntu-latest'

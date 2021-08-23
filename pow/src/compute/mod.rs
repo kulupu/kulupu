@@ -24,18 +24,18 @@ pub use self::v2::{ComputeV2, SealV2};
 pub use randomx::Config;
 pub use randomx::Error as RandomxError;
 
-use log::info;
-use codec::{Encode, Decode};
-use std::sync::Arc;
-use std::cell::RefCell;
-use parking_lot::Mutex;
-use sp_core::H256;
+use codec::{Decode, Encode};
+use kulupu_primitives::Difficulty;
+use kulupu_randomx as randomx;
 use lazy_static::lazy_static;
+use log::info;
 use lru_cache::LruCache;
 use once_cell::sync::OnceCell;
-use kulupu_randomx as randomx;
+use parking_lot::Mutex;
 use randomx::WithCacheMode;
-use kulupu_primitives::Difficulty;
+use sp_core::H256;
+use std::cell::RefCell;
+use std::sync::Arc;
 
 lazy_static! {
 	static ref FULL_SHARED_CACHES: Arc<Mutex<LruCache<H256, Arc<randomx::FullCache>>>> =
@@ -59,7 +59,7 @@ pub enum Error {
 }
 
 impl Error {
-	pub fn description(&self) -> &'static str { 
+	pub fn description(&self) -> &'static str {
 		match self {
 			Error::Randomx(e) => e.description(),
 			Error::CacheNotAvailable => "Randomx cache not available",
@@ -112,9 +112,10 @@ fn need_new_vm<M: randomx::WithCacheMode>(
 ) -> bool {
 	let ms = machine.borrow();
 
-	let need_new_vm = ms.as_ref().map(|(mkey_hash, _)| {
-		mkey_hash != key_hash
-	}).unwrap_or(true);
+	let need_new_vm = ms
+		.as_ref()
+		.map(|(mkey_hash, _)| mkey_hash != key_hash)
+		.unwrap_or(true);
 
 	need_new_vm
 }
@@ -129,7 +130,10 @@ fn do_new_vm<M: randomx::WithCacheMode>(
 
 	if !f_has_large_pages(global_config()) {
 		if let Some(cache) = shared_caches.get_mut(key_hash) {
-			machine.replace(Some((*key_hash, randomx::VM::new(cache.clone(), global_config()))));
+			machine.replace(Some((
+				*key_hash,
+				randomx::VM::new(cache.clone(), global_config()),
+			)));
 
 			Ok(())
 		} else {
@@ -147,9 +151,12 @@ fn do_new_vm<M: randomx::WithCacheMode>(
 
 			Ok(())
 		}
-	} else {	
+	} else {
 		if let Some(cache) = shared_caches.get_mut(key_hash) {
-			machine.replace(Some((*key_hash, randomx::VM::new(cache.clone(), global_config()))));
+			machine.replace(Some((
+				*key_hash,
+				randomx::VM::new(cache.clone(), global_config()),
+			)));
 
 			Ok(())
 		} else {
@@ -170,19 +177,19 @@ fn do_new_vm<M: randomx::WithCacheMode>(
 			} else {
 				machine.replace(None);
 				let key_to_replace = (*shared_caches)
-						.iter()
-						.find(|&(_, cache)| Arc::strong_count(cache) == 1)
-						.and_then(|(key, _)| Some(*key))
-						.ok_or(Error::CacheNotAvailable)?;
+					.iter()
+					.find(|&(_, cache)| Arc::strong_count(cache) == 1)
+					.and_then(|(key, _)| Some(*key))
+					.ok_or(Error::CacheNotAvailable)?;
 
 				info!(target: "kulupu-randomx", "{}", info);
 				let mut cache = shared_caches
-						.remove(&key_to_replace)
-						.expect("That key should still be in the lru cache.");
+					.remove(&key_to_replace)
+					.expect("That key should still be in the lru cache.");
 
 				Arc::get_mut(&mut cache)
-						.expect("The mutable reference should be available as strong_count is 1.")
-						.reinit(&key_hash[..]);
+					.expect("The mutable reference should be available as strong_count is 1.")
+					.reinit(&key_hash[..]);
 				shared_caches.insert(*key_hash, cache.clone());
 				machine.replace(Some((*key_hash, randomx::VM::new(cache, global_config()))));
 
@@ -200,7 +207,8 @@ fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
 	f_validate: FValidate,
 	f_has_large_pages: fn(&Config) -> bool,
 	round: usize,
-) -> Result<Option<R>, Error> where
+) -> Result<Option<R>, Error>
+where
 	FPre: FnMut() -> (Vec<u8>, I),
 	FValidate: Fn(H256, I) -> Loop<Option<R>>,
 {
@@ -210,10 +218,13 @@ fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
 
 	let mut ms = machine.borrow_mut();
 
-	let ret = ms.as_mut()
+	let ret = ms
+		.as_mut()
 		.map(|(mkey_hash, vm)| {
-			assert_eq!(mkey_hash, key_hash,
-					   "Condition failed checking cached key_hash. This is a bug");
+			assert_eq!(
+				mkey_hash, key_hash,
+				"Condition failed checking cached key_hash. This is a bug"
+			);
 
 			let mut ret = None;
 
@@ -228,9 +239,9 @@ fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
 						Loop::Continue => (),
 						Loop::Break(b) => {
 							ret = b;
-						},
+						}
 					}
-				},
+				}
 				_ => {
 					let (prev_pre, mut prev_int) = f_pre();
 					let mut vmn = vm.begin(&prev_pre[..]);
@@ -246,8 +257,8 @@ fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
 							Loop::Continue => (),
 							Loop::Break(b) => {
 								ret = b;
-								break
-							},
+								break;
+							}
 						}
 					}
 
@@ -258,7 +269,7 @@ fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
 						Loop::Continue => (),
 						Loop::Break(b) => {
 							ret = b;
-						},
+						}
 					}
 				}
 			}
@@ -276,35 +287,37 @@ pub fn loop_raw<FPre, I, FValidate, R>(
 	f_pre: FPre,
 	f_validate: FValidate,
 	round: usize,
-) -> Result<Option<R>, Error> where
+) -> Result<Option<R>, Error>
+where
 	FPre: FnMut() -> (Vec<u8>, I),
 	FValidate: Fn(H256, I) -> Loop<Option<R>>,
 {
 	match mode {
-		ComputeMode::Mining =>
-			FULL_MACHINE.with(|machine| {
-				loop_raw_with_cache::<randomx::WithFullCacheMode, _, _, _, _>(
-					key_hash,
-					machine,
-					&FULL_SHARED_CACHES,
-					f_pre,
-					f_validate,
-					randomx::WithFullCacheMode::has_large_pages,
-					round,
-				)
-			}),
+		ComputeMode::Mining => FULL_MACHINE.with(|machine| {
+			loop_raw_with_cache::<randomx::WithFullCacheMode, _, _, _, _>(
+				key_hash,
+				machine,
+				&FULL_SHARED_CACHES,
+				f_pre,
+				f_validate,
+				randomx::WithFullCacheMode::has_large_pages,
+				round,
+			)
+		}),
 		ComputeMode::Sync => {
 			let full_ret = FULL_MACHINE.with(|machine| {
 				if !need_new_vm::<randomx::WithFullCacheMode>(key_hash, machine) {
-					Ok(loop_raw_with_cache::<randomx::WithFullCacheMode, _, _, _, _>(
-						key_hash,
-						machine,
-						&FULL_SHARED_CACHES,
-						f_pre,
-						f_validate,
-						randomx::WithFullCacheMode::has_large_pages,
-						round,
-					))
+					Ok(
+						loop_raw_with_cache::<randomx::WithFullCacheMode, _, _, _, _>(
+							key_hash,
+							machine,
+							&FULL_SHARED_CACHES,
+							f_pre,
+							f_validate,
+							randomx::WithFullCacheMode::has_large_pages,
+							round,
+						),
+					)
 				} else {
 					Err((f_pre, f_validate))
 				}
@@ -312,21 +325,19 @@ pub fn loop_raw<FPre, I, FValidate, R>(
 
 			match full_ret {
 				Ok(ret) => ret,
-				Err((f_pre, f_validate)) => {
-					LIGHT_MACHINE.with(|machine| {
-						loop_raw_with_cache::<randomx::WithLightCacheMode, _, _, _, _>(
-							key_hash,
-							machine,
-							&LIGHT_SHARED_CACHES,
-							f_pre,
-							f_validate,
-							randomx::WithLightCacheMode::has_large_pages,
-							round,
-						)
-					})
-				}
+				Err((f_pre, f_validate)) => LIGHT_MACHINE.with(|machine| {
+					loop_raw_with_cache::<randomx::WithLightCacheMode, _, _, _, _>(
+						key_hash,
+						machine,
+						&LIGHT_SHARED_CACHES,
+						f_pre,
+						f_validate,
+						randomx::WithLightCacheMode::has_large_pages,
+						round,
+					)
+				}),
 			}
-		},
+		}
 	}
 }
 
@@ -337,7 +348,8 @@ pub fn compute<T: Encode>(key_hash: &H256, input: &T, mode: ComputeMode) -> Resu
 		|| (input.encode(), ()),
 		|hash, ()| Loop::Break(Some(hash)),
 		1,
-	)?.expect("Loop break always returns Some; qed"))
+	)?
+	.expect("Loop break always returns Some; qed"))
 }
 
 #[cfg(test)]
@@ -353,7 +365,10 @@ mod tests {
 	#[test]
 	fn randomx_collision() -> Result<(), String> {
 		let mut compute = ComputeV1 {
-			key_hash: H256::from([210, 164, 216, 149, 3, 68, 116, 1, 239, 110, 111, 48, 180, 102, 53, 180, 91, 84, 242, 90, 101, 12, 71, 70, 75, 83, 17, 249, 214, 253, 71, 89]),
+			key_hash: H256::from([
+				210, 164, 216, 149, 3, 68, 116, 1, 239, 110, 111, 48, 180, 102, 53, 180, 91, 84,
+				242, 90, 101, 12, 71, 70, 75, 83, 17, 249, 214, 253, 71, 89,
+			]),
 			pre_hash: H256::default(),
 			difficulty: U256::default(),
 			nonce: H256::default(),
@@ -364,12 +379,17 @@ mod tests {
 		assert!(hash1.1 != hash2.1);
 
 		let mut compute2 = ComputeV2 {
-			key_hash: H256::from([210, 164, 216, 149, 3, 68, 116, 1, 239, 110, 111, 48, 180, 102, 53, 180, 91, 84, 242, 90, 101, 12, 71, 70, 75, 83, 17, 249, 214, 253, 71, 89]),
+			key_hash: H256::from([
+				210, 164, 216, 149, 3, 68, 116, 1, 239, 110, 111, 48, 180, 102, 53, 180, 91, 84,
+				242, 90, 101, 12, 71, 70, 75, 83, 17, 249, 214, 253, 71, 89,
+			]),
 			pre_hash: H256::default(),
 			difficulty: U256::default(),
 			nonce: H256::default(),
 		};
-		let hash3 = compute2.clone().seal_and_work(Default::default(), ComputeMode::Sync)?;
+		let hash3 = compute2
+			.clone()
+			.seal_and_work(Default::default(), ComputeMode::Sync)?;
 		U256::one().to_big_endian(&mut compute2.nonce[..]);
 		let hash4 = compute2.seal_and_work(Default::default(), ComputeMode::Sync)?;
 		assert!(hash3.1 != hash4.1);

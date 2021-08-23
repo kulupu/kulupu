@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use sp_core::{H256, U256};
 
 #[derive(Serialize, Deserialize)]

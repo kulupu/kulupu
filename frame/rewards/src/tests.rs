@@ -19,14 +19,14 @@
 
 //! Tests for Rewards Pallet
 
-use crate::*;
 use crate::mock::*;
-use sp_runtime::{Digest, testing::DigestItem};
-use frame_system::InitKind;
-use frame_support::{assert_ok, assert_noop};
+use crate::*;
 use frame_support::error::BadOrigin;
-use frame_support::traits::{OnInitialize, OnFinalize};
+use frame_support::traits::{OnFinalize, OnInitialize};
+use frame_support::{assert_noop, assert_ok};
+use frame_system::InitKind;
 use pallet_balances::Error as BalancesError;
+use sp_runtime::{testing::DigestItem, Digest};
 
 // Get the last event from System
 fn last_event() -> mock::Event {
@@ -45,7 +45,9 @@ fn run_to_block(n: u64, author: u64) {
 		System::initialize(
 			&current_block,
 			&parent_hash,
-			&Digest { logs: vec![pre_digest] },
+			&Digest {
+				logs: vec![pre_digest],
+			},
 			InitKind::Full,
 		);
 		System::set_block_number(current_block);
@@ -70,13 +72,37 @@ fn genesis_config_works() {
 fn set_reward_works() {
 	new_test_ext(1).execute_with(|| {
 		// Fails with bad origin
-		assert_noop!(Rewards::set_schedule(Origin::signed(1), 42, Default::default(), Default::default(), Default::default()), BadOrigin);
+		assert_noop!(
+			Rewards::set_schedule(
+				Origin::signed(1),
+				42,
+				Default::default(),
+				Default::default(),
+				Default::default()
+			),
+			BadOrigin
+		);
 		// Successful
-		assert_ok!(Rewards::set_schedule(Origin::root(), 42, Default::default(), Default::default(), Default::default()));
+		assert_ok!(Rewards::set_schedule(
+			Origin::root(),
+			42,
+			Default::default(),
+			Default::default(),
+			Default::default()
+		));
 		assert_eq!(Reward::<Test>::get(), 42);
 		assert_eq!(last_event(), RawEvent::ScheduleSet.into());
 		// Fails when too low
-		assert_noop!(Rewards::set_schedule(Origin::root(), 0, Default::default(), Default::default(), Default::default()), Error::<Test>::RewardTooLow);
+		assert_noop!(
+			Rewards::set_schedule(
+				Origin::root(),
+				0,
+				Default::default(),
+				Default::default(),
+				Default::default()
+			),
+			Error::<Test>::RewardTooLow
+		);
 	});
 }
 
@@ -96,7 +122,13 @@ fn reward_payment_works() {
 		assert_eq!(Balances::free_balance(1), 60);
 
 		// Set new reward
-		assert_ok!(Rewards::set_schedule(Origin::root(), 42, Default::default(), Default::default(), Default::default()));
+		assert_ok!(Rewards::set_schedule(
+			Origin::root(),
+			42,
+			Default::default(),
+			Default::default(),
+			Default::default()
+		));
 		run_to_block(3, 1);
 		assert_eq!(Balances::free_balance(2), 42);
 	});
@@ -106,7 +138,13 @@ fn reward_payment_works() {
 fn reward_locks_work() {
 	new_test_ext(1).execute_with(|| {
 		// Make numbers better :)
-		assert_ok!(Rewards::set_schedule(Origin::root(), 101, Default::default(), Default::default(), Default::default()));
+		assert_ok!(Rewards::set_schedule(
+			Origin::root(),
+			101,
+			Default::default(),
+			Default::default(),
+			Default::default()
+		));
 
 		// Next block
 		run_to_block(2, 1);
@@ -116,10 +154,15 @@ fn reward_locks_work() {
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 1));
 
 		// Cannot transfer because of locks
-		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
+		assert_noop!(
+			Balances::transfer(Origin::signed(1), 2, 1),
+			BalancesError::<Test, _>::LiquidityRestrictions
+		);
 
 		// Confirm locks (10 of them, each of value 10)
-		let mut expected_locks = (1..=10).map(|x| (x * 10 + 1, 10)).collect::<BTreeMap<_, _>>();
+		let mut expected_locks = (1..=10)
+			.map(|x| (x * 10 + 1, 10))
+			.collect::<BTreeMap<_, _>>();
 		assert_eq!(Rewards::reward_locks(1), expected_locks);
 
 		// 10 blocks later (10 days)
@@ -132,7 +175,10 @@ fn reward_locks_work() {
 		// Transfer works
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 10));
 		// Cannot transfer more
-		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
+		assert_noop!(
+			Balances::transfer(Origin::signed(1), 2, 1),
+			BalancesError::<Test, _>::LiquidityRestrictions
+		);
 
 		// User mints more blocks
 		run_to_block(12, 1);
@@ -140,16 +186,25 @@ fn reward_locks_work() {
 
 		// Locks as expected
 		// Left over from block 1 + from block 11
-		let mut expected_locks = (2..=10).map(|x| (x * 10 + 1, 10 + 10)).collect::<BTreeMap<_, _>>();
+		let mut expected_locks = (2..=10)
+			.map(|x| (x * 10 + 1, 10 + 10))
+			.collect::<BTreeMap<_, _>>();
 		// Last one from block 11
 		expected_locks.insert(111, 10);
 		// From block 12
-		expected_locks.append(&mut (2..=11).map(|x| (x * 10 + 2, 10)).collect::<BTreeMap<_, _>>());
+		expected_locks.append(
+			&mut (2..=11)
+				.map(|x| (x * 10 + 2, 10))
+				.collect::<BTreeMap<_, _>>(),
+		);
 		assert_eq!(Rewards::reward_locks(1), expected_locks);
 
 		// User gains 2 free for txs
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 2));
-		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
+		assert_noop!(
+			Balances::transfer(Origin::signed(1), 2, 1),
+			BalancesError::<Test, _>::LiquidityRestrictions
+		);
 
 		// 20 more is unlocked on block 21
 		System::set_block_number(21);
@@ -161,32 +216,58 @@ fn reward_locks_work() {
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 10));
 
 		// Cannot transfer more
-		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
+		assert_noop!(
+			Balances::transfer(Origin::signed(1), 2, 1),
+			BalancesError::<Test, _>::LiquidityRestrictions
+		);
 
 		// Change lock params, 50 subperiods long 6 days each (2 coins each subperiod)
-		assert_ok!(Rewards::set_lock_params(Origin::root(), LockParameters {period: 300, divide:50}));
+		assert_ok!(Rewards::set_lock_params(
+			Origin::root(),
+			LockParameters {
+				period: 300,
+				divide: 50
+			}
+		));
 		// Moving to block 25 to mine it so unlocks will happen on blocks 31,37,43,50,57...325
 		System::set_block_number(25);
 		// Mine it
 		run_to_block(26, 1);
 		// Now only 1 free coin should be available
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 1));
-		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
+		assert_noop!(
+			Balances::transfer(Origin::signed(1), 2, 1),
+			BalancesError::<Test, _>::LiquidityRestrictions
+		);
 		// Reinitialize the reference BTreeMap and check equality
 		let mut expected_locks = BTreeMap::new();
 		for block in 31..=325 {
 			let mut amount = 0;
 			if block <= 101 {
-				if block % 10 == 1 { amount += 20; }
-				if block % 10 == 2 { amount += 10; }
+				if block % 10 == 1 {
+					amount += 20;
+				}
+				if block % 10 == 2 {
+					amount += 10;
+				}
 			} else if block <= 111 {
-				if block % 10 == 1 { amount += 10; }
-				if block % 10 == 2 { amount += 10; }
+				if block % 10 == 1 {
+					amount += 10;
+				}
+				if block % 10 == 2 {
+					amount += 10;
+				}
 			} else if block <= 112 {
-				if block % 10 == 2 { amount += 10; }
+				if block % 10 == 2 {
+					amount += 10;
+				}
 			}
-			if block % 6 == 1 { amount += 2; }
-			if amount > 0 { expected_locks.insert(block, amount); }
+			if block % 6 == 1 {
+				amount += 2;
+			}
+			if amount > 0 {
+				expected_locks.insert(block, amount);
+			}
 		}
 		assert_eq!(Rewards::reward_locks(1), expected_locks);
 
@@ -194,25 +275,32 @@ fn reward_locks_work() {
 		System::set_block_number(31);
 		assert_ok!(Rewards::unlock(Origin::signed(1), 1));
 		assert_ok!(Balances::transfer(Origin::signed(1), 2, 22));
-		assert_noop!(Balances::transfer(Origin::signed(1), 2, 1), BalancesError::<Test, _>::LiquidityRestrictions);
+		assert_noop!(
+			Balances::transfer(Origin::signed(1), 2, 1),
+			BalancesError::<Test, _>::LiquidityRestrictions
+		);
 	});
 }
 
 fn test_curve() -> Vec<(u64, u128)> {
-	vec![
-		(50, 20),
-		(40, 25),
-		(20, 50),
-		(10, 100),
-	]
+	vec![(50, 20), (40, 25), (20, 50), (10, 100)]
 }
 
 #[test]
 fn curve_works() {
 	new_test_ext(1).execute_with(|| {
 		// Set reward curve
-		assert_ok!(Rewards::set_schedule(Origin::root(), 60, Default::default(), test_curve(), Default::default()));
-		assert_eq!(last_event(), mock::Event::Rewards(crate::Event::<Test>::ScheduleSet));
+		assert_ok!(Rewards::set_schedule(
+			Origin::root(),
+			60,
+			Default::default(),
+			test_curve(),
+			Default::default()
+		));
+		assert_eq!(
+			last_event(),
+			mock::Event::Rewards(crate::Event::<Test>::ScheduleSet)
+		);
 		// Check current reward
 		assert_eq!(Rewards::reward(), 60);
 		run_to_block(9, 1);
@@ -221,7 +309,10 @@ fn curve_works() {
 		// Update successful
 		assert_eq!(Rewards::reward(), 100);
 		// Success reported
-		assert_eq!(last_event(), mock::Event::Rewards(crate::Event::<Test>::RewardChanged(100)));
+		assert_eq!(
+			last_event(),
+			mock::Event::Rewards(crate::Event::<Test>::RewardChanged(100))
+		);
 		run_to_block(20, 1);
 		assert_eq!(Rewards::reward(), 50);
 		// No change, not part of the curve
@@ -245,22 +336,100 @@ fn set_lock_params_works() {
 		// Check initial data
 		assert_eq!(LockParams::get(), None);
 		// Set lock params
-		assert_ok!(Rewards::set_lock_params(Origin::root(), LockParameters {period: 90, divide:30}));
-		assert_eq!(last_event(), mock::Event::Rewards(crate::Event::<Test>::LockParamsChanged(LockParameters {period: 90, divide:30})));
-		assert_eq!(LockParams::get(), Some(LockParameters {period: 90, divide:30}));
-		assert_ok!(Rewards::set_lock_params(Origin::root(), LockParameters {period: 300, divide:50}));
-		assert_eq!(last_event(), mock::Event::Rewards(crate::Event::<Test>::LockParamsChanged(LockParameters {period: 300, divide:50})));
-		assert_eq!(LockParams::get(), Some(LockParameters {period: 300, divide:50}));
+		assert_ok!(Rewards::set_lock_params(
+			Origin::root(),
+			LockParameters {
+				period: 90,
+				divide: 30
+			}
+		));
+		assert_eq!(
+			last_event(),
+			mock::Event::Rewards(crate::Event::<Test>::LockParamsChanged(LockParameters {
+				period: 90,
+				divide: 30
+			}))
+		);
+		assert_eq!(
+			LockParams::get(),
+			Some(LockParameters {
+				period: 90,
+				divide: 30
+			})
+		);
+		assert_ok!(Rewards::set_lock_params(
+			Origin::root(),
+			LockParameters {
+				period: 300,
+				divide: 50
+			}
+		));
+		assert_eq!(
+			last_event(),
+			mock::Event::Rewards(crate::Event::<Test>::LockParamsChanged(LockParameters {
+				period: 300,
+				divide: 50
+			}))
+		);
+		assert_eq!(
+			LockParams::get(),
+			Some(LockParameters {
+				period: 300,
+				divide: 50
+			})
+		);
 		// Check bounds
-		assert_noop!(Rewards::set_lock_params(Origin::root(), LockParameters {period: 600, divide: 10}),
-																	Error::<Test>::LockParamsOutOfBounds);
-		assert_eq!(LockParams::get(), Some(LockParameters {period: 300, divide:50}));
-		assert_noop!(Rewards::set_lock_params(Origin::root(), LockParameters {period: 400, divide: 100}),
-																	Error::<Test>::LockParamsOutOfBounds);
-		assert_eq!(LockParams::get(), Some(LockParameters {period: 300, divide:50}));
+		assert_noop!(
+			Rewards::set_lock_params(
+				Origin::root(),
+				LockParameters {
+					period: 600,
+					divide: 10
+				}
+			),
+			Error::<Test>::LockParamsOutOfBounds
+		);
+		assert_eq!(
+			LockParams::get(),
+			Some(LockParameters {
+				period: 300,
+				divide: 50
+			})
+		);
+		assert_noop!(
+			Rewards::set_lock_params(
+				Origin::root(),
+				LockParameters {
+					period: 400,
+					divide: 100
+				}
+			),
+			Error::<Test>::LockParamsOutOfBounds
+		);
+		assert_eq!(
+			LockParams::get(),
+			Some(LockParameters {
+				period: 300,
+				divide: 50
+			})
+		);
 		// Check divisibility
-		assert_noop!(Rewards::set_lock_params(Origin::root(), LockParameters {period: 400, divide:47}),
-																	Error::<Test>::LockPeriodNotDivisible);
-		assert_eq!(LockParams::get(), Some(LockParameters {period: 300, divide:50}));
+		assert_noop!(
+			Rewards::set_lock_params(
+				Origin::root(),
+				LockParameters {
+					period: 400,
+					divide: 47
+				}
+			),
+			Error::<Test>::LockPeriodNotDivisible
+		);
+		assert_eq!(
+			LockParams::get(),
+			Some(LockParameters {
+				period: 300,
+				divide: 50
+			})
+		);
 	});
 }

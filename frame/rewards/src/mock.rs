@@ -22,14 +22,19 @@
 use super::*;
 use crate as pallet_rewards;
 
-use sp_core::H256;
 use codec::Encode;
-use frame_support::{parameter_types, traits::{OnInitialize, Everything}};
-use sp_runtime::{
-	Digest, traits::{BlakeTwo256, IdentityLookup}, testing::{DigestItem, Header},
+use frame_support::{
+	parameter_types,
+	traits::{Everything, OnInitialize},
 };
 use frame_system::{self as system, InitKind};
-use sp_std::{collections::btree_map::BTreeMap, cmp};
+use sp_core::H256;
+use sp_runtime::{
+	testing::{DigestItem, Header},
+	traits::{BlakeTwo256, IdentityLookup},
+	Digest,
+};
+use sp_std::{cmp, collections::btree_map::BTreeMap};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -124,7 +129,8 @@ impl crate::GenerateRewardLocks<Test> for GenerateRewardLocks {
 			for i in 0..divide {
 				let one_locked_reward = locked_reward / divide as u128;
 
-				let estimate_block_number = current_block.saturating_add((i + 1) * (total_lock_period / divide));
+				let estimate_block_number =
+					current_block.saturating_add((i + 1) * (total_lock_period / divide));
 				let actual_block_number = estimate_block_number / DAYS * DAYS;
 
 				locks.insert(actual_block_number, one_locked_reward);
@@ -158,11 +164,15 @@ impl pallet_rewards::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext(author: u64) -> sp_io::TestExternalities {
-	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	let mut t = system::GenesisConfig::default()
+		.build_storage::<Test>()
+		.unwrap();
 	pallet_rewards::GenesisConfig::<Test> {
 		reward: 60,
 		mints: BTreeMap::new(),
-	}.assimilate_storage(&mut t).unwrap();
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| {
@@ -172,7 +182,9 @@ pub fn new_test_ext(author: u64) -> sp_io::TestExternalities {
 		System::initialize(
 			&current_block,
 			&parent_hash,
-			&Digest { logs: vec![pre_digest] },
+			&Digest {
+				logs: vec![pre_digest],
+			},
 			InitKind::Full,
 		);
 		System::set_block_number(current_block);

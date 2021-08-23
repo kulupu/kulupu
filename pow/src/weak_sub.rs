@@ -17,25 +17,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-	sync::Arc, collections::HashMap, marker::PhantomData, fmt::Debug,
-};
-use sc_client_api::{BlockOf, AuxStore};
-use sp_api::ProvideRuntimeApi;
-use sp_core::U256;
-use sp_runtime::{traits::{Block as BlockT, Header as HeaderT}};
-use sp_blockchain::{
-	well_known_cache_keys::Id as CacheKeyId, HeaderMetadata,
-};
-use sp_consensus::{
-	Error as ConsensusError, SelectChain,
-};
+use log::*;
+use sc_client_api::{AuxStore, BlockOf};
 use sc_consensus::{
-	ImportResult, BlockImportParams, BlockCheckParams, BlockImport,
-	ForkChoiceStrategy,
+	BlockCheckParams, BlockImport, BlockImportParams, ForkChoiceStrategy, ImportResult,
 };
 use sc_consensus_pow::{PowAlgorithm, PowAux};
-use log::*;
+use sp_api::ProvideRuntimeApi;
+use sp_blockchain::{well_known_cache_keys::Id as CacheKeyId, HeaderMetadata};
+use sp_consensus::{Error as ConsensusError, SelectChain};
+use sp_core::U256;
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
+use std::{collections::HashMap, fmt::Debug, marker::PhantomData, sync::Arc};
 
 /// Parameters passed to decision function of whether to block the reorg.
 pub struct WeakSubjectiveParams {
@@ -61,10 +54,7 @@ pub enum WeakSubjectiveDecision {
 /// Algorithm used for the decision function of weak subjectivity.
 pub trait WeakSubjectiveAlgorithm {
 	/// Decide based on the weak subjectivity parameters of whether to block the import.
-	fn weak_subjective_decide(
-		&self,
-		params: WeakSubjectiveParams,
-	) -> WeakSubjectiveDecision;
+	fn weak_subjective_decide(&self, params: WeakSubjectiveParams) -> WeakSubjectiveDecision;
 }
 
 /// Exponential weak subjectivity algorithm for U256 difficulty type.
@@ -72,28 +62,28 @@ pub trait WeakSubjectiveAlgorithm {
 pub struct ExponentialWeakSubjectiveAlgorithm(pub usize, pub f64);
 
 impl WeakSubjectiveAlgorithm for ExponentialWeakSubjectiveAlgorithm {
-	fn weak_subjective_decide(
-		&self,
-		params: WeakSubjectiveParams,
-	) -> WeakSubjectiveDecision {
+	fn weak_subjective_decide(&self, params: WeakSubjectiveParams) -> WeakSubjectiveDecision {
 		if params.retracted_len <= self.0 {
-			return WeakSubjectiveDecision::Continue
+			return WeakSubjectiveDecision::Continue;
 		}
 
-		let mut best_diff = params.best_total_difficulty
+		let mut best_diff = params
+			.best_total_difficulty
 			.saturating_sub(params.common_total_difficulty);
-		let mut new_diff = params.new_total_difficulty
+		let mut new_diff = params
+			.new_total_difficulty
 			.saturating_sub(params.common_total_difficulty);
 
-		while best_diff > U256::from(u128::max_value()) ||
-			new_diff > U256::from(u128::max_value())
+		while best_diff > U256::from(u128::max_value()) || new_diff > U256::from(u128::max_value())
 		{
 			best_diff /= U256::from(2);
 			new_diff /= U256::from(2);
 		}
 
 		let left = (new_diff.as_u128() as f64) / (best_diff.as_u128() as f64);
-		let right = self.1.powi(params.retracted_len.saturating_sub(self.0) as i32);
+		let right = self
+			.1
+			.powi(params.retracted_len.saturating_sub(self.0) as i32);
 
 		if left >= right {
 			WeakSubjectiveDecision::Continue
@@ -130,14 +120,15 @@ impl<B: BlockT, I: Clone, C, S: Clone, Pow: Clone, Reorg: Clone> Clone
 	}
 }
 
-impl<B, I, C, S, Pow, Reorg> WeakSubjectiveBlockImport<B, I, C, S, Pow, Reorg> where
+impl<B, I, C, S, Pow, Reorg> WeakSubjectiveBlockImport<B, I, C, S, Pow, Reorg>
+where
 	B: BlockT,
 	I: BlockImport<B, Transaction = sp_api::TransactionFor<C, B>> + Send + Sync,
 	I::Error: Into<ConsensusError>,
 	C: ProvideRuntimeApi<B> + HeaderMetadata<B> + BlockOf + AuxStore + Send + Sync,
 	C::Error: Debug,
 	S: SelectChain<B>,
-	Pow: PowAlgorithm<B, Difficulty=U256>,
+	Pow: PowAlgorithm<B, Difficulty = U256>,
 	Reorg: WeakSubjectiveAlgorithm,
 {
 	/// Create a new block import for weak subjectivity.
@@ -162,14 +153,15 @@ impl<B, I, C, S, Pow, Reorg> WeakSubjectiveBlockImport<B, I, C, S, Pow, Reorg> w
 }
 
 #[async_trait::async_trait]
-impl<B, I, C, S, Pow, Reorg> BlockImport<B> for WeakSubjectiveBlockImport<B, I, C, S, Pow, Reorg> where
+impl<B, I, C, S, Pow, Reorg> BlockImport<B> for WeakSubjectiveBlockImport<B, I, C, S, Pow, Reorg>
+where
 	B: BlockT,
 	I: BlockImport<B, Transaction = sp_api::TransactionFor<C, B>> + Send + Sync,
 	I::Error: Into<ConsensusError>,
 	C: ProvideRuntimeApi<B> + HeaderMetadata<B> + BlockOf + AuxStore + Send + Sync + 'static,
 	C::Error: Debug,
 	S: SelectChain<B>,
-	Pow: PowAlgorithm<B, Difficulty=U256> + Send,
+	Pow: PowAlgorithm<B, Difficulty = U256> + Send,
 	Reorg: WeakSubjectiveAlgorithm + Send,
 {
 	type Error = ConsensusError;
@@ -188,27 +180,24 @@ impl<B, I, C, S, Pow, Reorg> BlockImport<B> for WeakSubjectiveBlockImport<B, I, 
 		new_cache: HashMap<CacheKeyId, Vec<u8>>,
 	) -> Result<ImportResult, Self::Error> {
 		if self.enabled && block.fork_choice != Some(ForkChoiceStrategy::Custom(false)) {
-			let best_header = self.select_chain.best_chain().await
+			let best_header = self
+				.select_chain
+				.best_chain()
+				.await
 				.map_err(|e| format!("Fetch best chain failed via select chain: {:?}", e))?;
 			let best_hash = best_header.hash();
 
 			let parent_hash = *block.header.parent_hash();
-			let route_from_best = sp_blockchain::tree_route(
-				self.client.as_ref(),
-				best_hash,
-				parent_hash,
-			).map_err(|e| format!("Find route from best failed: {:?}", e))?;
+			let route_from_best =
+				sp_blockchain::tree_route(self.client.as_ref(), best_hash, parent_hash)
+					.map_err(|e| format!("Find route from best failed: {:?}", e))?;
 
 			let retracted_len = route_from_best.retracted().len();
 
-			let best_difficulty_aux = PowAux::<U256>::read::<_, B>(
-				self.client.as_ref(),
-				&best_hash,
-			)?;
-			let parent_difficulty_aux = PowAux::<U256>::read::<_, B>(
-				self.client.as_ref(),
-				&parent_hash,
-			)?;
+			let best_difficulty_aux =
+				PowAux::<U256>::read::<_, B>(self.client.as_ref(), &best_hash)?;
+			let parent_difficulty_aux =
+				PowAux::<U256>::read::<_, B>(self.client.as_ref(), &parent_hash)?;
 			let common_difficulty_aux = PowAux::<U256>::read::<_, B>(
 				self.client.as_ref(),
 				&route_from_best.common_block().hash,
@@ -216,8 +205,8 @@ impl<B, I, C, S, Pow, Reorg> BlockImport<B> for WeakSubjectiveBlockImport<B, I, 
 
 			let best_total_difficulty = best_difficulty_aux.total_difficulty;
 			let common_total_difficulty = common_difficulty_aux.total_difficulty;
-			let new_total_difficulty = parent_difficulty_aux.total_difficulty +
-				self.pow_algorithm.difficulty(parent_hash)?;
+			let new_total_difficulty = parent_difficulty_aux.total_difficulty
+				+ self.pow_algorithm.difficulty(parent_hash)?;
 
 			let params = WeakSubjectiveParams {
 				best_total_difficulty,
@@ -236,12 +225,15 @@ impl<B, I, C, S, Pow, Reorg> BlockImport<B> for WeakSubjectiveBlockImport<B, I, 
 						new_total_difficulty,
 					);
 					block.fork_choice = Some(ForkChoiceStrategy::Custom(false));
-				},
+				}
 				WeakSubjectiveDecision::Continue => (),
 			}
 		}
 
-		self.inner.import_block(block, new_cache).await.map_err(Into::into)
+		self.inner
+			.import_block(block, new_cache)
+			.await
+			.map_err(Into::into)
 	}
 }
 
@@ -250,7 +242,12 @@ mod tests {
 	use super::*;
 	use WeakSubjectiveDecision::*;
 
-	fn check(best_diff: U256, new_diff: U256, retracted_len: usize, decision: WeakSubjectiveDecision) {
+	fn check(
+		best_diff: U256,
+		new_diff: U256,
+		retracted_len: usize,
+		decision: WeakSubjectiveDecision,
+	) {
 		let algorithm = ExponentialWeakSubjectiveAlgorithm(30, 1.1);
 		let params = WeakSubjectiveParams {
 			best_total_difficulty: best_diff + U256::from(1000),

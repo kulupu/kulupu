@@ -18,27 +18,30 @@
 
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::str::FromStr;
-use std::time::Duration;
-use std::thread;
-use parking_lot::Mutex;
+use async_trait::async_trait;
 use codec::Encode;
-use sp_runtime::{generic::BlockId, traits::Block as BlockT};
-use sp_core::{H256, Pair, crypto::{UncheckedFrom, Ss58Codec, Ss58AddressFormat}};
-use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
-use sc_service::{error::{Error as ServiceError}, Configuration, TaskManager};
-use sc_client_api::backend::RemoteBackend;
-use sc_telemetry::{Telemetry, TelemetryWorker};
-use sc_executor::NativeElseWasmExecutor;
-use sc_consensus::DefaultImportQueue;
-use kulupu_runtime::{self, opaque::Block, RuntimeApi};
-use kulupu_pow::Error as PowError;
 use kulupu_pow::compute::Error as ComputeError;
 use kulupu_pow::compute::RandomxError;
-use async_trait::async_trait;
+use kulupu_pow::Error as PowError;
+use kulupu_runtime::{self, opaque::Block, RuntimeApi};
 use log::*;
+use parking_lot::Mutex;
+use sc_client_api::backend::RemoteBackend;
+use sc_consensus::DefaultImportQueue;
+use sc_executor::NativeElseWasmExecutor;
+use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
+use sc_telemetry::{Telemetry, TelemetryWorker};
+use sp_core::{
+	crypto::{Ss58AddressFormat, Ss58Codec, UncheckedFrom},
+	Pair, H256,
+};
+use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
+use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+use std::path::PathBuf;
+use std::str::FromStr;
+use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -56,18 +59,21 @@ impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
 }
 
 pub fn decode_author(
-	author: Option<&str>, keystore: SyncCryptoStorePtr, keystore_path: Option<PathBuf>,
+	author: Option<&str>,
+	keystore: SyncCryptoStorePtr,
+	keystore_path: Option<PathBuf>,
 ) -> Result<kulupu_pow::app::Public, String> {
 	if let Some(author) = author {
 		if author.starts_with("0x") {
 			Ok(kulupu_pow::app::Public::unchecked_from(
-				H256::from_str(&author[2..]).map_err(|_| "Invalid author account".to_string())?
-			).into())
+				H256::from_str(&author[2..]).map_err(|_| "Invalid author account".to_string())?,
+			)
+			.into())
 		} else {
 			let (address, version) = kulupu_pow::app::Public::from_ss58check_with_version(author)
 				.map_err(|_| "Invalid author address".to_string())?;
 			if version != Ss58AddressFormat::KulupuAccount {
-				return Err("Invalid author version".to_string())
+				return Err("Invalid author version".to_string());
 			}
 			Ok(address)
 		}
@@ -81,9 +87,14 @@ pub fn decode_author(
 			kulupu_pow::app::ID,
 			&phrase,
 			pair.public().as_ref(),
-		).map_err(|e| format!("Registering mining key failed: {:?}", e))?;
+		)
+		.map_err(|e| format!("Registering mining key failed: {:?}", e))?;
 
-		info!("Generated a mining key with address: {}", pair.public().to_ss58check_with_version(Ss58AddressFormat::KulupuAccount));
+		info!(
+			"Generated a mining key with address: {}",
+			pair.public()
+				.to_ss58check_with_version(Ss58AddressFormat::KulupuAccount)
+		);
 
 		match keystore_path {
 			Some(path) => info!("You can go to {:?} to find the seed phrase of the mining key.", path),
@@ -122,7 +133,7 @@ type PowBlockImport = sc_consensus_pow::PowBlockImport<
 		FullClient,
 		FullSelectChain,
 		kulupu_pow::RandomXAlgorithm<FullClient>,
-		kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm
+		kulupu_pow::weak_sub::ExponentialWeakSubjectiveAlgorithm,
 	>,
 	FullClient,
 	FullSelectChain,
@@ -136,16 +147,20 @@ pub fn new_partial(
 	check_inherents_after: u32,
 	donate: bool,
 	enable_weak_subjectivity: bool,
-) -> Result<sc_service::PartialComponents<
-	FullClient, FullBackend, FullSelectChain,
-	DefaultImportQueue<Block, FullClient>,
-	sc_transaction_pool::FullPool<Block, FullClient>,
-	(
-		PowBlockImport,
-		Option<Telemetry>,
-	),
->, ServiceError> {
-	let telemetry = config.telemetry_endpoints.clone()
+) -> Result<
+	sc_service::PartialComponents<
+		FullClient,
+		FullBackend,
+		FullSelectChain,
+		DefaultImportQueue<Block, FullClient>,
+		sc_transaction_pool::FullPool<Block, FullClient>,
+		(PowBlockImport, Option<Telemetry>),
+	>,
+	ServiceError,
+> {
+	let telemetry = config
+		.telemetry_endpoints
+		.clone()
 		.filter(|x| !x.is_empty())
 		.map(|endpoints| -> Result<_, sc_telemetry::Error> {
 			let worker = TelemetryWorker::new(16)?;
@@ -160,19 +175,17 @@ pub fn new_partial(
 		config.max_runtime_instances,
 	);
 
-	let (client, backend, keystore_container, task_manager) =
-		sc_service::new_full_parts(
-			&config,
-			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
-			executor,
-		)?;
+	let (client, backend, keystore_container, task_manager) = sc_service::new_full_parts(
+		&config,
+		telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+		executor,
+	)?;
 	let client = Arc::new(client);
 
-	let telemetry = telemetry
-		.map(|(worker, telemetry)| {
-			task_manager.spawn_handle().spawn("telemetry", worker.run());
-			telemetry
-		});
+	let telemetry = telemetry.map(|(worker, telemetry)| {
+		task_manager.spawn_handle().spawn("telemetry", worker.run());
+		telemetry
+	});
 
 	let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
@@ -214,8 +227,13 @@ pub fn new_partial(
 	)?;
 
 	Ok(sc_service::PartialComponents {
-		client, backend, task_manager, import_queue, keystore_container,
-		select_chain, transaction_pool,
+		client,
+		backend,
+		task_manager,
+		import_queue,
+		keystore_container,
+		select_chain,
+		transaction_pool,
 		other: (pow_block_import, telemetry),
 	})
 }
@@ -231,10 +249,20 @@ pub fn new_full(
 	enable_weak_subjectivity: bool,
 ) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
-		client, backend, mut task_manager, import_queue, keystore_container,
-		select_chain, transaction_pool,
+		client,
+		backend,
+		mut task_manager,
+		import_queue,
+		keystore_container,
+		select_chain,
+		transaction_pool,
 		other: (pow_block_import, mut telemetry),
-	} = new_partial(&config, check_inherents_after, donate, enable_weak_subjectivity)?;
+	} = new_partial(
+		&config,
+		check_inherents_after,
+		donate,
+		enable_weak_subjectivity,
+	)?;
 
 	let (network, system_rpc_tx, network_starter) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
@@ -250,7 +278,10 @@ pub fn new_full(
 
 	if config.offchain_worker.enabled {
 		sc_service::build_offchain_workers(
-			&config, task_manager.spawn_handle(), client.clone(), network.clone(),
+			&config,
+			task_manager.spawn_handle(),
+			client.clone(),
+			network.clone(),
 		);
 	}
 
@@ -283,15 +314,15 @@ pub fn new_full(
 		rpc_extensions_builder: rpc_extensions_builder,
 		on_demand: None,
 		remote_blockchain: None,
-		backend, system_rpc_tx, config,
+		backend,
+		system_rpc_tx,
+		config,
 		telemetry: telemetry.as_mut(),
 	})?;
 
 	if role.is_authority() {
 		let author = decode_author(author, keystore_container.sync_keystore(), keystore_path)?;
-		let algorithm = kulupu_pow::RandomXAlgorithm::new(
-			client.clone(),
-		);
+		let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
 
 		let proposer = sc_basic_authorship::ProposerFactory::new(
 			task_manager.spawn_handle(),
@@ -315,7 +346,9 @@ pub fn new_full(
 			Duration::new(10, 0),
 			sp_consensus::AlwaysCanAuthor,
 		);
-		task_manager.spawn_handle().spawn_blocking("pow", worker_task);
+		task_manager
+			.spawn_handle()
+			.spawn_blocking("pow", worker_task);
 
 		let stats = Arc::new(Mutex::new(kulupu_pow::Stats::new()));
 
@@ -325,42 +358,42 @@ pub fn new_full(
 				let client = client.clone();
 				let stats = stats.clone();
 
-				thread::spawn(move || {
-					loop {
-						let metadata = worker.lock().metadata();
-						if let Some(metadata) = metadata {
-							match kulupu_pow::mine(
-								client.as_ref(),
-								&keystore,
-								&BlockId::Hash(metadata.best_hash),
-								&metadata.pre_hash,
-								metadata.pre_runtime.as_ref().map(|v| &v[..]),
-								metadata.difficulty,
-								round,
-								&stats
-							) {
-								Ok(Some(seal)) => {
-									let mut worker = worker.lock();
-									let current_metadata = worker.metadata();
-									if current_metadata == Some(metadata) {
-										let _ = futures::executor::block_on(worker.submit(seal));
-									}
-								},
-								Ok(None) => (),
-								Err(PowError::Compute(ComputeError::CacheNotAvailable)) => {
-									thread::sleep(Duration::new(1, 0));
-								},
-								Err(PowError::Compute(ComputeError::Randomx(err @ RandomxError::CacheAllocationFailed))) => {
-									warn!("Mining failed: {}", err.description());
-									thread::sleep(Duration::new(10, 0));
-								},
-								Err(err) => {
-									warn!("Mining failed: {:?}", err);
-								},
+				thread::spawn(move || loop {
+					let metadata = worker.lock().metadata();
+					if let Some(metadata) = metadata {
+						match kulupu_pow::mine(
+							client.as_ref(),
+							&keystore,
+							&BlockId::Hash(metadata.best_hash),
+							&metadata.pre_hash,
+							metadata.pre_runtime.as_ref().map(|v| &v[..]),
+							metadata.difficulty,
+							round,
+							&stats,
+						) {
+							Ok(Some(seal)) => {
+								let mut worker = worker.lock();
+								let current_metadata = worker.metadata();
+								if current_metadata == Some(metadata) {
+									let _ = futures::executor::block_on(worker.submit(seal));
+								}
 							}
-						} else {
-							thread::sleep(Duration::new(1, 0));
+							Ok(None) => (),
+							Err(PowError::Compute(ComputeError::CacheNotAvailable)) => {
+								thread::sleep(Duration::new(1, 0));
+							}
+							Err(PowError::Compute(ComputeError::Randomx(
+								err @ RandomxError::CacheAllocationFailed,
+							))) => {
+								warn!("Mining failed: {}", err.description());
+								thread::sleep(Duration::new(10, 0));
+							}
+							Err(err) => {
+								warn!("Mining failed: {:?}", err);
+							}
 						}
+					} else {
+						thread::sleep(Duration::new(1, 0));
 					}
 				});
 			} else {
@@ -404,12 +437,10 @@ pub fn new_light(
 			executor,
 		)?;
 
-	let mut telemetry = telemetry
-		.map(|(worker, telemetry)| {
-			task_manager.spawn_handle().spawn("telemetry", worker.run());
-			telemetry
-		});
-
+	let mut telemetry = telemetry.map(|(worker, telemetry)| {
+		task_manager.spawn_handle().spawn("telemetry", worker.run());
+		telemetry
+	});
 
 	let transaction_pool = Arc::new(sc_transaction_pool::BasicPool::new_light(
 		config.transaction_pool.clone(),
@@ -464,7 +495,10 @@ pub fn new_light(
 
 	if config.offchain_worker.enabled {
 		sc_service::build_offchain_workers(
-			&config, task_manager.spawn_handle(), client.clone(), network.clone(),
+			&config,
+			task_manager.spawn_handle(),
+			client.clone(),
+			network.clone(),
 		);
 	}
 
@@ -481,9 +515,9 @@ pub fn new_light(
 		network,
 		system_rpc_tx,
 		telemetry: telemetry.as_mut(),
-	 })?;
+	})?;
 
-	 network_starter.start_network();
+	network_starter.start_network();
 
-	 Ok(task_manager)
+	Ok(task_manager)
 }

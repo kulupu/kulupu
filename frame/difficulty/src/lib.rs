@@ -20,15 +20,18 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Encode, Decode};
-use sp_std::cmp::{min, max};
+use codec::{Decode, Encode};
+use frame_support::{
+	decl_module, decl_storage,
+	traits::{Get, OnTimestampSet},
+};
+use kulupu_primitives::{
+	Difficulty, CLAMP_FACTOR, DIFFICULTY_ADJUST_WINDOW, DIFFICULTY_DAMP_FACTOR, MAX_DIFFICULTY,
+	MIN_DIFFICULTY,
+};
 use sp_core::U256;
 use sp_runtime::traits::UniqueSaturatedInto;
-use frame_support::{decl_storage, decl_module, traits::{Get, OnTimestampSet}};
-use kulupu_primitives::{
-	DIFFICULTY_ADJUST_WINDOW, DIFFICULTY_DAMP_FACTOR, CLAMP_FACTOR,
-	MIN_DIFFICULTY, MAX_DIFFICULTY, Difficulty,
-};
+use sp_std::cmp::{max, min};
 
 #[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, Debug)]
 pub struct DifficultyAndTimestamp<M> {
@@ -75,7 +78,8 @@ decl_module! {
 
 impl<T: Config> OnTimestampSet<T::Moment> for Module<T> {
 	fn on_timestamp_set(now: T::Moment) {
-		let block_time = UniqueSaturatedInto::<u128>::unique_saturated_into(T::TargetBlockTime::get());
+		let block_time =
+			UniqueSaturatedInto::<u128>::unique_saturated_into(T::TargetBlockTime::get());
 		let block_time_window = DIFFICULTY_ADJUST_WINDOW as u128 * block_time;
 
 		let mut data = PastDifficultiesAndTimestamps::<T>::get();
@@ -126,9 +130,13 @@ impl<T: Config> OnTimestampSet<T::Moment> for Module<T> {
 		);
 
 		// minimum difficulty avoids getting stuck due to dampening
-		let difficulty = min(U256::from(MAX_DIFFICULTY),
-							 max(U256::from(MIN_DIFFICULTY),
-								 diff_sum * U256::from(block_time) / U256::from(adj_ts)));
+		let difficulty = min(
+			U256::from(MAX_DIFFICULTY),
+			max(
+				U256::from(MIN_DIFFICULTY),
+				diff_sum * U256::from(block_time) / U256::from(adj_ts),
+			),
+		);
 
 		<PastDifficultiesAndTimestamps<T>>::put(data);
 		<CurrentDifficulty>::put(difficulty);

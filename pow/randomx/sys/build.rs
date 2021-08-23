@@ -6,7 +6,10 @@ fn main() {
 
 	println!("cargo:rerun-if-env-changed=RANDOMX_ARCH");
 	let mut config = cmake::Config::new("randomx");
-	config.define("ARCH", env::var("RANDOMX_ARCH").unwrap_or("native".to_string()));
+	config.define(
+		"ARCH",
+		env::var("RANDOMX_ARCH").unwrap_or("native".to_string()),
+	);
 
 	if target.contains("pc-windows-msvc") {
 		config.build_target("ALL_BUILD")
@@ -18,9 +21,15 @@ fn main() {
 
 	if target.contains("pc-windows-msvc") {
 		if env::var("PROFILE").expect("PROFILE env not found") == "debug" {
-			println!("cargo:rustc-link-search=native={}/build/Debug", dst.display());
+			println!(
+				"cargo:rustc-link-search=native={}/build/Debug",
+				dst.display()
+			);
 		} else {
-			println!("cargo:rustc-link-search=native={}/build/Release", dst.display());
+			println!(
+				"cargo:rustc-link-search=native={}/build/Release",
+				dst.display()
+			);
 		}
 	} else {
 		println!("cargo:rustc-link-search=native={}/build", dst.display());

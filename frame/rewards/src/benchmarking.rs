@@ -20,9 +20,9 @@
 //! Benchmarking for Rewards pallet.
 
 use super::*;
-use frame_system::{RawOrigin, EventRecord, DigestItemOf};
-use frame_benchmarking::{benchmarks, account, whitelisted_caller};
-use frame_support::traits::{OnInitialize, OnFinalize};
+use frame_benchmarking::{account, benchmarks, whitelisted_caller};
+use frame_support::traits::{OnFinalize, OnInitialize};
+use frame_system::{DigestItemOf, EventRecord, RawOrigin};
 use sp_runtime::traits::Bounded;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
@@ -38,7 +38,7 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 fn create_locks<T: Config>(who: &T::AccountId, num_of_locks: u32) {
 	let mut locks: BTreeMap<T::BlockNumber, BalanceOf<T>> = BTreeMap::new();
 	let reward = T::Currency::minimum_balance();
-	for i in 0 .. num_of_locks {
+	for i in 0..num_of_locks {
 		locks.insert(i.into(), reward);
 	}
 

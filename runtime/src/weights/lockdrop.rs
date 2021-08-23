@@ -41,7 +41,6 @@
 // --output
 // runtime/src/weights/lockdrop.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
@@ -62,8 +61,7 @@ impl<T: frame_system::Config> lockdrop::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn remove_expired_child_storage() -> Weight {
-		(9_500_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+		(9_500_000 as Weight).saturating_add(T::DbWeight::get().reads(1 as Weight))
 	}
 	fn lock() -> Weight {
 		(44_100_000 as Weight)
@@ -71,7 +69,6 @@ impl<T: frame_system::Config> lockdrop::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	fn unlock() -> Weight {
-		(7_200_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+		(7_200_000 as Weight).saturating_add(T::DbWeight::get().reads(1 as Weight))
 	}
 }

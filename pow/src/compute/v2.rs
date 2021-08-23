@@ -16,11 +16,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
-use codec::{Encode, Decode};
-use sp_core::{H256, crypto::Pair, hashing::blake2_256};
-use kulupu_primitives::Difficulty;
 use super::Calculation;
 use crate::app;
+use codec::{Decode, Encode};
+use kulupu_primitives::Difficulty;
+use sp_core::{crypto::Pair, hashing::blake2_256, H256};
 
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
 pub struct SealV2 {
@@ -48,20 +48,23 @@ impl ComputeV2 {
 		(calculation, signature)
 	}
 
-	pub fn seal_and_work(&self, signature: app::Signature, mode: super::ComputeMode) -> Result<(SealV2, H256), super::Error> {
+	pub fn seal_and_work(
+		&self,
+		signature: app::Signature,
+		mode: super::ComputeMode,
+	) -> Result<(SealV2, H256), super::Error> {
 		let input = self.input(signature.clone());
 
-		let work = super::compute::<(Calculation, app::Signature)>(
-			&self.key_hash,
-			&input,
-			mode,
-		)?;
+		let work = super::compute::<(Calculation, app::Signature)>(&self.key_hash, &input, mode)?;
 
-		Ok((SealV2 {
-			nonce: self.nonce,
-			difficulty: self.difficulty,
-			signature,
-		}, work))
+		Ok((
+			SealV2 {
+				nonce: self.nonce,
+				difficulty: self.difficulty,
+				signature,
+			},
+			work,
+		))
 	}
 
 	pub fn seal(&self, signature: app::Signature) -> SealV2 {
@@ -87,16 +90,8 @@ impl ComputeV2 {
 		pair.sign(&hash[..])
 	}
 
-	pub fn verify(
-		&self,
-		signature: &app::Signature,
-		public: &app::Public,
-	) -> bool {
+	pub fn verify(&self, signature: &app::Signature, public: &app::Public) -> bool {
 		let hash = self.signing_message();
-		app::Pair::verify(
-			signature,
-			&hash[..],
-			public,
-		)
+		app::Pair::verify(signature, &hash[..], public)
 	}
 }

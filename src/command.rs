@@ -16,16 +16,19 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
-use std::{path::PathBuf, fs::File, io::Write};
-use log::{info, warn};
-use sp_core::{hexdisplay::HexDisplay, crypto::{Pair, Ss58Codec, Ss58AddressFormat}};
-use sp_keystore::SyncCryptoStore;
-use sc_cli::{SubstrateCli, ChainSpec, Role, RuntimeVersion};
-use sc_service::{PartialComponents, config::KeystoreConfig};
-use sc_keystore::LocalKeystore;
 use crate::chain_spec;
-use crate::cli::{Cli, Subcommand, RandomxFlag};
+use crate::cli::{Cli, RandomxFlag, Subcommand};
 use crate::service;
+use log::{info, warn};
+use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
+use sc_keystore::LocalKeystore;
+use sc_service::{config::KeystoreConfig, PartialComponents};
+use sp_core::{
+	crypto::{Pair, Ss58AddressFormat, Ss58Codec},
+	hexdisplay::HexDisplay,
+};
+use sp_keystore::SyncCryptoStore;
+use std::{fs::File, io::Write, path::PathBuf};
 
 const DEFAULT_CHECK_INHERENTS_AFTER: u32 = 152650;
 const DEFAULT_ROUND: u32 = 1000;
@@ -79,7 +82,9 @@ impl SubstrateCli for Cli {
 pub fn run() -> sc_cli::Result<()> {
 	let mut cli = Cli::from_args();
 	if cli.enable_polkadot_telemetry {
-		cli.run.telemetry_endpoints.push((POLKADOT_TELEMETRY_URL.to_string(), 0));
+		cli.run
+			.telemetry_endpoints
+			.push((POLKADOT_TELEMETRY_URL.to_string(), 0));
 	}
 
 	let mut randomx_config = kulupu_pow::compute::Config::new();
@@ -96,55 +101,105 @@ pub fn run() -> sc_cli::Result<()> {
 		Some(Subcommand::BuildSpec(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
-		},
+		}
 		Some(Subcommand::CheckBlock(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
-				let PartialComponents { client, task_manager, import_queue, .. } =
-					crate::service::new_partial(&config, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate, !cli.disable_weak_subjectivity)?;
+				let PartialComponents {
+					client,
+					task_manager,
+					import_queue,
+					..
+				} = crate::service::new_partial(
+					&config,
+					cli.check_inherents_after
+						.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
+					!cli.no_donate,
+					!cli.disable_weak_subjectivity,
+				)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
-		},
+		}
 		Some(Subcommand::ExportBlocks(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
-				let PartialComponents { client, task_manager, .. } =
-					crate::service::new_partial(&config, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate, !cli.disable_weak_subjectivity)?;
+				let PartialComponents {
+					client,
+					task_manager,
+					..
+				} = crate::service::new_partial(
+					&config,
+					cli.check_inherents_after
+						.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
+					!cli.no_donate,
+					!cli.disable_weak_subjectivity,
+				)?;
 				Ok((cmd.run(client, config.database), task_manager))
 			})
-		},
+		}
 		Some(Subcommand::ExportState(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
-				let PartialComponents { client, task_manager, .. } =
-					crate::service::new_partial(&config, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate, !cli.disable_weak_subjectivity)?;
+				let PartialComponents {
+					client,
+					task_manager,
+					..
+				} = crate::service::new_partial(
+					&config,
+					cli.check_inherents_after
+						.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
+					!cli.no_donate,
+					!cli.disable_weak_subjectivity,
+				)?;
 				Ok((cmd.run(client, config.chain_spec), task_manager))
 			})
-		},
+		}
 		Some(Subcommand::ImportBlocks(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
-				let PartialComponents { client, task_manager, import_queue, .. } =
-					crate::service::new_partial(&config, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate, !cli.disable_weak_subjectivity)?;
+				let PartialComponents {
+					client,
+					task_manager,
+					import_queue,
+					..
+				} = crate::service::new_partial(
+					&config,
+					cli.check_inherents_after
+						.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
+					!cli.no_donate,
+					!cli.disable_weak_subjectivity,
+				)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
-		},
+		}
 		Some(Subcommand::PurgeChain(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.sync_run(|config| cmd.run(config.database))
-		},
+		}
 		Some(Subcommand::Revert(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
-				let PartialComponents { client, backend, task_manager, .. } =
-					crate::service::new_partial(&config, cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER), !cli.no_donate, !cli.disable_weak_subjectivity)?;
+				let PartialComponents {
+					client,
+					backend,
+					task_manager,
+					..
+				} = crate::service::new_partial(
+					&config,
+					cli.check_inherents_after
+						.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
+					!cli.no_donate,
+					!cli.disable_weak_subjectivity,
+				)?;
 				Ok((cmd.run(client, backend), task_manager))
 			})
-		},
+		}
 
 		Some(Subcommand::ExportBuiltinWasm(cmd)) => {
-			let wasm_binary_bloaty = kulupu_runtime::WASM_BINARY_BLOATY.ok_or("Wasm binary not available".to_string())?;
-			let wasm_binary = kulupu_runtime::WASM_BINARY.ok_or("Compact Wasm binary not available".to_string())?;
+			let wasm_binary_bloaty = kulupu_runtime::WASM_BINARY_BLOATY
+				.ok_or("Wasm binary not available".to_string())?;
+			let wasm_binary = kulupu_runtime::WASM_BINARY
+				.ok_or("Compact Wasm binary not available".to_string())?;
 
 			info!("Exporting builtin wasm binary to folder: {}", cmd.folder);
 
@@ -166,44 +221,45 @@ pub fn run() -> sc_cli::Result<()> {
 			}
 
 			Ok(())
-		},
+		}
 		Some(Subcommand::ImportMiningKey(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.sync_run(|config| {
 				let keystore = match &config.keystore {
-					KeystoreConfig::Path { path, password } => LocalKeystore::open(
-						path.clone(),
-						password.clone()
-					).map_err(|e| format!("Open keystore failed: {:?}", e))?,
+					KeystoreConfig::Path { path, password } => {
+						LocalKeystore::open(path.clone(), password.clone())
+							.map_err(|e| format!("Open keystore failed: {:?}", e))?
+					}
 					KeystoreConfig::InMemory => LocalKeystore::in_memory(),
 				};
 
-				let pair = kulupu_pow::app::Pair::from_string(
-					&cmd.suri,
-					None,
-				).map_err(|e| format!("Invalid seed: {:?}", e))?;
+				let pair = kulupu_pow::app::Pair::from_string(&cmd.suri, None)
+					.map_err(|e| format!("Invalid seed: {:?}", e))?;
 
 				SyncCryptoStore::insert_unknown(
 					&keystore,
 					kulupu_pow::app::ID,
 					&cmd.suri,
 					pair.public().as_ref(),
-				).map_err(|e| format!("Registering mining key failed: {:?}", e))?;
+				)
+				.map_err(|e| format!("Registering mining key failed: {:?}", e))?;
 
-				info!("Registered one mining key (public key 0x{}).",
-					  HexDisplay::from(&pair.public().as_ref()));
+				info!(
+					"Registered one mining key (public key 0x{}).",
+					HexDisplay::from(&pair.public().as_ref())
+				);
 
 				Ok(())
 			})
-		},
+		}
 		Some(Subcommand::GenerateMiningKey(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.sync_run(|config| {
 				let keystore = match &config.keystore {
-					KeystoreConfig::Path { path, password } => LocalKeystore::open(
-						path.clone(),
-						password.clone()
-					).map_err(|e| format!("Open keystore failed: {:?}", e))?,
+					KeystoreConfig::Path { path, password } => {
+						LocalKeystore::open(path.clone(), password.clone())
+							.map_err(|e| format!("Open keystore failed: {:?}", e))?
+					}
 					KeystoreConfig::InMemory => LocalKeystore::in_memory(),
 				};
 
@@ -214,7 +270,8 @@ pub fn run() -> sc_cli::Result<()> {
 					kulupu_pow::app::ID,
 					&phrase,
 					pair.public().as_ref(),
-				).map_err(|e| format!("Registering mining key failed: {:?}", e))?;
+				)
+				.map_err(|e| format!("Registering mining key failed: {:?}", e))?;
 
 				info!("Generated one mining key.");
 
@@ -222,30 +279,35 @@ pub fn run() -> sc_cli::Result<()> {
 					"Public key: 0x{}\nSecret seed: {}\nAddress: {}",
 					HexDisplay::from(&pair.public().as_ref()),
 					phrase,
-					pair.public().to_ss58check_with_version(Ss58AddressFormat::KulupuAccount),
+					pair.public()
+						.to_ss58check_with_version(Ss58AddressFormat::KulupuAccount),
 				);
 
 				Ok(())
 			})
-		},
+		}
 		Some(Subcommand::Benchmark(cmd)) => {
 			if cfg!(feature = "runtime-benchmarks") {
 				let runner = cli.create_runner(cmd)?;
 
-				runner.sync_run(|config| cmd.run::<kulupu_runtime::Block, crate::service::ExecutorDispatch>(config))
+				runner.sync_run(|config| {
+					cmd.run::<kulupu_runtime::Block, crate::service::ExecutorDispatch>(config)
+				})
 			} else {
 				Err("Benchmarking wasn't enabled when building the node. \
-				You can enable it with `--features runtime-benchmarks`.".into())
+				You can enable it with `--features runtime-benchmarks`."
+					.into())
 			}
-		},
+		}
 		None => {
 			let runner = cli.create_runner(&cli.run)?;
-			runner.run_node_until_exit(
-				|config| async move {
+			runner
+				.run_node_until_exit(|config| async move {
 					match config.role {
 						Role::Light => service::new_light(
 							config,
-							cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
+							cli.check_inherents_after
+								.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
 							!cli.no_donate,
 							!cli.disable_weak_subjectivity,
 						),
@@ -254,13 +316,14 @@ pub fn run() -> sc_cli::Result<()> {
 							cli.author.as_ref().map(|s| s.as_str()),
 							cli.threads.unwrap_or(1),
 							cli.round.unwrap_or(DEFAULT_ROUND),
-							cli.check_inherents_after.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
+							cli.check_inherents_after
+								.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
 							!cli.no_donate,
 							!cli.disable_weak_subjectivity,
-						)
+						),
 					}
-				}
-			).map_err(sc_cli::Error::Service)
-		},
+				})
+				.map_err(sc_cli::Error::Service)
+		}
 	}
 }

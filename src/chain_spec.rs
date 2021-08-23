@@ -16,15 +16,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
-use serde_json::json;
-use sp_core::{U256, crypto::UncheckedFrom, Public, Pair, sr25519};
-use sp_runtime::traits::{Verify, IdentifyAccount};
-use sc_service::ChainType;
 use kulupu_primitives::DOLLARS;
 use kulupu_runtime::{
-	BalancesConfig, GenesisConfig, IndicesConfig, SystemConfig,
-	DifficultyConfig, ErasConfig, AccountId, RewardsConfig, WASM_BINARY, Signature,
+	AccountId, BalancesConfig, DifficultyConfig, ErasConfig, GenesisConfig, IndicesConfig,
+	RewardsConfig, Signature, SystemConfig, WASM_BINARY,
 };
+use sc_service::ChainType;
+use serde_json::json;
+use sp_core::{crypto::UncheckedFrom, sr25519, Pair, Public, U256};
+use sp_runtime::traits::{IdentifyAccount, Verify};
 
 type AccountPublic = <Signature as Verify>::Signer;
 
@@ -38,19 +38,26 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		"Development",
 		"dev",
 		ChainType::Development,
-		move || testnet_genesis(
-			wasm_binary,
-			U256::from(1000),
-			true, // enable println in smart contracts for dev env
-		),
+		move || {
+			testnet_genesis(
+				wasm_binary,
+				U256::from(1000),
+				true, // enable println in smart contracts for dev env
+			)
+		},
 		vec![],
 		None,
 		Some("kulupudev"),
-		Some(json!({
-			"ss58Format": 16,
-			"tokenDecimals": 12,
-			"tokenSymbol": "KLPD"
-		}).as_object().expect("Created an object").clone()),
+		Some(
+			json!({
+				"ss58Format": 16,
+				"tokenDecimals": 12,
+				"tokenSymbol": "KLPD"
+			})
+			.as_object()
+			.expect("Created an object")
+			.clone(),
+		),
 		None,
 	))
 }
@@ -62,19 +69,26 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		"Local Testnet",
 		"local",
 		ChainType::Local,
-		move || testnet_genesis(
-			wasm_binary,
-			U256::from(200),
-			false, // disable println for local network
-		),
+		move || {
+			testnet_genesis(
+				wasm_binary,
+				U256::from(200),
+				false, // disable println for local network
+			)
+		},
 		vec![],
 		None,
 		Some("kulupulocal"),
-		Some(json!({
-			"ss58Format": 16,
-			"tokenDecimals": 12,
-			"tokenSymbol": "KLPD"
-		}).as_object().expect("Created an object").clone()),
+		Some(
+			json!({
+				"ss58Format": 16,
+				"tokenDecimals": 12,
+				"tokenSymbol": "KLPD"
+			})
+			.as_object()
+			.expect("Created an object")
+			.clone(),
+		),
 		None,
 	))
 }
@@ -97,13 +111,18 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 }
 
 /// Helper function to generate an account ID from seed
-pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId where
-	AccountPublic: From<<TPublic::Pair as Pair>::Public>
+pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
+where
+	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
 {
 	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256, _enable_println: bool) -> GenesisConfig {
+fn testnet_genesis(
+	wasm_binary: &[u8],
+	initial_difficulty: U256,
+	_enable_println: bool,
+) -> GenesisConfig {
 	GenesisConfig {
 		system: SystemConfig {
 			code: wasm_binary.to_vec(),
@@ -113,20 +132,16 @@ fn testnet_genesis(wasm_binary: &[u8], initial_difficulty: U256, _enable_println
 			balances: vec![
 				(
 					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					10_000_000 * DOLLARS
+					10_000_000 * DOLLARS,
 				),
 				(
 					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					10_000_000 * DOLLARS
+					10_000_000 * DOLLARS,
 				),
 			],
 		},
-		indices: IndicesConfig {
-			indices: vec![],
-		},
-		difficulty: DifficultyConfig {
-			initial_difficulty,
-		},
+		indices: IndicesConfig { indices: vec![] },
+		difficulty: DifficultyConfig { initial_difficulty },
 		rewards: RewardsConfig {
 			reward: 60 * DOLLARS,
 			mints: Default::default(),
@@ -142,30 +157,38 @@ pub fn mainnet_genesis() -> GenesisConfig {
 
 	GenesisConfig {
 		system: SystemConfig {
-			code: include_bytes!("../res/eras/1/3-swamp-bottom/kulupu_runtime.compact.wasm").to_vec(),
+			code: include_bytes!("../res/eras/1/3-swamp-bottom/kulupu_runtime.compact.wasm")
+				.to_vec(),
 			changes_trie_config: Default::default(),
 		},
 		balances: BalancesConfig {
-			balances: era_state.balances.into_iter().map(|balance| {
-				(AccountId::unchecked_from(balance.address), balance.balance.as_u128())
-			}).collect(),
+			balances: era_state
+				.balances
+				.into_iter()
+				.map(|balance| {
+					(
+						AccountId::unchecked_from(balance.address),
+						balance.balance.as_u128(),
+					)
+				})
+				.collect(),
 		},
 		indices: IndicesConfig {
-			indices: era_state.indices.into_iter().map(|index| {
-				(index.index, AccountId::unchecked_from(index.address))
-			}).collect(),
+			indices: era_state
+				.indices
+				.into_iter()
+				.map(|index| (index.index, AccountId::unchecked_from(index.address)))
+				.collect(),
 		},
 		difficulty: DifficultyConfig {
 			initial_difficulty: era_state.difficulty,
 		},
 		eras: ErasConfig {
-			past_eras: vec![
-				pallet_eras::Era {
-					genesis_block_hash: era_state.previous_era.genesis_block_hash,
-					final_block_hash: era_state.previous_era.final_block_hash,
-					final_state_root: era_state.previous_era.final_state_root,
-				}
-			],
+			past_eras: vec![pallet_eras::Era {
+				genesis_block_hash: era_state.previous_era.genesis_block_hash,
+				final_block_hash: era_state.previous_era.final_block_hash,
+				final_state_root: era_state.previous_era.final_state_root,
+			}],
 		},
 		rewards: RewardsConfig {
 			reward: 60 * DOLLARS,
