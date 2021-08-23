@@ -1,5 +1,5 @@
 use super::*;
-use frame_benchmarking::{benchmarks, account, whitelisted_caller};
+use frame_benchmarking::{account, benchmarks, whitelisted_caller};
 use frame_system::RawOrigin;
 
 benchmarks! {

@@ -20,7 +20,7 @@
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
-use frame_support::weights::{Weight, constants::RocksDbWeight as DbWeight};
+use frame_support::weights::{constants::RocksDbWeight as DbWeight, Weight};
 
 impl crate::WeightInfo for () {
 	fn on_initialize() -> Weight {
@@ -39,11 +39,9 @@ impl crate::WeightInfo for () {
 			.saturating_add(DbWeight::get().writes(1 as Weight))
 	}
 	fn set_schedule() -> Weight {
-		(32_900_000 as Weight)
-			.saturating_add(DbWeight::get().writes(4 as Weight))
+		(32_900_000 as Weight).saturating_add(DbWeight::get().writes(4 as Weight))
 	}
 	fn set_lock_params() -> Weight {
-		(0 as Weight)
-			.saturating_add(DbWeight::get().writes(1 as Weight))
+		(0 as Weight).saturating_add(DbWeight::get().writes(1 as Weight))
 	}
 }

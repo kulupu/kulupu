@@ -20,23 +20,24 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(test)]
-mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 mod default_weights;
+#[cfg(test)]
+mod tests;
 
-use codec::{Encode, Decode};
-#[cfg(feature = "std")]
-use serde::{Serialize, Deserialize};
-use sp_std::{cmp, prelude::*};
-use sp_runtime::{RuntimeDebug, traits::Hash};
+use codec::{Decode, Encode};
 use frame_support::{
-	ensure, decl_storage, decl_module, decl_event, decl_error, storage::child,
-	traits::{Currency, LockableCurrency, WithdrawReasons, LockIdentifier, Get},
+	decl_error, decl_event, decl_module, decl_storage, ensure,
+	storage::child,
+	traits::{Currency, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
 	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+use sp_runtime::{traits::Hash, RuntimeDebug};
+use sp_std::{cmp, prelude::*};
 
 pub trait WeightInfo {
 	fn create_campaign() -> Weight;
@@ -87,7 +88,8 @@ pub trait Config: frame_system::Config {
 }
 
 /// Type alias for currency balance.
-pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+pub type BalanceOf<T> =
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 decl_storage! {
 	trait Store for Module<T: Config> as Eras {
@@ -252,7 +254,16 @@ decl_module! {
 
 impl<T: Config> Module<T> {
 	pub fn lock_identifier(identifier: CampaignIdentifier) -> LockIdentifier {
-		[b'd', b'r', b'o', b'p', identifier[0], identifier[1], identifier[2], identifier[3]]
+		[
+			b'd',
+			b'r',
+			b'o',
+			b'p',
+			identifier[0],
+			identifier[1],
+			identifier[2],
+			identifier[3],
+		]
 	}
 
 	pub fn child_info(identifier: &CampaignIdentifier) -> child::ChildInfo {
@@ -262,12 +273,22 @@ impl<T: Config> Module<T> {
 		child::ChildInfo::new_default(T::Hashing::hash(&buf[..]).as_ref())
 	}
 
-	fn child_data_put(identifier: &CampaignIdentifier, account_id: &T::AccountId, data: &ChildLockData<T>) {
-		account_id.using_encoded(|account_id| child::put(&Self::child_info(identifier), &account_id, &data))
+	fn child_data_put(
+		identifier: &CampaignIdentifier,
+		account_id: &T::AccountId,
+		data: &ChildLockData<T>,
+	) {
+		account_id.using_encoded(|account_id| {
+			child::put(&Self::child_info(identifier), &account_id, &data)
+		})
 	}
 
-	pub fn child_data_get(identifier: &CampaignIdentifier, account_id: &T::AccountId) -> Option<ChildLockData<T>> {
-		account_id.using_encoded(|account_id| child::get(&Self::child_info(identifier), &account_id))
+	pub fn child_data_get(
+		identifier: &CampaignIdentifier,
+		account_id: &T::AccountId,
+	) -> Option<ChildLockData<T>> {
+		account_id
+			.using_encoded(|account_id| child::get(&Self::child_info(identifier), &account_id))
 	}
 
 	pub fn child_root(identifier: &CampaignIdentifier) -> Vec<u8> {
@@ -275,6 +296,9 @@ impl<T: Config> Module<T> {
 	}
 
 	fn child_kill(identifier: &CampaignIdentifier) -> child::KillStorageResult {
-		child::kill_storage(&Self::child_info(identifier), Some(T::RemoveKeysLimit::get()))
+		child::kill_storage(
+			&Self::child_info(identifier),
+			Some(T::RemoveKeysLimit::get()),
+		)
 	}
 }

@@ -1,15 +1,16 @@
 use super::*;
 
+use crate as pallet_lockdrop;
 use frame_support::{
-	assert_ok, assert_noop, parameter_types, assert_storage_noop,
-	traits::{OnInitialize, OnFinalize, Everything},
-};
-use sp_runtime::{
-	testing::Header, BuildStorage,
-	traits::{BlakeTwo256, IdentityLookup},
+	assert_noop, assert_ok, assert_storage_noop, parameter_types,
+	traits::{Everything, OnFinalize, OnInitialize},
 };
 use sp_core::H256;
-use crate as pallet_lockdrop;
+use sp_runtime::{
+	testing::Header,
+	traits::{BlakeTwo256, IdentityLookup},
+	BuildStorage,
+};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -94,7 +95,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		balances: pallet_balances::GenesisConfig {
 			balances: vec![(1, 1000), (2, 2000)],
 		},
-	}.build_storage().unwrap();
+	}
+	.build_storage()
+	.unwrap();
 	t.into()
 }
 
@@ -116,14 +119,37 @@ pub const TEST_CAMPAIGN: [u8; 4] = [b't', b'e', b's', b't'];
 fn create_campaign_lock_works() {
 	new_test_ext().execute_with(|| {
 		run_to_block(5);
-		assert_ok!(Lockdrop::create_campaign(Origin::root(), TEST_CAMPAIGN, 20, 30));
+		assert_ok!(Lockdrop::create_campaign(
+			Origin::root(),
+			TEST_CAMPAIGN,
+			20,
+			30
+		));
 
 		run_to_block(7);
-		assert_ok!(Lockdrop::lock(Origin::signed(1), 1000, TEST_CAMPAIGN, 40, None));
-		assert_noop!(Lockdrop::lock(Origin::signed(2), 5000, TEST_CAMPAIGN, 40, None), Error::<Test>::NotEnoughBalance);
-		assert_noop!(Lockdrop::lock(Origin::signed(2), 2000, TEST_CAMPAIGN, 25, None), Error::<Test>::InvalidLockEndBlock);
-		assert_storage_noop!(Lockdrop::conclude_campaign(Origin::signed(3), TEST_CAMPAIGN).unwrap());
-		assert_storage_noop!(Lockdrop::remove_expired_child_storage(Origin::signed(3), TEST_CAMPAIGN).unwrap());
+		assert_ok!(Lockdrop::lock(
+			Origin::signed(1),
+			1000,
+			TEST_CAMPAIGN,
+			40,
+			None
+		));
+		assert_noop!(
+			Lockdrop::lock(Origin::signed(2), 5000, TEST_CAMPAIGN, 40, None),
+			Error::<Test>::NotEnoughBalance
+		);
+		assert_noop!(
+			Lockdrop::lock(Origin::signed(2), 2000, TEST_CAMPAIGN, 25, None),
+			Error::<Test>::InvalidLockEndBlock
+		);
+		assert_storage_noop!(
+			Lockdrop::conclude_campaign(Origin::signed(3), TEST_CAMPAIGN).unwrap()
+		);
+		assert_storage_noop!(Lockdrop::remove_expired_child_storage(
+			Origin::signed(3),
+			TEST_CAMPAIGN
+		)
+		.unwrap());
 
 		run_to_block(15);
 		assert_storage_noop!(Lockdrop::unlock(Origin::signed(1), TEST_CAMPAIGN).unwrap());
@@ -131,12 +157,21 @@ fn create_campaign_lock_works() {
 		assert_eq!(Balances::usable_balance(2), 2000);
 
 		run_to_block(21);
-		assert_noop!(Lockdrop::lock(Origin::signed(2), 1000, TEST_CAMPAIGN, 40, None), Error::<Test>::CampaignAlreadyExpired);
+		assert_noop!(
+			Lockdrop::lock(Origin::signed(2), 1000, TEST_CAMPAIGN, 40, None),
+			Error::<Test>::CampaignAlreadyExpired
+		);
 		assert_eq!(Balances::usable_balance(1), 0);
 		assert_eq!(Balances::usable_balance(2), 2000);
 
-		assert_ok!(Lockdrop::conclude_campaign(Origin::signed(3), TEST_CAMPAIGN));
-		assert_ok!(Lockdrop::remove_expired_child_storage(Origin::signed(3), TEST_CAMPAIGN));
+		assert_ok!(Lockdrop::conclude_campaign(
+			Origin::signed(3),
+			TEST_CAMPAIGN
+		));
+		assert_ok!(Lockdrop::remove_expired_child_storage(
+			Origin::signed(3),
+			TEST_CAMPAIGN
+		));
 
 		run_to_block(23);
 		assert_storage_noop!(Lockdrop::unlock(Origin::signed(1), TEST_CAMPAIGN).unwrap());

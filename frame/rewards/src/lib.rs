@@ -20,25 +20,27 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(test)]
-mod mock;
-#[cfg(test)]
-mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 mod default_weights;
 mod migrations;
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
 
-use codec::{Encode, Decode};
-use sp_std::{iter::FromIterator, ops::Bound::Included, prelude::*, collections::btree_map::BTreeMap};
-use sp_runtime::traits::{Saturating, Zero};
-use sp_consensus_pow::POW_ENGINE_ID;
+use codec::{Decode, Encode};
 use frame_support::{
-	decl_module, decl_storage, decl_error, decl_event, ensure,
-	traits::{Get, Currency, LockIdentifier, LockableCurrency, WithdrawReasons},
+	decl_error, decl_event, decl_module, decl_storage, ensure,
+	traits::{Currency, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
 	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed};
+use sp_consensus_pow::POW_ENGINE_ID;
+use sp_runtime::traits::{Saturating, Zero};
+use sp_std::{
+	collections::btree_map::BTreeMap, iter::FromIterator, ops::Bound::Included, prelude::*,
+};
 
 pub struct LockBounds {
 	pub period_max: u16,
@@ -104,7 +106,8 @@ pub trait Config: frame_system::Config {
 }
 
 /// Type alias for currency balance.
-pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+pub type BalanceOf<T> =
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 decl_error! {
 	pub enum Error for Module<T: Config> {
@@ -308,11 +311,8 @@ impl<T: Config> Module<T> {
 	fn do_reward(author: &T::AccountId, reward: BalanceOf<T>, when: T::BlockNumber) {
 		let miner_total = reward;
 
-		let miner_reward_locks = T::GenerateRewardLocks::generate_reward_locks(
-			when,
-			miner_total,
-			LockParams::get(),
-		);
+		let miner_reward_locks =
+			T::GenerateRewardLocks::generate_reward_locks(when, miner_total, LockParams::get());
 
 		drop(T::Currency::deposit_creating(&author, miner_total));
 
@@ -320,7 +320,9 @@ impl<T: Config> Module<T> {
 			let mut locks = Self::reward_locks(&author);
 
 			for (new_lock_number, new_lock_balance) in miner_reward_locks {
-				let old_balance = *locks.get(&new_lock_number).unwrap_or(&BalanceOf::<T>::default());
+				let old_balance = *locks
+					.get(&new_lock_number)
+					.unwrap_or(&BalanceOf::<T>::default());
 				let new_balance = old_balance.saturating_add(new_lock_balance);
 				locks.insert(new_lock_number, new_balance);
 			}
@@ -332,7 +334,7 @@ impl<T: Config> Module<T> {
 	fn do_update_reward_locks(
 		author: &T::AccountId,
 		mut locks: BTreeMap<T::BlockNumber, BalanceOf<T>>,
-		current_number: T::BlockNumber
+		current_number: T::BlockNumber,
 	) {
 		let mut expired = Vec::new();
 		let mut total_locked: BalanceOf<T> = Zero::zero();
@@ -359,9 +361,7 @@ impl<T: Config> Module<T> {
 		<Self as Store>::RewardLocks::insert(author, locks);
 	}
 
-	fn do_mints(
-		mints: &BTreeMap<T::AccountId, BalanceOf<T>>,
-	) {
+	fn do_mints(mints: &BTreeMap<T::AccountId, BalanceOf<T>>) {
 		for (destination, mint) in mints {
 			drop(T::Currency::deposit_creating(&destination, *mint));
 		}

@@ -16,11 +16,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
-use sp_runtime::Perbill;
-use frame_support::weights::{WeightToFeePolynomial, WeightToFeeCoefficient, WeightToFeeCoefficients};
+use crate::{Balance, ExtrinsicBaseWeight};
+use frame_support::weights::{
+	WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+};
 use kulupu_primitives::CENTS;
 use smallvec::smallvec;
-use crate::{Balance, ExtrinsicBaseWeight};
+use sp_runtime::Perbill;
 
 pub struct WeightToFee;
 impl WeightToFeePolynomial for WeightToFee {
@@ -40,9 +42,9 @@ impl WeightToFeePolynomial for WeightToFee {
 
 #[cfg(test)]
 mod tests {
-	use frame_support::weights::WeightToFeePolynomial;
 	use super::WeightToFee;
-	use crate::{MAXIMUM_BLOCK_WEIGHT, ExtrinsicBaseWeight};
+	use crate::{ExtrinsicBaseWeight, MAXIMUM_BLOCK_WEIGHT};
+	use frame_support::weights::WeightToFeePolynomial;
 	use kulupu_primitives::{CENTS, DOLLARS};
 
 	#[test]

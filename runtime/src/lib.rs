@@ -20,7 +20,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
-#![recursion_limit="256"]
+#![recursion_limit = "256"]
 
 mod fee;
 mod weights;
@@ -31,46 +31,55 @@ extern crate system as frame_system;
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use sp_std::{collections::btree_map::BTreeMap, cmp::{min, max}, prelude::*, cmp};
-use codec::{Encode, Decode, MaxEncodedLen};
-use sp_core::{OpaqueMetadata, u32_trait::{_1, _2, _4, _5}};
-use sp_runtime::{
-	ApplyExtrinsicResult, Percent, generic, create_runtime_str, MultiSignature,
-	RuntimeDebug, Perquintill, transaction_validity::{TransactionValidity, TransactionSource},
-	FixedPointNumber,
+use crate::fee::WeightToFee;
+use codec::{Decode, Encode, MaxEncodedLen};
+use contracts::weights::WeightInfo;
+use frame_support::{
+	traits::{Everything, Nothing},
+	PalletId,
+};
+use kulupu_primitives::{deposit, BLOCK_TIME, CENTS, DAYS, DOLLARS, HOURS, MICROCENTS, MILLICENTS};
+use sp_api::impl_runtime_apis;
+use sp_core::{
+	u32_trait::{_1, _2, _4, _5},
+	OpaqueMetadata,
 };
 use sp_runtime::traits::{
-	BlakeTwo256, Block as BlockT,
-	Verify, IdentifyAccount, Convert, ConvertInto,
+	BlakeTwo256, Block as BlockT, Convert, ConvertInto, IdentifyAccount, Verify,
 };
-use sp_api::impl_runtime_apis;
-use sp_version::RuntimeVersion;
+use sp_runtime::{
+	create_runtime_str, generic,
+	transaction_validity::{TransactionSource, TransactionValidity},
+	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Percent, Perquintill, RuntimeDebug,
+};
+use sp_std::{
+	cmp,
+	cmp::{max, min},
+	collections::btree_map::BTreeMap,
+	prelude::*,
+};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
-use kulupu_primitives::{DOLLARS, CENTS, MILLICENTS, MICROCENTS, HOURS, DAYS, BLOCK_TIME, deposit};
-use transaction_payment::{TargetedFeeAdjustment, Multiplier};
-use system::{limits, EnsureRoot};
+use sp_version::RuntimeVersion;
 use static_assertions::const_assert;
-use crate::fee::WeightToFee;
-use contracts::weights::WeightInfo;
-use frame_support::{PalletId, traits::{Nothing, Everything}};
+use system::{limits, EnsureRoot};
+use transaction_payment::{Multiplier, TargetedFeeAdjustment};
 
 // A few exports that help ease life for downstream crates.
-pub use sp_runtime::{Permill, Perbill};
+pub use balances::Call as BalancesCall;
+pub use frame_support::{
+	construct_runtime, parameter_types,
+	traits::{Currency, InstanceFilter, LockIdentifier, OnUnbalanced, Randomness},
+	weights::{
+		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+		DispatchClass, RuntimeDbWeight, Weight,
+	},
+	StorageMap, StorageValue,
+};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-pub use frame_support::{
-	StorageValue, StorageMap, construct_runtime, parameter_types,
-	traits::{Currency, Randomness, LockIdentifier, OnUnbalanced, InstanceFilter},
-	weights::{
-		Weight, RuntimeDbWeight, DispatchClass,
-		constants::{
-			WEIGHT_PER_SECOND, BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight
-		},
-	},
-};
+pub use sp_runtime::{Perbill, Permill};
 pub use timestamp::Call as TimestampCall;
-pub use balances::Call as BalancesCall;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -199,7 +208,7 @@ impl system::Config for Runtime {
 	type OnSetCode = ();
 }
 
-impl randomness_collective_flip::Config for Runtime { }
+impl randomness_collective_flip::Config for Runtime {}
 
 parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
@@ -295,7 +304,7 @@ type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
 
 pub struct DealWithFees;
 impl OnUnbalanced<NegativeImbalance> for DealWithFees {
-	fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item=NegativeImbalance>) {
+	fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
 		if let Some(fees) = fees_then_tips.next() {
 			// Burn base fees.
 			drop(fees);
@@ -325,7 +334,8 @@ impl transaction_payment::Config for Runtime {
 	type OnChargeTransaction = transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
 	type TransactionByteFee = TransactionByteFee;
 	type WeightToFee = WeightToFee;
-	type FeeMultiplierUpdate = TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
+	type FeeMultiplierUpdate =
+		TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
 }
 
 parameter_types! {
@@ -336,7 +346,7 @@ impl difficulty::Config for Runtime {
 	type TargetBlockTime = TargetBlockTime;
 }
 
-impl eras::Config for Runtime { }
+impl eras::Config for Runtime {}
 
 pub struct GenerateRewardLocks;
 
@@ -363,7 +373,8 @@ impl rewards::GenerateRewardLocks<Runtime> for GenerateRewardLocks {
 			for i in 0..divide {
 				let one_locked_reward = locked_reward / divide as u128;
 
-				let estimate_block_number = current_block.saturating_add((i + 1) * (total_lock_period / divide));
+				let estimate_block_number =
+					current_block.saturating_add((i + 1) * (total_lock_period / divide));
 				let actual_block_number = estimate_block_number / DAYS * DAYS;
 
 				locks.insert(actual_block_number, one_locked_reward);
@@ -429,26 +440,30 @@ impl democracy::Config for Runtime {
 	type VotingPeriod = VotingPeriod;
 	type MinimumDeposit = MinimumDeposit;
 	/// A straight majority of the council can decide what their next motion is.
-	type ExternalOrigin = system::EnsureOneOf<AccountId,
+	type ExternalOrigin = system::EnsureOneOf<
+		AccountId,
 		collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
 		system::EnsureRoot<AccountId>,
 	>;
 	/// A super-majority can have the next scheduled referendum be a straight
 	/// majority-carries vote.
-	type ExternalMajorityOrigin = system::EnsureOneOf<AccountId,
+	type ExternalMajorityOrigin = system::EnsureOneOf<
+		AccountId,
 		collective::EnsureProportionMoreThan<_4, _5, AccountId, CouncilCollective>,
 		system::EnsureRoot<AccountId>,
 	>;
 	/// A unanimous council can have the next scheduled referendum be a straight
 	/// default-carries (NTB) vote.
-	type ExternalDefaultOrigin = system::EnsureOneOf<AccountId,
+	type ExternalDefaultOrigin = system::EnsureOneOf<
+		AccountId,
 		collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
 		system::EnsureRoot<AccountId>,
 	>;
 	/// Full of the technical committee can have an
 	/// ExternalMajority/ExternalDefault vote be tabled immediately and with a
 	/// shorter voting/enactment period.
-	type FastTrackOrigin = system::EnsureOneOf<AccountId,
+	type FastTrackOrigin = system::EnsureOneOf<
+		AccountId,
 		collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
 		system::EnsureRoot<AccountId>,
 	>;
@@ -457,14 +472,16 @@ impl democracy::Config for Runtime {
 	type FastTrackVotingPeriod = FastTrackVotingPeriod;
 	/// To cancel a proposal which has been passed, all of the council must
 	/// agree to it.
-	type CancellationOrigin = system::EnsureOneOf<AccountId,
+	type CancellationOrigin = system::EnsureOneOf<
+		AccountId,
 		collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
 		system::EnsureRoot<AccountId>,
 	>;
 	type OperationalPreimageOrigin = collective::EnsureMember<AccountId, CouncilCollective>;
 	/// To cancel a proposal before it has been passed, the technical committee must be unanimous or
 	/// Root must agree.
-	type CancelProposalOrigin = system::EnsureOneOf<AccountId,
+	type CancelProposalOrigin = system::EnsureOneOf<
+		AccountId,
 		collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
 		EnsureRoot<AccountId>,
 	>;
@@ -520,7 +537,9 @@ where
 	R: balances::Config,
 	R::Balance: Into<u128>,
 {
-	fn convert(x: u128) -> u64 { (x / Self::factor()) as u64 }
+	fn convert(x: u128) -> u64 {
+		(x / Self::factor()) as u64
+	}
 }
 
 impl<R> Convert<u128, u128> for CurrencyToVoteHandler<R>
@@ -528,7 +547,9 @@ where
 	R: balances::Config,
 	R::Balance: Into<u128>,
 {
-	fn convert(x: u128) -> u128 { x * Self::factor() }
+	fn convert(x: u128) -> u128 {
+		x * Self::factor()
+	}
 }
 
 parameter_types! {
@@ -542,18 +563,20 @@ parameter_types! {
 	pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
 }
 
-pub enum DesiredMembers { }
+pub enum DesiredMembers {}
 impl frame_support::traits::Get<u32> for DesiredMembers {
 	fn get() -> u32 {
-		let var = variables::U32s::get(b"runtime::elections_phragmen::desired_members".to_vec()).unwrap_or(7);
+		let var = variables::U32s::get(b"runtime::elections_phragmen::desired_members".to_vec())
+			.unwrap_or(7);
 		max(min(var, 50), 7)
 	}
 }
 
-pub enum DesiredRunnersUp { }
+pub enum DesiredRunnersUp {}
 impl frame_support::traits::Get<u32> for DesiredRunnersUp {
 	fn get() -> u32 {
-		let var = variables::U32s::get(b"runtime::elections_phragmen::desired_runners_up".to_vec()).unwrap_or(30);
+		let var = variables::U32s::get(b"runtime::elections_phragmen::desired_runners_up".to_vec())
+			.unwrap_or(30);
 		max(min(var, 100), 7)
 	}
 }
@@ -630,11 +653,13 @@ parameter_types! {
 
 impl treasury::Config for Runtime {
 	type Currency = Balances;
-	type ApproveOrigin = system::EnsureOneOf<AccountId,
+	type ApproveOrigin = system::EnsureOneOf<
+		AccountId,
 		collective::EnsureProportionMoreThan<_4, _5, AccountId, CouncilCollective>,
 		system::EnsureRoot<AccountId>,
 	>;
-	type RejectOrigin = system::EnsureOneOf<AccountId,
+	type RejectOrigin = system::EnsureOneOf<
+		AccountId,
 		collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
 		system::EnsureRoot<AccountId>,
 	>;
@@ -711,19 +736,26 @@ parameter_types! {
 }
 
 /// The type used to represent the kinds of proxying allowed.
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+#[derive(
+	Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen,
+)]
 pub enum ProxyType {
 	Any,
 	NonTransfer,
 	Governance,
 	IdentityJudgement,
 }
-impl Default for ProxyType { fn default() -> Self { Self::Any } }
+impl Default for ProxyType {
+	fn default() -> Self {
+		Self::Any
+	}
+}
 impl InstanceFilter<Call> for ProxyType {
 	fn filter(&self, c: &Call) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer => matches!(c,
+			ProxyType::NonTransfer => matches!(
+				c,
 				Call::System(..) |
 				Call::Timestamp(..) |
 				Call::Indices(indices::Call::claim(..)) |
@@ -746,14 +778,18 @@ impl InstanceFilter<Call> for ProxyType {
 				Call::Proxy(..) |
 				Call::Multisig(..)
 			),
-			ProxyType::Governance => matches!(c,
-				Call::Democracy(..) | Call::Council(..) | Call::TechnicalCommittee(..)
-					| Call::ElectionsPhragmen(..) | Call::Treasury(..) | Call::Utility(..)
+			ProxyType::Governance => matches!(
+				c,
+				Call::Democracy(..)
+					| Call::Council(..) | Call::TechnicalCommittee(..)
+					| Call::ElectionsPhragmen(..)
+					| Call::Treasury(..) | Call::Utility(..)
 			),
-			ProxyType::IdentityJudgement => matches!(c,
+			ProxyType::IdentityJudgement => matches!(
+				c,
 				Call::Identity(identity::Call::provide_judgement(..))
-				| Call::Utility(utility::Call::batch(..))
-			)
+					| Call::Utility(utility::Call::batch(..))
+			),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
@@ -944,13 +980,8 @@ pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
-pub type Executive = frame_executive::Executive<
-	Runtime,
-	Block,
-	system::ChainContext<Runtime>,
-	Runtime,
-	AllPallets,
->;
+pub type Executive =
+	frame_executive::Executive<Runtime, Block, system::ChainContext<Runtime>, Runtime, AllPallets>;
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {

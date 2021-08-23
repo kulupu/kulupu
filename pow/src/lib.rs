@@ -19,24 +19,25 @@
 pub mod compute;
 pub mod weak_sub;
 
-use std::{sync::Arc, time::{Duration, Instant}};
-use parking_lot::Mutex;
-use codec::{Encode, Decode};
-use sp_core::{U256, H256, blake2_256};
-use sp_api::ProvideRuntimeApi;
-use sp_runtime::generic::BlockId;
-use sp_runtime::traits::{
-	Block as BlockT, Header as HeaderT, UniqueSaturatedInto,
-};
-use sp_consensus_pow::{Seal as RawSeal, DifficultyApi};
-use sc_consensus_pow::PowAlgorithm;
-use sc_client_api::{blockchain::HeaderBackend, backend::AuxStore};
-use sc_keystore::LocalKeystore;
-use kulupu_primitives::{Difficulty, AlgorithmApi};
-use rand::{SeedableRng, thread_rng, rngs::SmallRng};
+use codec::{Decode, Encode};
+use kulupu_primitives::{AlgorithmApi, Difficulty};
 use log::*;
+use parking_lot::Mutex;
+use rand::{rngs::SmallRng, thread_rng, SeedableRng};
+use sc_client_api::{backend::AuxStore, blockchain::HeaderBackend};
+use sc_consensus_pow::PowAlgorithm;
+use sc_keystore::LocalKeystore;
+use sp_api::ProvideRuntimeApi;
+use sp_consensus_pow::{DifficultyApi, Seal as RawSeal};
+use sp_core::{blake2_256, H256, U256};
+use sp_runtime::generic::BlockId;
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT, UniqueSaturatedInto};
+use std::{
+	sync::Arc,
+	time::{Duration, Instant},
+};
 
-use crate::compute::{ComputeV1, ComputeV2, SealV1, SealV2, ComputeMode};
+use crate::compute::{ComputeMode, ComputeV1, ComputeV2, SealV1, SealV2};
 
 pub mod app {
 	use sp_application_crypto::{app_crypto, sr25519};
@@ -54,22 +55,21 @@ pub fn is_valid_hash(hash: &H256, difficulty: Difficulty) -> bool {
 	!overflowed
 }
 
-pub fn key_hash<B, C>(
-	client: &C,
-	parent: &BlockId<B>
-) -> Result<H256, sc_consensus_pow::Error<B>> where
-	B: BlockT<Hash=H256>,
+pub fn key_hash<B, C>(client: &C, parent: &BlockId<B>) -> Result<H256, sc_consensus_pow::Error<B>>
+where
+	B: BlockT<Hash = H256>,
 	C: HeaderBackend<B>,
 {
 	const PERIOD: u64 = 4096; // ~2.8 days
-	const OFFSET: u64 = 128;  // 2 hours
+	const OFFSET: u64 = 128; // 2 hours
 
-	let parent_header = client.header(*parent)
-		.map_err(|e| sc_consensus_pow::Error::Environment(
-			format!("Client execution error: {:?}", e)
-		))?
+	let parent_header = client
+		.header(*parent)
+		.map_err(|e| {
+			sc_consensus_pow::Error::Environment(format!("Client execution error: {:?}", e))
+		})?
 		.ok_or(sc_consensus_pow::Error::Environment(
-			"Parent header not found".to_string()
+			"Parent header not found".to_string(),
 		))?;
 	let parent_number = UniqueSaturatedInto::<u64>::unique_saturated_into(*parent_header.number());
 
@@ -80,13 +80,15 @@ pub fn key_hash<B, C>(
 
 	let mut current = parent_header;
 	while UniqueSaturatedInto::<u64>::unique_saturated_into(*current.number()) != key_number {
-		current = client.header(BlockId::Hash(*current.parent_hash()))
-			.map_err(|e| sc_consensus_pow::Error::Environment(
-				format!("Client execution error: {:?}", e)
-			))?
-			.ok_or(sc_consensus_pow::Error::Environment(
-				format!("Block with hash {:?} not found", current.hash())
-			))?;
+		current = client
+			.header(BlockId::Hash(*current.parent_hash()))
+			.map_err(|e| {
+				sc_consensus_pow::Error::Environment(format!("Client execution error: {:?}", e))
+			})?
+			.ok_or(sc_consensus_pow::Error::Environment(format!(
+				"Block with hash {:?} not found",
+				current.hash()
+			)))?;
 	}
 
 	Ok(current.hash())
@@ -103,9 +105,7 @@ pub struct RandomXAlgorithm<C> {
 
 impl<C> RandomXAlgorithm<C> {
 	pub fn new(client: Arc<C>) -> Self {
-		Self {
-			client,
-		}
+		Self { client }
 	}
 }
 
@@ -117,34 +117,38 @@ impl<C> Clone for RandomXAlgorithm<C> {
 	}
 }
 
-impl<B> From<compute::Error> for sc_consensus_pow::Error<B> where
-	B: sp_runtime::traits::Block
+impl<B> From<compute::Error> for sc_consensus_pow::Error<B>
+where
+	B: sp_runtime::traits::Block,
 {
 	fn from(e: compute::Error) -> Self {
 		sc_consensus_pow::Error::<B>::Other(e.description().to_string())
 	}
 }
 
-impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
+impl<B: BlockT<Hash = H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C>
+where
 	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi<B>,
 	C::Api: DifficultyApi<B, Difficulty> + AlgorithmApi<B>,
 {
 	type Difficulty = Difficulty;
 
 	fn difficulty(&self, parent: H256) -> Result<Difficulty, sc_consensus_pow::Error<B>> {
-		let difficulty = self.client.runtime_api().difficulty(&BlockId::Hash(parent))
-			.map_err(|e| sc_consensus_pow::Error::Environment(
-				format!("Fetching difficulty from runtime failed: {:?}", e)
-			));
+		let difficulty = self
+			.client
+			.runtime_api()
+			.difficulty(&BlockId::Hash(parent))
+			.map_err(|e| {
+				sc_consensus_pow::Error::Environment(format!(
+					"Fetching difficulty from runtime failed: {:?}",
+					e
+				))
+			});
 
 		difficulty
 	}
 
-	fn break_tie(
-		&self,
-		own_seal: &RawSeal,
-		new_seal: &RawSeal,
-	) -> bool {
+	fn break_tie(&self, own_seal: &RawSeal, new_seal: &RawSeal) -> bool {
 		blake2_256(&own_seal[..]) > blake2_256(&new_seal[..])
 	}
 
@@ -156,17 +160,21 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 		seal: &RawSeal,
 		difficulty: Difficulty,
 	) -> Result<bool, sc_consensus_pow::Error<B>> {
-		let version_raw = self.client.runtime_api().identifier(parent)
-			.map_err(|e| sc_consensus_pow::Error::Environment(
-				format!("Fetching identifier from runtime failed: {:?}", e))
-			)?;
+		let version_raw = self.client.runtime_api().identifier(parent).map_err(|e| {
+			sc_consensus_pow::Error::Environment(format!(
+				"Fetching identifier from runtime failed: {:?}",
+				e
+			))
+		})?;
 
 		let version = match version_raw {
 			kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => RandomXAlgorithmVersion::V1,
 			kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => RandomXAlgorithmVersion::V2,
-			_ => return Err(sc_consensus_pow::Error::<B>::Other(
-				"Unknown algorithm identifier".to_string(),
-			)),
+			_ => {
+				return Err(sc_consensus_pow::Error::<B>::Other(
+					"Unknown algorithm identifier".to_string(),
+				))
+			}
 		};
 
 		let key_hash = key_hash(self.client.as_ref(), parent)?;
@@ -190,15 +198,15 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				let (computed_seal, computed_work) = compute.seal_and_work(ComputeMode::Sync)?;
 
 				if computed_seal != seal {
-					return Ok(false)
+					return Ok(false);
 				}
 
 				if !is_valid_hash(&computed_work, difficulty) {
-					return Ok(false)
+					return Ok(false);
 				}
 
 				Ok(true)
-			},
+			}
 			RandomXAlgorithmVersion::V2 => {
 				let seal = match SealV2::decode(&mut &seal[..]) {
 					Ok(seal) => seal,
@@ -223,37 +231,37 @@ impl<B: BlockT<Hash=H256>, C> PowAlgorithm<B> for RandomXAlgorithm<C> where
 				};
 
 				if !compute.verify(&seal.signature, &author) {
-					return Ok(false)
+					return Ok(false);
 				}
 
-				let (computed_seal, computed_work) = compute.seal_and_work(
-					seal.signature.clone(),
-					ComputeMode::Sync,
-				)?;
+				let (computed_seal, computed_work) =
+					compute.seal_and_work(seal.signature.clone(), ComputeMode::Sync)?;
 
 				if computed_seal != seal {
-					return Ok(false)
+					return Ok(false);
 				}
 
 				if !is_valid_hash(&computed_work, difficulty) {
-					return Ok(false)
+					return Ok(false);
 				}
 
 				Ok(true)
-			},
+			}
 		}
 	}
 }
 
 #[derive(Debug)]
-pub enum Error<B> where
+pub enum Error<B>
+where
 	B: sp_runtime::traits::Block,
 {
 	Consensus(sc_consensus_pow::Error<B>),
 	Compute(compute::Error),
 }
 
-impl<B> From<sc_consensus_pow::Error<B>> for Error<B> where
+impl<B> From<sc_consensus_pow::Error<B>> for Error<B>
+where
 	B: sp_runtime::traits::Block,
 {
 	fn from(e: sc_consensus_pow::Error<B>) -> Self {
@@ -261,7 +269,8 @@ impl<B> From<sc_consensus_pow::Error<B>> for Error<B> where
 	}
 }
 
-impl<B> From<compute::Error> for Error<B> where
+impl<B> From<compute::Error> for Error<B>
+where
 	B: sp_runtime::traits::Block,
 {
 	fn from(e: compute::Error) -> Self {
@@ -294,28 +303,30 @@ pub fn mine<B, C>(
 	difficulty: Difficulty,
 	round: u32,
 	stats: &Arc<Mutex<Stats>>,
-) -> Result<Option<RawSeal>, Error<B>> where
-	B: BlockT<Hash=H256>,
+) -> Result<Option<RawSeal>, Error<B>>
+where
+	B: BlockT<Hash = H256>,
 	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi<B>,
 	C::Api: DifficultyApi<B, Difficulty> + AlgorithmApi<B>,
 {
-	let version_raw = client.runtime_api().identifier(parent)
-		.map_err(|e| sc_consensus_pow::Error::Environment(
-			format!("Fetching identifier from runtime failed: {:?}", e))
-		)?;
+	let version_raw = client.runtime_api().identifier(parent).map_err(|e| {
+		sc_consensus_pow::Error::Environment(format!(
+			"Fetching identifier from runtime failed: {:?}",
+			e
+		))
+	})?;
 
 	let version = match version_raw {
 		kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => Ok(RandomXAlgorithmVersion::V1),
 		kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => Ok(RandomXAlgorithmVersion::V2),
 		_ => Err(sc_consensus_pow::Error::<B>::Other(
-			"Unknown algorithm identifier".to_string()
+			"Unknown algorithm identifier".to_string(),
 		)),
 	}?;
 
-	let mut rng = SmallRng::from_rng(&mut thread_rng())
-		.map_err(|e| sc_consensus_pow::Error::Environment(
-			format!("Initialize RNG failed for mining: {:?}", e)
-		))?;
+	let mut rng = SmallRng::from_rng(&mut thread_rng()).map_err(|e| {
+		sc_consensus_pow::Error::Environment(format!("Initialize RNG failed for mining: {:?}", e))
+	})?;
 	let key_hash = key_hash(client, parent)?;
 
 	let pre_digest = pre_digest.ok_or(sc_consensus_pow::Error::<B>::Other(
@@ -328,72 +339,73 @@ pub fn mine<B, C>(
 		)
 	})?;
 
-	let pair = keystore.key_pair::<app::Pair>(
-		&author,
-	).map_err(|_| sc_consensus_pow::Error::<B>::Other(
-		"Unable to mine: fetch pair from author failed".to_string(),
-	))?
-	.ok_or(sc_consensus_pow::Error::<B>::Other(
-		"Unable to mine: key not found in keystore".to_string(),
-	))?;
+	let pair = keystore
+		.key_pair::<app::Pair>(&author)
+		.map_err(|_| {
+			sc_consensus_pow::Error::<B>::Other(
+				"Unable to mine: fetch pair from author failed".to_string(),
+			)
+		})?
+		.ok_or(sc_consensus_pow::Error::<B>::Other(
+			"Unable to mine: key not found in keystore".to_string(),
+		))?;
 
 	let maybe_seal = match version {
-		RandomXAlgorithmVersion::V1 => {
-			compute::loop_raw(
-				&key_hash,
-				ComputeMode::Mining,
-				|| {
-					let nonce = H256::random_using(&mut rng);
+		RandomXAlgorithmVersion::V1 => compute::loop_raw(
+			&key_hash,
+			ComputeMode::Mining,
+			|| {
+				let nonce = H256::random_using(&mut rng);
 
-					let compute = ComputeV1 {
-						key_hash,
-						difficulty,
-						pre_hash: *pre_hash,
-						nonce,
-					};
+				let compute = ComputeV1 {
+					key_hash,
+					difficulty,
+					pre_hash: *pre_hash,
+					nonce,
+				};
 
-					(compute.input().encode(), compute)
-				},
-				|work, compute| {
-					if is_valid_hash(&work, compute.difficulty) {
-						let seal = compute.seal();
-						compute::Loop::Break(Some(seal.encode()))
-					} else {
-						compute::Loop::Continue
-					}
-				},
-				round as usize,
-			)
-		},
-		RandomXAlgorithmVersion::V2 => {
-			compute::loop_raw(
-				&key_hash,
-				ComputeMode::Mining,
-				|| {
-					let nonce = H256::random_using(&mut rng);
+				(compute.input().encode(), compute)
+			},
+			|work, compute| {
+				if is_valid_hash(&work, compute.difficulty) {
+					let seal = compute.seal();
+					compute::Loop::Break(Some(seal.encode()))
+				} else {
+					compute::Loop::Continue
+				}
+			},
+			round as usize,
+		),
+		RandomXAlgorithmVersion::V2 => compute::loop_raw(
+			&key_hash,
+			ComputeMode::Mining,
+			|| {
+				let nonce = H256::random_using(&mut rng);
 
-					let compute = ComputeV2 {
-						key_hash,
-						difficulty,
-						pre_hash: *pre_hash,
-						nonce,
-					};
+				let compute = ComputeV2 {
+					key_hash,
+					difficulty,
+					pre_hash: *pre_hash,
+					nonce,
+				};
 
-					let signature = compute.sign(&pair);
+				let signature = compute.sign(&pair);
 
-					(compute.input(signature.clone()).encode(), (compute, signature))
-				},
-				|work, (compute, signature)| {
-					if is_valid_hash(&work, difficulty) {
-						let seal = compute.seal(signature);
-						compute::Loop::Break(Some(seal.encode()))
-					} else {
-						compute::Loop::Continue
-					}
-				},
-				round as usize,
-			)
-		},
+				(
+					compute.input(signature.clone()).encode(),
+					(compute, signature),
+				)
+			},
+			|work, (compute, signature)| {
+				if is_valid_hash(&work, difficulty) {
+					let seal = compute.seal(signature);
+					compute::Loop::Break(Some(seal.encode()))
+				} else {
+					compute::Loop::Continue
+				}
+			},
+			round as usize,
+		),
 	};
 
 	let now = Instant::now();
@@ -412,7 +424,8 @@ pub fn mine<B, C>(
 			let duration = since_last_clear;
 
 			let clear = duration >= Duration::new(600, 0);
-			let display = (clear || since_last_display >= Duration::new(2, 0)) && duration.as_secs() > 0;
+			let display =
+				(clear || since_last_display >= Duration::new(2, 0)) && duration.as_secs() > 0;
 
 			if display {
 				stats.last_display = now;

@@ -17,8 +17,8 @@
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
 use sc_cli::RunCmd;
-use structopt::StructOpt;
 use std::str::FromStr;
+use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
@@ -53,10 +53,7 @@ pub enum Subcommand {
 	GenerateMiningKey(GenerateMiningKeyCommand),
 
 	/// The custom benchmark subcommmand benchmarking runtime pallets.
-	#[structopt(
-		name = "benchmark",
-		about = "Benchmark runtime pallets."
-	)]
+	#[structopt(name = "benchmark", about = "Benchmark runtime pallets.")]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 }
 
@@ -125,8 +122,12 @@ pub struct ImportMiningKeyCommand {
 }
 
 impl sc_cli::CliConfiguration for ImportMiningKeyCommand {
-	fn shared_params(&self) -> &sc_cli::SharedParams { &self.shared_params }
-	fn keystore_params(&self) -> Option<&sc_cli::KeystoreParams> { Some(&self.keystore_params) }
+	fn shared_params(&self) -> &sc_cli::SharedParams {
+		&self.shared_params
+	}
+	fn keystore_params(&self) -> Option<&sc_cli::KeystoreParams> {
+		Some(&self.keystore_params)
+	}
 }
 
 #[derive(Debug, StructOpt)]
@@ -141,6 +142,10 @@ pub struct GenerateMiningKeyCommand {
 }
 
 impl sc_cli::CliConfiguration for GenerateMiningKeyCommand {
-	fn shared_params(&self) -> &sc_cli::SharedParams { &self.shared_params }
-	fn keystore_params(&self) -> Option<&sc_cli::KeystoreParams> { Some(&self.keystore_params) }
+	fn shared_params(&self) -> &sc_cli::SharedParams {
+		&self.shared_params
+	}
+	fn keystore_params(&self) -> Option<&sc_cli::KeystoreParams> {
+		Some(&self.keystore_params)
+	}
 }
