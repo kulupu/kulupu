@@ -970,11 +970,9 @@ pub struct PhragmenElectionV4RuntimeUpgrade;
 
 impl frame_support::traits::OnRuntimeUpgrade for PhragmenElectionV4RuntimeUpgrade {
 	fn on_runtime_upgrade() -> frame_support::weights::Weight {
-		use frame_support::traits::PalletInfo;
+		use frame_support::traits::PalletInfo as _;
 
-		if let Some(pallet_name) =
-			<Runtime as frame_system::Config>::PalletInfo::name::<ElectionsPhragmen>()
-		{
+		if let Some(pallet_name) = PalletInfo::name::<ElectionsPhragmen>() {
 			elections_phragmen::migrations::v4::migrate::<Runtime, _>(pallet_name)
 		} else {
 			0
