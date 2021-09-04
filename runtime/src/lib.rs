@@ -972,7 +972,9 @@ impl frame_support::traits::OnRuntimeUpgrade for PhragmenElectionV4RuntimeUpgrad
 	fn on_runtime_upgrade() -> frame_support::weights::Weight {
 		use frame_support::traits::PalletInfo;
 
-		if let Some(pallet_name) = <Runtime as frame_system::Config>::PalletInfo::name::<ElectionsPhragmen>() {
+		if let Some(pallet_name) =
+			<Runtime as frame_system::Config>::PalletInfo::name::<ElectionsPhragmen>()
+		{
 			elections_phragmen::migrations::v4::migrate::<Runtime, _>(pallet_name)
 		} else {
 			0
@@ -1007,8 +1009,17 @@ pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
-pub type Executive =
-	frame_executive::Executive<Runtime, Block, system::ChainContext<Runtime>, Runtime, AllPallets, (MigratePalletVersionToStorageVersion, PhragmenElectionV4RuntimeUpgrade)>;
+pub type Executive = frame_executive::Executive<
+	Runtime,
+	Block,
+	system::ChainContext<Runtime>,
+	Runtime,
+	AllPallets,
+	(
+		MigratePalletVersionToStorageVersion,
+		PhragmenElectionV4RuntimeUpgrade,
+	),
+>;
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
