@@ -1,6 +1,6 @@
 [package]
 name = "pallet-lockdrop"
-version = "2.7.0"
+version = "2.8.0"
 authors = ["Wei Tang <wei@that.world>"]
 license = "GPL-3.0-or-later"
 edition = "2018"
