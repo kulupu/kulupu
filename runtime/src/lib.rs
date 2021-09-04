@@ -955,6 +955,31 @@ construct_runtime!(
 	}
 );
 
+/// Migrate from `PalletVersion` to the new `StorageVersion`
+pub struct MigratePalletVersionToStorageVersion;
+
+impl frame_support::traits::OnRuntimeUpgrade for MigratePalletVersionToStorageVersion {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		frame_support::migrations::migrate_from_pallet_version_to_storage_version::<
+			AllPalletsWithSystem,
+		>(&RocksDbWeight::get())
+	}
+}
+
+pub struct PhragmenElectionV4RuntimeUpgrade;
+
+impl frame_support::traits::OnRuntimeUpgrade for PhragmenElectionV4RuntimeUpgrade {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		use frame_support::traits::PalletInfo;
+
+		if let Some(pallet_name) = <Runtime as frame_system::Config>::PalletInfo::name::<ElectionsPhragmen>() {
+			elections_phragmen::migrations::v4::migrate::<Runtime, _>(pallet_name)
+		} else {
+			0
+		}
+	}
+}
+
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, AccountIndex>;
 /// Block header type as expected by this runtime.
@@ -983,7 +1008,7 @@ pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive =
-	frame_executive::Executive<Runtime, Block, system::ChainContext<Runtime>, Runtime, AllPallets>;
+	frame_executive::Executive<Runtime, Block, system::ChainContext<Runtime>, Runtime, AllPallets, (MigratePalletVersionToStorageVersion, PhragmenElectionV4RuntimeUpgrade)>;
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
