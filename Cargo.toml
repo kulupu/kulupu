@@ -54,7 +54,7 @@ pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate" }
 contracts = { package = "pallet-contracts", git = "https://github.com/paritytech/substrate", default-features = false }
 
 pallet-rewards = { path = "frame/rewards" }
-pallet-eras = { path = "frame/eras" }
+pallet-eras = { git = "https://github.com/rust-blockchain/pallets" }
 kulupu-pow = { path = "pow" }
 kulupu-runtime = { path = "runtime" }
 kulupu-primitives = { path = "primitives" }
@@ -83,6 +83,5 @@ members = [
 	"runtime",
 	"pow",
 	"frame/rewards",
-	"frame/eras",
-	"frame/lockdrop",
+	"frame/difficulty",
 ]

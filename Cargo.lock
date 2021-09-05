@@ -4171,7 +4171,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-eras"
-version = "2.8.0"
+version = "3.0.0-dev"
+source = "git+https://github.com/rust-blockchain/pallets#b67319de40f1ec3a39c895f71d45f297523d91de"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4213,7 +4214,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-lockdrop"
-version = "2.8.0"
+version = "3.0.0-dev"
+source = "git+https://github.com/rust-blockchain/pallets#b67319de40f1ec3a39c895f71d45f297523d91de"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -4424,7 +4426,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-variables"
-version = "2.8.0"
+version = "3.0.0-dev"
+source = "git+https://github.com/rust-blockchain/pallets#b67319de40f1ec3a39c895f71d45f297523d91de"
 dependencies = [
  "frame-support",
  "frame-system",
