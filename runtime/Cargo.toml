@@ -55,10 +55,10 @@ pallet-contracts-rpc-runtime-api = { git = "https://github.com/paritytech/substr
 
 # custom pallets
 rewards = { package = "pallet-rewards", path = "../frame/rewards", default-features = false }
-eras = { package = "pallet-eras", path = "../frame/eras", default-features = false }
+eras = { package = "pallet-eras", git = "https://github.com/rust-blockchain/pallets", default-features = false }
 difficulty = { package = "pallet-difficulty", path = "../frame/difficulty", default-features = false }
-variables = { package = "pallet-variables", path = "../frame/variables", default-features = false }
-lockdrop = { package = "pallet-lockdrop", path = "../frame/lockdrop", default-features = false }
+variables = { package = "pallet-variables", git = "https://github.com/rust-blockchain/pallets", default-features = false }
+lockdrop = { package = "pallet-lockdrop", git = "https://github.com/rust-blockchain/pallets", default-features = false }
 
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", default-features = false }
