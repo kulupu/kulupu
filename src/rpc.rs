@@ -20,21 +20,26 @@
 
 use std::sync::Arc;
 
+use kulupu_pow::RandomXAlgorithm;
+use kulupu_primitives::{AlgorithmApi, Difficulty};
 use kulupu_runtime::{opaque::Block, AccountId, Balance, BlockNumber, Hash, Index};
+use parking_lot::Mutex;
+use sc_client_api::backend::AuxStore;
+use sc_consensus_pow::MiningWorker;
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
-use sc_client_api::backend::AuxStore;
-use parking_lot::Mutex;
-use sc_consensus_pow::MiningWorker;
-use kulupu_pow::RandomXAlgorithm;
-use kulupu_primitives::{Difficulty, AlgorithmApi};
 use sp_consensus_pow::DifficultyApi;
 
 /// Full client dependencies.
-pub struct FullDeps<C: HeaderBackend<Block> + AuxStore + sp_api::ProvideRuntimeApi<Block>, L: sc_consensus::JustificationSyncLink<Block>, P, Proof> where
+pub struct FullDeps<
+	C: HeaderBackend<Block> + AuxStore + sp_api::ProvideRuntimeApi<Block>,
+	L: sc_consensus::JustificationSyncLink<Block>,
+	P,
+	Proof,
+> where
 	C::Api: DifficultyApi<Block, Difficulty> + AlgorithmApi<Block>,
 {
 	/// The client instance to use.
@@ -48,7 +53,9 @@ pub struct FullDeps<C: HeaderBackend<Block> + AuxStore + sp_api::ProvideRuntimeA
 }
 
 /// Instantiate all full RPC extensions.
-pub fn create_full<C, L, P, Proof>(deps: FullDeps<C, L, P, Proof>) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
+pub fn create_full<C, L, P, Proof>(
+	deps: FullDeps<C, L, P, Proof>,
+) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
 where
 	C: ProvideRuntimeApi<Block>,
 	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + AuxStore,
@@ -63,10 +70,10 @@ where
 	C::Api: BlockBuilder<Block>,
 	P: TransactionPool + 'static,
 {
+	use kulupu_rpc_work::{RpcWork, RpcWorkApi};
 	use pallet_contracts_rpc::{Contracts, ContractsApi};
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
 	use substrate_frame_rpc_system::{FullSystem, SystemApi};
-	use kulupu_rpc_work::{RpcWorkApi, RpcWork};
 
 	let mut io = jsonrpc_core::IoHandler::default();
 	let FullDeps {
@@ -85,7 +92,10 @@ where
 		client.clone(),
 	)));
 	io.extend_with(ContractsApi::to_delegate(Contracts::new(client.clone())));
-	io.extend_with(RpcWorkApi::to_delegate(RpcWork::new(client.clone(), mining_worker)));
+	io.extend_with(RpcWorkApi::to_delegate(RpcWork::new(
+		client.clone(),
+		mining_worker,
+	)));
 
 	io
 }

@@ -20,9 +20,10 @@
 
 use async_trait::async_trait;
 use codec::Encode;
-use kulupu_pow::compute::Error as ComputeError;
-use kulupu_pow::compute::RandomxError;
-use kulupu_pow::Error as PowError;
+use kulupu_pow::{
+	compute::{Error as ComputeError, RandomxError},
+	Error as PowError,
+};
 use kulupu_runtime::{self, opaque::Block, RuntimeApi};
 use log::*;
 use parking_lot::Mutex;
@@ -37,11 +38,7 @@ use sp_core::{
 };
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
-use std::path::PathBuf;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
+use std::{path::PathBuf, str::FromStr, sync::Arc, thread, time::Duration};
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
