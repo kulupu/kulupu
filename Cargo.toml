@@ -18,7 +18,7 @@ codec = { package = "parity-scale-codec", version = "2.0.0", features = ["derive
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 jsonrpc-core = "18.0.0"
-parking_lot = "0.10.0"
+parking_lot = "0.11.0"
 async-trait = "0.1"
 
 sc-cli = { git = "https://github.com/paritytech/substrate" }
@@ -47,6 +47,7 @@ sc-client-api = { git = "https://github.com/paritytech/substrate" }
 sp-runtime = { git = "https://github.com/paritytech/substrate" }
 sc-telemetry = { git = "https://github.com/paritytech/substrate" }
 sc-basic-authorship = { git = "https://github.com/paritytech/substrate" }
+sp-consensus-pow = { git = "https://github.com/paritytech/substrate" }
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate" }
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate" }
 pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate" }
@@ -58,6 +59,7 @@ pallet-eras = { git = "https://github.com/rust-blockchain/pallets" }
 kulupu-pow = { path = "pow" }
 kulupu-runtime = { path = "runtime" }
 kulupu-primitives = { path = "primitives" }
+kulupu-rpc-work = { path = "rpc/work" }
 
 # benchmarking
 frame-benchmarking = { git = "https://github.com/paritytech/substrate" }
@@ -84,4 +86,5 @@ members = [
 	"pow",
 	"frame/rewards",
 	"frame/difficulty",
+	"rpc/work",
 ]

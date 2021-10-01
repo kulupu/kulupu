@@ -11,7 +11,7 @@ log = "0.4"
 lru-cache = "0.1"
 rand = { version = "0.8", features = ["small_rng"] }
 lazy_static = "1.4"
-parking_lot = "0.10.0"
+parking_lot = "0.11.0"
 humantime = "2.0.1"
 once_cell = "1.5"
 async-trait = "0.1.42"

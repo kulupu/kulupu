@@ -26,38 +26,54 @@ use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
+use sc_client_api::backend::AuxStore;
+use parking_lot::Mutex;
+use sc_consensus_pow::MiningWorker;
+use kulupu_pow::RandomXAlgorithm;
+use kulupu_primitives::{Difficulty, AlgorithmApi};
+use sp_consensus_pow::DifficultyApi;
 
 /// Full client dependencies.
-pub struct FullDeps<C, P> {
+pub struct FullDeps<C: HeaderBackend<Block> + AuxStore + sp_api::ProvideRuntimeApi<Block>, L: sc_consensus::JustificationSyncLink<Block>, P, Proof> where
+	C::Api: DifficultyApi<Block, Difficulty> + AlgorithmApi<Block>,
+{
 	/// The client instance to use.
 	pub client: Arc<C>,
 	/// Transaction pool instance.
 	pub pool: Arc<P>,
 	/// Whether to deny unsafe calls
 	pub deny_unsafe: DenyUnsafe,
+	/// Mining worker.
+	pub mining_worker: Arc<Mutex<MiningWorker<Block, RandomXAlgorithm<C>, C, L, Proof>>>,
 }
 
 /// Instantiate all full RPC extensions.
-pub fn create_full<C, P>(deps: FullDeps<C, P>) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
+pub fn create_full<C, L, P, Proof>(deps: FullDeps<C, L, P, Proof>) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
 where
 	C: ProvideRuntimeApi<Block>,
-	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
+	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + AuxStore,
 	C: Send + Sync + 'static,
+	L: sc_consensus::JustificationSyncLink<Block> + 'static,
+	sp_api::TransactionFor<C, Block>: Send + 'static,
+	Proof: Send + 'static,
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
 	C::Api: pallet_contracts_rpc::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber, Hash>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+	C::Api: DifficultyApi<Block, Difficulty> + AlgorithmApi<Block>,
 	C::Api: BlockBuilder<Block>,
 	P: TransactionPool + 'static,
 {
 	use pallet_contracts_rpc::{Contracts, ContractsApi};
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
 	use substrate_frame_rpc_system::{FullSystem, SystemApi};
+	use kulupu_rpc_work::{RpcWorkApi, RpcWork};
 
 	let mut io = jsonrpc_core::IoHandler::default();
 	let FullDeps {
 		client,
 		pool,
 		deny_unsafe,
+		mining_worker,
 	} = deps;
 
 	io.extend_with(SystemApi::to_delegate(FullSystem::new(
@@ -69,10 +85,7 @@ where
 		client.clone(),
 	)));
 	io.extend_with(ContractsApi::to_delegate(Contracts::new(client.clone())));
-	// Extend this RPC with a custom API by using the following syntax.
-	// `YourRpcStruct` should have a reference to a client, which is needed
-	// to call into the runtime.
-	// `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
+	io.extend_with(RpcWorkApi::to_delegate(RpcWork::new(client.clone(), mining_worker)));
 
 	io
 }
