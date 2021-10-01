@@ -2614,6 +2614,7 @@ dependencies = [
  "jsonrpc-core",
  "kulupu-pow",
  "kulupu-primitives",
+ "kulupu-rpc-work",
  "kulupu-runtime",
  "log",
  "pallet-contracts",
@@ -2622,7 +2623,7 @@ dependencies = [
  "pallet-rewards",
  "pallet-transaction-payment-rpc",
  "parity-scale-codec",
- "parking_lot 0.10.2",
+ "parking_lot 0.11.2",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -2644,6 +2645,7 @@ dependencies = [
  "sp-block-builder",
  "sp-blockchain",
  "sp-consensus",
+ "sp-consensus-pow",
  "sp-core",
  "sp-finality-grandpa",
  "sp-inherents",
@@ -2670,7 +2672,7 @@ dependencies = [
  "lru-cache",
  "once_cell",
  "parity-scale-codec",
- "parking_lot 0.10.2",
+ "parking_lot 0.11.2",
  "rand 0.8.4",
  "sc-client-api",
  "sc-consensus",
@@ -2709,6 +2711,28 @@ version = "2.8.0"
 dependencies = [
  "bindgen",
  "cmake",
+]
+
+[[package]]
+name = "kulupu-rpc-work"
+version = "2.8.0"
+dependencies = [
+ "futures 0.3.17",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "kulupu-pow",
+ "kulupu-primitives",
+ "parity-scale-codec",
+ "parking_lot 0.11.2",
+ "sc-client-api",
+ "sc-consensus",
+ "sc-consensus-pow",
+ "serde",
+ "sp-api",
+ "sp-consensus-pow",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]

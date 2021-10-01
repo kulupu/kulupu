@@ -20,9 +20,10 @@
 
 use async_trait::async_trait;
 use codec::Encode;
-use kulupu_pow::compute::Error as ComputeError;
-use kulupu_pow::compute::RandomxError;
-use kulupu_pow::Error as PowError;
+use kulupu_pow::{
+	compute::{Error as ComputeError, RandomxError},
+	Error as PowError,
+};
 use kulupu_runtime::{self, opaque::Block, RuntimeApi};
 use log::*;
 use parking_lot::Mutex;
@@ -37,11 +38,7 @@ use sp_core::{
 };
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
-use std::path::PathBuf;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
+use std::{path::PathBuf, str::FromStr, sync::Arc, thread, time::Duration};
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -288,8 +285,37 @@ pub fn new_full(
 	let role = config.role.clone();
 	let prometheus_registry = config.prometheus_registry().cloned();
 
+	let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
+
+	let proposer = sc_basic_authorship::ProposerFactory::new(
+		task_manager.spawn_handle(),
+		client.clone(),
+		transaction_pool.clone(),
+		prometheus_registry.as_ref(),
+		telemetry.as_ref().map(|x| x.handle()),
+	);
+
+	let (worker, worker_task) = sc_consensus_pow::start_mining_worker(
+		Box::new(pow_block_import.clone()),
+		client.clone(),
+		select_chain.clone(),
+		algorithm,
+		proposer,
+		network.clone(),
+		network.clone(),
+		Some(author.encode()),
+		CreateInherentDataProviders,
+		Duration::new(10, 0),
+		Duration::new(10, 0),
+		sp_consensus::AlwaysCanAuthor,
+	);
+	task_manager
+		.spawn_handle()
+		.spawn_blocking("pow", worker_task);
+
 	let rpc_extensions_builder = {
 		let client = client.clone();
+		let worker = worker.clone();
 		let pool = transaction_pool.clone();
 
 		Box::new(move |deny_unsafe, _| {
@@ -297,6 +323,7 @@ pub fn new_full(
 				client: client.clone(),
 				pool: pool.clone(),
 				deny_unsafe,
+				mining_worker: worker.clone(),
 			};
 
 			Ok(crate::rpc::create_full(deps))
@@ -322,34 +349,6 @@ pub fn new_full(
 
 	if role.is_authority() {
 		let author = decode_author(author, keystore_container.sync_keystore(), keystore_path)?;
-		let algorithm = kulupu_pow::RandomXAlgorithm::new(client.clone());
-
-		let proposer = sc_basic_authorship::ProposerFactory::new(
-			task_manager.spawn_handle(),
-			client.clone(),
-			transaction_pool.clone(),
-			prometheus_registry.as_ref(),
-			telemetry.as_ref().map(|x| x.handle()),
-		);
-
-		let (worker, worker_task) = sc_consensus_pow::start_mining_worker(
-			Box::new(pow_block_import.clone()),
-			client.clone(),
-			select_chain.clone(),
-			algorithm,
-			proposer,
-			network.clone(),
-			network.clone(),
-			Some(author.encode()),
-			CreateInherentDataProviders,
-			Duration::new(10, 0),
-			Duration::new(10, 0),
-			sp_consensus::AlwaysCanAuthor,
-		);
-		task_manager
-			.spawn_handle()
-			.spawn_blocking("pow", worker_task);
-
 		let stats = Arc::new(Mutex::new(kulupu_pow::Stats::new()));
 
 		for _ in 0..threads {

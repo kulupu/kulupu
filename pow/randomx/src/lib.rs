@@ -16,8 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
-use std::marker::PhantomData;
-use std::sync::Arc;
+use std::{marker::PhantomData, sync::Arc};
 
 pub const HASH_SIZE: usize = sys::RANDOMX_HASH_SIZE as usize;
 

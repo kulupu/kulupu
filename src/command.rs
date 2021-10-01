@@ -16,9 +16,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
-use crate::chain_spec;
-use crate::cli::{Cli, RandomxFlag, Subcommand};
-use crate::service;
+use crate::{
+	chain_spec,
+	cli::{Cli, RandomxFlag, Subcommand},
+	service,
+};
 use log::{info, warn};
 use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
 use sc_keystore::LocalKeystore;

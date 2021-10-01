@@ -30,8 +30,10 @@ use sc_keystore::LocalKeystore;
 use sp_api::ProvideRuntimeApi;
 use sp_consensus_pow::{DifficultyApi, Seal as RawSeal};
 use sp_core::{blake2_256, H256, U256};
-use sp_runtime::generic::BlockId;
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT, UniqueSaturatedInto};
+use sp_runtime::{
+	generic::BlockId,
+	traits::{Block as BlockT, Header as HeaderT, UniqueSaturatedInto},
+};
 use std::{
 	sync::Arc,
 	time::{Duration, Instant},

@@ -44,11 +44,9 @@ use sp_core::{
 	u32_trait::{_1, _2, _4, _5},
 	OpaqueMetadata,
 };
-use sp_runtime::traits::{
-	BlakeTwo256, Block as BlockT, Convert, ConvertInto, IdentifyAccount, Verify,
-};
 use sp_runtime::{
 	create_runtime_str, generic,
+	traits::{BlakeTwo256, Block as BlockT, Convert, ConvertInto, IdentifyAccount, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Percent, Perquintill, RuntimeDebug,
 };

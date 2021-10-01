@@ -19,11 +19,12 @@
 
 //! Tests for Rewards Pallet
 
-use crate::mock::*;
-use crate::*;
-use frame_support::error::BadOrigin;
-use frame_support::traits::{OnFinalize, OnInitialize};
-use frame_support::{assert_noop, assert_ok};
+use crate::{mock::*, *};
+use frame_support::{
+	assert_noop, assert_ok,
+	error::BadOrigin,
+	traits::{OnFinalize, OnInitialize},
+};
 use frame_system::InitKind;
 use pallet_balances::Error as BalancesError;
 use sp_runtime::{testing::DigestItem, Digest};

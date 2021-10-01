@@ -1,0 +1,24 @@
+[package]
+name = "kulupu-rpc-work"
+version = "2.8.0"
+authors = ["Wei Tang <wei@that.world>"]
+license = "GPL-3.0-or-later"
+edition = "2018"
+
+[dependencies]
+serde = "1.0.0"
+jsonrpc-core = "18.0.0"
+jsonrpc-derive = "18.0.0"
+jsonrpc-core-client = "18.0.0"
+kulupu-pow = { path = "../../pow" }
+kulupu-primitives = { path = "../../primitives" }
+sp-core = { git = "https://github.com/paritytech/substrate" }
+sp-consensus-pow = { git = "https://github.com/paritytech/substrate" }
+sc-consensus-pow = { git = "https://github.com/paritytech/substrate" }
+sc-consensus = { git = "https://github.com/paritytech/substrate" }
+sp-api = { git = "https://github.com/paritytech/substrate" }
+sc-client-api = { git = "https://github.com/paritytech/substrate" }
+sp-runtime = { git = "https://github.com/paritytech/substrate" }
+parking_lot = "0.11.0"
+parity-scale-codec = "2.0.0"
+futures = "0.3"

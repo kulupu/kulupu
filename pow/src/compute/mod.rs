@@ -19,10 +19,11 @@
 mod v1;
 mod v2;
 
-pub use self::v1::{ComputeV1, SealV1};
-pub use self::v2::{ComputeV2, SealV2};
-pub use randomx::Config;
-pub use randomx::Error as RandomxError;
+pub use self::{
+	v1::{ComputeV1, SealV1},
+	v2::{ComputeV2, SealV2},
+};
+pub use randomx::{Config, Error as RandomxError};
 
 use codec::{Decode, Encode};
 use kulupu_primitives::Difficulty;
@@ -34,8 +35,7 @@ use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use randomx::WithCacheMode;
 use sp_core::H256;
-use std::cell::RefCell;
-use std::sync::Arc;
+use std::{cell::RefCell, sync::Arc};
 
 lazy_static! {
 	static ref FULL_SHARED_CACHES: Arc<Mutex<LruCache<H256, Arc<randomx::FullCache>>>> =
