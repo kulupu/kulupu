@@ -47,6 +47,7 @@ sc-client-api = { git = "https://github.com/paritytech/substrate" }
 sp-runtime = { git = "https://github.com/paritytech/substrate" }
 sc-telemetry = { git = "https://github.com/paritytech/substrate" }
 sc-basic-authorship = { git = "https://github.com/paritytech/substrate" }
+sc-client-db = { git = "https://github.com/paritytech/substrate" }
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate" }
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate" }
 pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate" }
