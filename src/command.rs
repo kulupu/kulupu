@@ -114,7 +114,6 @@ pub fn run() -> sc_cli::Result<()> {
 					&config,
 					cli.check_inherents_after
 						.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
-					!cli.no_donate,
 					!cli.disable_weak_subjectivity,
 				)?;
 				Ok((cmd.run(client, import_queue), task_manager))
@@ -131,7 +130,6 @@ pub fn run() -> sc_cli::Result<()> {
 					&config,
 					cli.check_inherents_after
 						.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
-					!cli.no_donate,
 					!cli.disable_weak_subjectivity,
 				)?;
 				Ok((cmd.run(client, config.database), task_manager))
@@ -148,7 +146,6 @@ pub fn run() -> sc_cli::Result<()> {
 					&config,
 					cli.check_inherents_after
 						.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
-					!cli.no_donate,
 					!cli.disable_weak_subjectivity,
 				)?;
 				Ok((cmd.run(client, config.chain_spec), task_manager))
@@ -166,7 +163,6 @@ pub fn run() -> sc_cli::Result<()> {
 					&config,
 					cli.check_inherents_after
 						.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
-					!cli.no_donate,
 					!cli.disable_weak_subjectivity,
 				)?;
 				Ok((cmd.run(client, import_queue), task_manager))
@@ -188,7 +184,6 @@ pub fn run() -> sc_cli::Result<()> {
 					&config,
 					cli.check_inherents_after
 						.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
-					!cli.no_donate,
 					!cli.disable_weak_subjectivity,
 				)?;
 				Ok((cmd.run(client, backend), task_manager))
@@ -308,7 +303,6 @@ pub fn run() -> sc_cli::Result<()> {
 							config,
 							cli.check_inherents_after
 								.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
-							!cli.no_donate,
 							!cli.disable_weak_subjectivity,
 						),
 						_ => service::new_full(
@@ -318,7 +312,6 @@ pub fn run() -> sc_cli::Result<()> {
 							cli.round.unwrap_or(DEFAULT_ROUND),
 							cli.check_inherents_after
 								.unwrap_or(DEFAULT_CHECK_INHERENTS_AFTER),
-							!cli.no_donate,
 							!cli.disable_weak_subjectivity,
 						),
 					}

@@ -92,8 +92,6 @@ pub struct Cli {
 	#[structopt(long)]
 	pub enable_polkadot_telemetry: bool,
 	#[structopt(long)]
-	pub no_donate: bool,
-	#[structopt(long)]
 	pub disable_weak_subjectivity: bool,
 	#[structopt(long)]
 	pub check_inherents_after: Option<u32>,

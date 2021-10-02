@@ -145,7 +145,6 @@ type PowBlockImport = sc_consensus_pow::PowBlockImport<
 pub fn new_partial(
 	config: &Configuration,
 	check_inherents_after: u32,
-	donate: bool,
 	enable_weak_subjectivity: bool,
 ) -> Result<
 	sc_service::PartialComponents<
@@ -245,7 +244,6 @@ pub fn new_full(
 	threads: usize,
 	round: u32,
 	check_inherents_after: u32,
-	donate: bool,
 	enable_weak_subjectivity: bool,
 ) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
@@ -260,7 +258,6 @@ pub fn new_full(
 	} = new_partial(
 		&config,
 		check_inherents_after,
-		donate,
 		enable_weak_subjectivity,
 	)?;
 
@@ -410,7 +407,6 @@ pub fn new_full(
 pub fn new_light(
 	config: Configuration,
 	check_inherents_after: u32,
-	donate: bool,
 	enable_weak_subjectivity: bool,
 ) -> Result<TaskManager, ServiceError> {
 	let telemetry = config
