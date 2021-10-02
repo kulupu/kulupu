@@ -26,7 +26,7 @@ use kulupu_pow::Error as PowError;
 use kulupu_runtime::{self, opaque::Block, RuntimeApi};
 use log::*;
 use parking_lot::Mutex;
-use sc_client_api::backend::RemoteBackend;
+use sc_client_api::{ExecutorProvider, backend::RemoteBackend};
 use sc_consensus::DefaultImportQueue;
 use sc_executor::NativeElseWasmExecutor;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
@@ -138,7 +138,7 @@ type PowBlockImport = sc_consensus_pow::PowBlockImport<
 	FullClient,
 	FullSelectChain,
 	kulupu_pow::RandomXAlgorithm<FullClient>,
-	sp_consensus::AlwaysCanAuthor,
+	sp_consensus::CanAuthorWithNativeVersion<sc_service::LocalCallExecutor<Block, sc_client_db::Backend<Block>, NativeElseWasmExecutor<ExecutorDispatch>>>,
 	CreateInherentDataProviders,
 >;
 
@@ -215,7 +215,7 @@ pub fn new_partial(
 		check_inherents_after,
 		select_chain.clone(),
 		CreateInherentDataProviders,
-		sp_consensus::AlwaysCanAuthor,
+		sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
 	);
 
 	let import_queue = sc_consensus_pow::import_queue(
@@ -344,7 +344,7 @@ pub fn new_full(
 			CreateInherentDataProviders,
 			Duration::new(10, 0),
 			Duration::new(10, 0),
-			sp_consensus::AlwaysCanAuthor,
+			sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
 		);
 		task_manager
 			.spawn_handle()
@@ -470,7 +470,7 @@ pub fn new_light(
 		check_inherents_after,
 		select_chain.clone(),
 		CreateInherentDataProviders,
-		sp_consensus::AlwaysCanAuthor,
+		sp_consensus::NeverCanAuthor,
 	);
 
 	let import_queue = sc_consensus_pow::import_queue(
