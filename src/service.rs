@@ -255,11 +255,7 @@ pub fn new_full(
 		select_chain,
 		transaction_pool,
 		other: (pow_block_import, mut telemetry),
-	} = new_partial(
-		&config,
-		check_inherents_after,
-		enable_weak_subjectivity,
-	)?;
+	} = new_partial(&config, check_inherents_after, enable_weak_subjectivity)?;
 
 	let (network, system_rpc_tx, network_starter) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
