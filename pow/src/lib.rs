@@ -20,12 +20,12 @@ pub mod compute;
 pub mod weak_sub;
 
 use codec::{Decode, Encode};
+use kulupu_pow_consensus::PowAlgorithm;
 use kulupu_primitives::{AlgorithmApi, Difficulty};
 use log::*;
 use parking_lot::Mutex;
 use rand::{rngs::SmallRng, thread_rng, SeedableRng};
 use sc_client_api::{backend::AuxStore, blockchain::HeaderBackend};
-use sc_consensus_pow::PowAlgorithm;
 use sc_keystore::LocalKeystore;
 use sp_api::ProvideRuntimeApi;
 use sp_consensus_pow::{DifficultyApi, Seal as RawSeal};
@@ -55,7 +55,10 @@ pub fn is_valid_hash(hash: &H256, difficulty: Difficulty) -> bool {
 	!overflowed
 }
 
-pub fn key_hash<B, C>(client: &C, parent: &BlockId<B>) -> Result<H256, sc_consensus_pow::Error<B>>
+pub fn key_hash<B, C>(
+	client: &C,
+	parent: &BlockId<B>,
+) -> Result<H256, kulupu_pow_consensus::Error<B>>
 where
 	B: BlockT<Hash = H256>,
 	C: HeaderBackend<B>,
@@ -66,9 +69,9 @@ where
 	let parent_header = client
 		.header(*parent)
 		.map_err(|e| {
-			sc_consensus_pow::Error::Environment(format!("Client execution error: {:?}", e))
+			kulupu_pow_consensus::Error::Environment(format!("Client execution error: {:?}", e))
 		})?
-		.ok_or(sc_consensus_pow::Error::Environment(
+		.ok_or(kulupu_pow_consensus::Error::Environment(
 			"Parent header not found".to_string(),
 		))?;
 	let parent_number = UniqueSaturatedInto::<u64>::unique_saturated_into(*parent_header.number());
@@ -83,9 +86,9 @@ where
 		current = client
 			.header(BlockId::Hash(*current.parent_hash()))
 			.map_err(|e| {
-				sc_consensus_pow::Error::Environment(format!("Client execution error: {:?}", e))
+				kulupu_pow_consensus::Error::Environment(format!("Client execution error: {:?}", e))
 			})?
-			.ok_or(sc_consensus_pow::Error::Environment(format!(
+			.ok_or(kulupu_pow_consensus::Error::Environment(format!(
 				"Block with hash {:?} not found",
 				current.hash()
 			)))?;
@@ -117,12 +120,12 @@ impl<C> Clone for RandomXAlgorithm<C> {
 	}
 }
 
-impl<B> From<compute::Error> for sc_consensus_pow::Error<B>
+impl<B> From<compute::Error> for kulupu_pow_consensus::Error<B>
 where
 	B: sp_runtime::traits::Block,
 {
 	fn from(e: compute::Error) -> Self {
-		sc_consensus_pow::Error::<B>::Other(e.description().to_string())
+		kulupu_pow_consensus::Error::<B>::Other(e.description().to_string())
 	}
 }
 
@@ -133,13 +136,13 @@ where
 {
 	type Difficulty = Difficulty;
 
-	fn difficulty(&self, parent: H256) -> Result<Difficulty, sc_consensus_pow::Error<B>> {
+	fn difficulty(&self, parent: H256) -> Result<Difficulty, kulupu_pow_consensus::Error<B>> {
 		let difficulty = self
 			.client
 			.runtime_api()
 			.difficulty(&BlockId::Hash(parent))
 			.map_err(|e| {
-				sc_consensus_pow::Error::Environment(format!(
+				kulupu_pow_consensus::Error::Environment(format!(
 					"Fetching difficulty from runtime failed: {:?}",
 					e
 				))
@@ -159,9 +162,9 @@ where
 		pre_digest: Option<&[u8]>,
 		seal: &RawSeal,
 		difficulty: Difficulty,
-	) -> Result<bool, sc_consensus_pow::Error<B>> {
+	) -> Result<bool, kulupu_pow_consensus::Error<B>> {
 		let version_raw = self.client.runtime_api().identifier(parent).map_err(|e| {
-			sc_consensus_pow::Error::Environment(format!(
+			kulupu_pow_consensus::Error::Environment(format!(
 				"Fetching identifier from runtime failed: {:?}",
 				e
 			))
@@ -171,7 +174,7 @@ where
 			kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => RandomXAlgorithmVersion::V1,
 			kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => RandomXAlgorithmVersion::V2,
 			_ => {
-				return Err(sc_consensus_pow::Error::<B>::Other(
+				return Err(kulupu_pow_consensus::Error::<B>::Other(
 					"Unknown algorithm identifier".to_string(),
 				))
 			}
@@ -256,15 +259,15 @@ pub enum Error<B>
 where
 	B: sp_runtime::traits::Block,
 {
-	Consensus(sc_consensus_pow::Error<B>),
+	Consensus(kulupu_pow_consensus::Error<B>),
 	Compute(compute::Error),
 }
 
-impl<B> From<sc_consensus_pow::Error<B>> for Error<B>
+impl<B> From<kulupu_pow_consensus::Error<B>> for Error<B>
 where
 	B: sp_runtime::traits::Block,
 {
-	fn from(e: sc_consensus_pow::Error<B>) -> Self {
+	fn from(e: kulupu_pow_consensus::Error<B>) -> Self {
 		Error::Consensus(e)
 	}
 }
@@ -310,7 +313,7 @@ where
 	C::Api: DifficultyApi<B, Difficulty> + AlgorithmApi<B>,
 {
 	let version_raw = client.runtime_api().identifier(parent).map_err(|e| {
-		sc_consensus_pow::Error::Environment(format!(
+		kulupu_pow_consensus::Error::Environment(format!(
 			"Fetching identifier from runtime failed: {:?}",
 			e
 		))
@@ -319,22 +322,25 @@ where
 	let version = match version_raw {
 		kulupu_primitives::ALGORITHM_IDENTIFIER_V1 => Ok(RandomXAlgorithmVersion::V1),
 		kulupu_primitives::ALGORITHM_IDENTIFIER_V2 => Ok(RandomXAlgorithmVersion::V2),
-		_ => Err(sc_consensus_pow::Error::<B>::Other(
+		_ => Err(kulupu_pow_consensus::Error::<B>::Other(
 			"Unknown algorithm identifier".to_string(),
 		)),
 	}?;
 
 	let mut rng = SmallRng::from_rng(&mut thread_rng()).map_err(|e| {
-		sc_consensus_pow::Error::Environment(format!("Initialize RNG failed for mining: {:?}", e))
+		kulupu_pow_consensus::Error::Environment(format!(
+			"Initialize RNG failed for mining: {:?}",
+			e
+		))
 	})?;
 	let key_hash = key_hash(client, parent)?;
 
-	let pre_digest = pre_digest.ok_or(sc_consensus_pow::Error::<B>::Other(
+	let pre_digest = pre_digest.ok_or(kulupu_pow_consensus::Error::<B>::Other(
 		"Unable to mine: pre-digest not set".to_string(),
 	))?;
 
 	let author = app::Public::decode(&mut &pre_digest[..]).map_err(|_| {
-		sc_consensus_pow::Error::<B>::Other(
+		kulupu_pow_consensus::Error::<B>::Other(
 			"Unable to mine: author pre-digest decoding failed".to_string(),
 		)
 	})?;
@@ -342,11 +348,11 @@ where
 	let pair = keystore
 		.key_pair::<app::Pair>(&author)
 		.map_err(|_| {
-			sc_consensus_pow::Error::<B>::Other(
+			kulupu_pow_consensus::Error::<B>::Other(
 				"Unable to mine: fetch pair from author failed".to_string(),
 			)
 		})?
-		.ok_or(sc_consensus_pow::Error::<B>::Other(
+		.ok_or(kulupu_pow_consensus::Error::<B>::Other(
 			"Unable to mine: key not found in keystore".to_string(),
 		))?;
 

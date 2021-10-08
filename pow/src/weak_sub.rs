@@ -17,12 +17,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Kulupu. If not, see <http://www.gnu.org/licenses/>.
 
+use kulupu_pow_consensus::{PowAlgorithm, PowAux};
 use log::*;
 use sc_client_api::{AuxStore, BlockOf};
 use sc_consensus::{
 	BlockCheckParams, BlockImport, BlockImportParams, ForkChoiceStrategy, ImportResult,
 };
-use sc_consensus_pow::{PowAlgorithm, PowAux};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{well_known_cache_keys::Id as CacheKeyId, HeaderMetadata};
 use sp_consensus::{Error as ConsensusError, SelectChain};

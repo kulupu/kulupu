@@ -39,6 +39,7 @@ use frame_support::{
 	PalletId,
 };
 use kulupu_primitives::{deposit, BLOCK_TIME, CENTS, DAYS, DOLLARS, HOURS, MICROCENTS, MILLICENTS};
+use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_core::{
 	u32_trait::{_1, _2, _4, _5},
@@ -128,7 +129,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kulupu"),
 	impl_name: create_runtime_str!("kulupu"),
 	authoring_version: 5,
-	spec_version: 26,
+	spec_version: 27,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 10,
@@ -318,6 +319,7 @@ impl OnUnbalanced<NegativeImbalance> for DealWithFees {
 
 parameter_types! {
 	pub const TransactionByteFee: Balance = 10 * MILLICENTS;
+	pub const OperationalFeeMultiplier: u8 = 5;
 	/// The portion of the `AvailableBlockRatio` that we adjust the fees with. Blocks filled less
 	/// than this will decrease the weight and more will increase.
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
@@ -333,6 +335,7 @@ parameter_types! {
 impl transaction_payment::Config for Runtime {
 	type OnChargeTransaction = transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
 	type TransactionByteFee = TransactionByteFee;
+	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = WeightToFee;
 	type FeeMultiplierUpdate =
 		TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
@@ -738,7 +741,17 @@ parameter_types! {
 
 /// The type used to represent the kinds of proxying allowed.
 #[derive(
-	Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen,
+	Copy,
+	Clone,
+	Eq,
+	PartialEq,
+	Ord,
+	PartialOrd,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	MaxEncodedLen,
+	TypeInfo,
 )]
 pub enum ProxyType {
 	Any,
@@ -759,9 +772,9 @@ impl InstanceFilter<Call> for ProxyType {
 				c,
 				Call::System(..) |
 				Call::Timestamp(..) |
-				Call::Indices(indices::Call::claim(..)) |
-				Call::Indices(indices::Call::free(..)) |
-				Call::Indices(indices::Call::freeze(..)) |
+				Call::Indices(indices::Call::claim { .. }) |
+				Call::Indices(indices::Call::free { .. }) |
+				Call::Indices(indices::Call::freeze { .. }) |
 				// Specifically omitting Indices `transfer`, `force_transfer`
 				// Specifically omitting the entire Balances pallet
 				Call::Democracy(..) |
@@ -772,8 +785,8 @@ impl InstanceFilter<Call> for ProxyType {
 				Call::Treasury(..) |
 				Call::Utility(..) |
 				Call::Identity(..) |
-				Call::Vesting(vesting::Call::vest(..)) |
-				Call::Vesting(vesting::Call::vest_other(..)) |
+				Call::Vesting(vesting::Call::vest { .. }) |
+				Call::Vesting(vesting::Call::vest_other { .. }) |
 				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
 				Call::Scheduler(..) |
 				Call::Proxy(..) |
@@ -788,8 +801,8 @@ impl InstanceFilter<Call> for ProxyType {
 			),
 			ProxyType::IdentityJudgement => matches!(
 				c,
-				Call::Identity(identity::Call::provide_judgement(..))
-					| Call::Utility(utility::Call::batch(..))
+				Call::Identity(identity::Call::provide_judgement { .. })
+					| Call::Utility(utility::Call::batch { .. })
 			),
 		}
 	}
@@ -850,16 +863,10 @@ impl lockdrop::Config for Runtime {
 }
 
 parameter_types! {
-	pub TombstoneDeposit: Balance = deposit(
+	pub ContractDeposit: Balance = deposit(
 		1,
 		<contracts::Pallet<Runtime>>::contract_info_size(),
 	);
-	pub DepositPerContract: Balance = TombstoneDeposit::get();
-	pub const DepositPerStorageByte: Balance = deposit(0, 1);
-	pub const DepositPerStorageItem: Balance = deposit(1, 0);
-	pub RentFraction: Perbill = Perbill::from_rational(1u32, 30 * DAYS);
-	pub const SurchargeReward: Balance = 150 * MILLICENTS;
-	pub const SignedClaimHandicap: u32 = 2;
 	pub const MaxValueSize: u32 = 16 * 1024;
 	// The lazy deletion runs inside on_initialize.
 	pub DeletionWeightLimit: Weight = AVERAGE_ON_INITIALIZE_RATIO *
@@ -886,14 +893,7 @@ impl contracts::Config for Runtime {
 	/// change because that would break already deployed contracts. The `Call` structure itself
 	/// is not allowed to change the indices of existing pallets, too.
 	type CallFilter = Nothing;
-	type RentPayment = ();
-	type SignedClaimHandicap = SignedClaimHandicap;
-	type TombstoneDeposit = TombstoneDeposit;
-	type DepositPerContract = DepositPerContract;
-	type DepositPerStorageByte = DepositPerStorageByte;
-	type DepositPerStorageItem = DepositPerStorageItem;
-	type RentFraction = RentFraction;
-	type SurchargeReward = SurchargeReward;
+	type ContractDeposit = ContractDeposit;
 	type CallStack = [contracts::Frame<Self>; 31];
 	type WeightPrice = transaction_payment::Pallet<Self>;
 	type WeightInfo = contracts::weights::SubstrateWeight<Self>;
@@ -1036,7 +1036,7 @@ impl_runtime_apis! {
 
 	impl sp_api::Metadata<Block> for Runtime {
 		fn metadata() -> OpaqueMetadata {
-			Runtime::metadata().into()
+			OpaqueMetadata::new(Runtime::metadata().into())
 		}
 	}
 
@@ -1146,9 +1146,9 @@ impl_runtime_apis! {
 			code: pallet_contracts_primitives::Code<Hash>,
 			data: Vec<u8>,
 			salt: Vec<u8>,
-		) -> pallet_contracts_primitives::ContractInstantiateResult<AccountId, BlockNumber>
+		) -> pallet_contracts_primitives::ContractInstantiateResult<AccountId>
 		{
-			Contracts::bare_instantiate(origin, endowment, gas_limit, code, data, salt, true, true)
+			Contracts::bare_instantiate(origin, endowment, gas_limit, code, data, salt, true)
 		}
 
 		fn get_storage(
@@ -1156,12 +1156,6 @@ impl_runtime_apis! {
 			key: [u8; 32],
 		) -> pallet_contracts_primitives::GetStorageResult {
 			Contracts::get_storage(address, key)
-		}
-
-		fn rent_projection(
-			address: AccountId,
-		) -> pallet_contracts_primitives::RentProjectionResult<BlockNumber> {
-			Contracts::rent_projection(address)
 		}
 	}
 

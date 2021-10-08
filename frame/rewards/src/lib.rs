@@ -36,6 +36,7 @@ use frame_support::{
 	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed};
+use scale_info::TypeInfo;
 use sp_consensus_pow::POW_ENGINE_ID;
 use sp_runtime::traits::{Saturating, Zero};
 use sp_std::{
@@ -49,7 +50,7 @@ pub struct LockBounds {
 	pub divide_min: u16,
 }
 
-#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Encode, Decode, TypeInfo, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LockParameters {
 	pub period: u16,
 	pub divide: u16,
