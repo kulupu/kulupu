@@ -1,6 +1,6 @@
 [package]
 name = "kulupu"
-version = "2.8.1"
+version = "2.9.0"
 authors = ["Wei Tang <wei@that.world>"]
 license = "GPL-3.0-or-later"
 build = "build.rs"
