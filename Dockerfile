@@ -20,7 +20,7 @@ LABEL maintainer "wei@that.world"
 LABEL description="Kulupu builder."
 
 ARG PROFILE=release
-ARG STABLE=1.55.0
+ARG STABLE=nightly-2021-09-12
 WORKDIR /rustbuilder
 COPY . /rustbuilder/kulupu
 
