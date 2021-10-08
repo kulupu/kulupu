@@ -18,8 +18,8 @@
 
 use crate::{BalanceOf, Config, Mints, RewardChanges};
 use codec::{Decode, Encode};
-use scale_info::TypeInfo;
 use frame_support::storage::StorageValue;
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{Perbill, RuntimeDebug};

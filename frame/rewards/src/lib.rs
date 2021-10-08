@@ -30,13 +30,13 @@ mod mock;
 mod tests;
 
 use codec::{Decode, Encode};
-use scale_info::TypeInfo;
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::{Currency, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
 	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed};
+use scale_info::TypeInfo;
 use sp_consensus_pow::POW_ENGINE_ID;
 use sp_runtime::traits::{Saturating, Zero};
 use sp_std::{

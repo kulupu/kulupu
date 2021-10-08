@@ -21,7 +21,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use scale_info::TypeInfo;
 use frame_support::{
 	decl_module, decl_storage,
 	traits::{Get, OnTimestampSet},
@@ -30,6 +29,7 @@ use kulupu_primitives::{
 	Difficulty, CLAMP_FACTOR, DIFFICULTY_ADJUST_WINDOW, DIFFICULTY_DAMP_FACTOR, MAX_DIFFICULTY,
 	MIN_DIFFICULTY,
 };
+use scale_info::TypeInfo;
 use sp_core::U256;
 use sp_runtime::traits::UniqueSaturatedInto;
 use sp_std::cmp::{max, min};

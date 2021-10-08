@@ -33,13 +33,13 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use crate::fee::WeightToFee;
 use codec::{Decode, Encode, MaxEncodedLen};
-use scale_info::TypeInfo;
 use contracts::weights::WeightInfo;
 use frame_support::{
 	traits::{Everything, Nothing},
 	PalletId,
 };
 use kulupu_primitives::{deposit, BLOCK_TIME, CENTS, DAYS, DOLLARS, HOURS, MICROCENTS, MILLICENTS};
+use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_core::{
 	u32_trait::{_1, _2, _4, _5},
@@ -741,7 +741,17 @@ parameter_types! {
 
 /// The type used to represent the kinds of proxying allowed.
 #[derive(
-	Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo,
+	Copy,
+	Clone,
+	Eq,
+	PartialEq,
+	Ord,
+	PartialOrd,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	MaxEncodedLen,
+	TypeInfo,
 )]
 pub enum ProxyType {
 	Any,

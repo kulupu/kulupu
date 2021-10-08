@@ -20,12 +20,12 @@ pub mod compute;
 pub mod weak_sub;
 
 use codec::{Decode, Encode};
+use kulupu_pow_consensus::PowAlgorithm;
 use kulupu_primitives::{AlgorithmApi, Difficulty};
 use log::*;
 use parking_lot::Mutex;
 use rand::{rngs::SmallRng, thread_rng, SeedableRng};
 use sc_client_api::{backend::AuxStore, blockchain::HeaderBackend};
-use kulupu_pow_consensus::PowAlgorithm;
 use sc_keystore::LocalKeystore;
 use sp_api::ProvideRuntimeApi;
 use sp_consensus_pow::{DifficultyApi, Seal as RawSeal};
@@ -55,7 +55,10 @@ pub fn is_valid_hash(hash: &H256, difficulty: Difficulty) -> bool {
 	!overflowed
 }
 
-pub fn key_hash<B, C>(client: &C, parent: &BlockId<B>) -> Result<H256, kulupu_pow_consensus::Error<B>>
+pub fn key_hash<B, C>(
+	client: &C,
+	parent: &BlockId<B>,
+) -> Result<H256, kulupu_pow_consensus::Error<B>>
 where
 	B: BlockT<Hash = H256>,
 	C: HeaderBackend<B>,
@@ -325,7 +328,10 @@ where
 	}?;
 
 	let mut rng = SmallRng::from_rng(&mut thread_rng()).map_err(|e| {
-		kulupu_pow_consensus::Error::Environment(format!("Initialize RNG failed for mining: {:?}", e))
+		kulupu_pow_consensus::Error::Environment(format!(
+			"Initialize RNG failed for mining: {:?}",
+			e
+		))
 	})?;
 	let key_hash = key_hash(client, parent)?;
 
