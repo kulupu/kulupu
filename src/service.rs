@@ -125,7 +125,7 @@ impl sp_inherents::CreateInherentDataProviders<Block, ()> for CreateInherentData
 	}
 }
 
-type PowBlockImport = sc_consensus_pow::PowBlockImport<
+type PowBlockImport = kulupu_pow_consensus::PowBlockImport<
 	Block,
 	kulupu_pow::weak_sub::WeakSubjectiveBlockImport<
 		Block,
@@ -213,7 +213,7 @@ pub fn new_partial(
 		enable_weak_subjectivity,
 	);
 
-	let pow_block_import = sc_consensus_pow::PowBlockImport::new(
+	let pow_block_import = kulupu_pow_consensus::PowBlockImport::new(
 		weak_sub_block_import,
 		client.clone(),
 		algorithm.clone(),
@@ -223,7 +223,7 @@ pub fn new_partial(
 		sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
 	);
 
-	let import_queue = sc_consensus_pow::import_queue(
+	let import_queue = kulupu_pow_consensus::import_queue(
 		Box::new(pow_block_import.clone()),
 		None,
 		algorithm.clone(),
@@ -331,7 +331,7 @@ pub fn new_full(
 			telemetry.as_ref().map(|x| x.handle()),
 		);
 
-		let (worker, worker_task) = sc_consensus_pow::start_mining_worker(
+		let (worker, worker_task) = kulupu_pow_consensus::start_mining_worker(
 			Box::new(pow_block_import.clone()),
 			client.clone(),
 			select_chain.clone(),
@@ -358,7 +358,7 @@ pub fn new_full(
 				let stats = stats.clone();
 
 				thread::spawn(move || loop {
-					let metadata = worker.lock().metadata();
+					let metadata = worker.metadata();
 					if let Some(metadata) = metadata {
 						match kulupu_pow::mine(
 							client.as_ref(),
@@ -371,7 +371,6 @@ pub fn new_full(
 							&stats,
 						) {
 							Ok(Some(seal)) => {
-								let mut worker = worker.lock();
 								let current_metadata = worker.metadata();
 								if current_metadata == Some(metadata) {
 									let _ = futures::executor::block_on(worker.submit(seal));
@@ -461,7 +460,7 @@ pub fn new_light(
 		enable_weak_subjectivity,
 	);
 
-	let pow_block_import = sc_consensus_pow::PowBlockImport::new(
+	let pow_block_import = kulupu_pow_consensus::PowBlockImport::new(
 		weak_sub_block_import,
 		client.clone(),
 		algorithm.clone(),
@@ -471,7 +470,7 @@ pub fn new_light(
 		sp_consensus::NeverCanAuthor,
 	);
 
-	let import_queue = sc_consensus_pow::import_queue(
+	let import_queue = kulupu_pow_consensus::import_queue(
 		Box::new(pow_block_import.clone()),
 		None,
 		algorithm.clone(),

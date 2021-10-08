@@ -38,7 +38,6 @@ sc-transaction-pool = { git = "https://github.com/paritytech/substrate" }
 sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate" }
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate" }
 sc-network = { git = "https://github.com/paritytech/substrate" }
-sc-consensus-pow = { git = "https://github.com/paritytech/substrate" }
 sp-consensus = { git = "https://github.com/paritytech/substrate" }
 sc-consensus = { git = "https://github.com/paritytech/substrate" }
 sc-finality-grandpa = { git = "https://github.com/paritytech/substrate" }
@@ -59,6 +58,7 @@ pallet-eras = { git = "https://github.com/rust-blockchain/pallets" }
 kulupu-pow = { path = "pow" }
 kulupu-runtime = { path = "runtime" }
 kulupu-primitives = { path = "primitives" }
+kulupu-pow-consensus = { path = "pow/consensus" }
 
 # benchmarking
 frame-benchmarking = { git = "https://github.com/paritytech/substrate" }

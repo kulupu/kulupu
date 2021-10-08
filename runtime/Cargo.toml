@@ -68,6 +68,8 @@ frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-
 frame-system-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true }
 hex-literal = { version = "0.2.1", optional = true }
 
+scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
+
 [build-dependencies]
 wasm-builder = { package = "substrate-wasm-builder", git = "https://github.com/paritytech/substrate" }
 
@@ -125,6 +127,8 @@ std = [
 
 	"frame-system-rpc-runtime-api/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
+
+	"scale-info/std",
 ]
 runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",

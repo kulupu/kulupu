@@ -21,6 +21,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
+use scale_info::TypeInfo;
 use frame_support::{
 	decl_module, decl_storage,
 	traits::{Get, OnTimestampSet},
@@ -33,7 +34,7 @@ use sp_core::U256;
 use sp_runtime::traits::UniqueSaturatedInto;
 use sp_std::cmp::{max, min};
 
-#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Encode, Decode, TypeInfo, Clone, Copy, Eq, PartialEq, Debug)]
 pub struct DifficultyAndTimestamp<M> {
 	pub difficulty: Difficulty,
 	pub timestamp: M,

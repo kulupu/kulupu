@@ -30,6 +30,7 @@ mod mock;
 mod tests;
 
 use codec::{Decode, Encode};
+use scale_info::TypeInfo;
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::{Currency, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
@@ -49,7 +50,7 @@ pub struct LockBounds {
 	pub divide_min: u16,
 }
 
-#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Encode, Decode, TypeInfo, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LockParameters {
 	pub period: u16,
 	pub divide: u16,
