@@ -297,7 +297,7 @@ impl Stats {
 	}
 }
 
-pub fn mine<B, C>(
+pub fn mine<B, C, FShouldResetRound>(
 	client: &C,
 	keystore: &LocalKeystore,
 	parent: &BlockId<B>,
@@ -306,11 +306,13 @@ pub fn mine<B, C>(
 	difficulty: Difficulty,
 	round: u32,
 	stats: &Arc<Mutex<Stats>>,
+	f_should_reset_round: FShouldResetRound,
 ) -> Result<Option<RawSeal>, Error<B>>
 where
 	B: BlockT<Hash = H256>,
 	C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi<B>,
 	C::Api: DifficultyApi<B, Difficulty> + AlgorithmApi<B>,
+	FShouldResetRound: Fn() -> bool,
 {
 	let version_raw = client.runtime_api().identifier(parent).map_err(|e| {
 		kulupu_pow_consensus::Error::Environment(format!(
@@ -380,6 +382,7 @@ where
 					compute::Loop::Continue
 				}
 			},
+			f_should_reset_round,
 			round as usize,
 		),
 		RandomXAlgorithmVersion::V2 => compute::loop_raw(
@@ -410,6 +413,7 @@ where
 					compute::Loop::Continue
 				}
 			},
+			f_should_reset_round,
 			round as usize,
 		),
 	};

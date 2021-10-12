@@ -357,41 +357,45 @@ pub fn new_full(
 				let client = client.clone();
 				let stats = stats.clone();
 
-				thread::spawn(move || loop {
-					let metadata = worker.metadata();
-					if let Some(metadata) = metadata {
-						match kulupu_pow::mine(
-							client.as_ref(),
-							&keystore,
-							&BlockId::Hash(metadata.best_hash),
-							&metadata.pre_hash,
-							metadata.pre_runtime.as_ref().map(|v| &v[..]),
-							metadata.difficulty,
-							round,
-							&stats,
-						) {
-							Ok(Some(seal)) => {
-								let current_metadata = worker.metadata();
-								if current_metadata == Some(metadata) {
-									let _ = futures::executor::block_on(worker.submit(seal));
+				thread::spawn(move || {
+					loop {
+						let version = worker.version();
+						let metadata = worker.metadata();
+						if let Some(metadata) = metadata {
+							match kulupu_pow::mine(
+								client.as_ref(),
+								&keystore,
+								&BlockId::Hash(metadata.best_hash),
+								&metadata.pre_hash,
+								metadata.pre_runtime.as_ref().map(|v| &v[..]),
+								metadata.difficulty,
+								round,
+								&stats,
+								|| version == worker.version(),
+							) {
+								Ok(Some(seal)) => {
+									let current_metadata = worker.metadata();
+									if current_metadata == Some(metadata) {
+										let _ = futures::executor::block_on(worker.submit(seal));
+									}
+								}
+								Ok(None) => (),
+								Err(PowError::Compute(ComputeError::CacheNotAvailable)) => {
+									thread::sleep(Duration::new(1, 0));
+								}
+								Err(PowError::Compute(ComputeError::Randomx(
+									err @ RandomxError::CacheAllocationFailed,
+								))) => {
+									warn!("Mining failed: {}", err.description());
+									thread::sleep(Duration::new(10, 0));
+								}
+								Err(err) => {
+									warn!("Mining failed: {:?}", err);
 								}
 							}
-							Ok(None) => (),
-							Err(PowError::Compute(ComputeError::CacheNotAvailable)) => {
-								thread::sleep(Duration::new(1, 0));
-							}
-							Err(PowError::Compute(ComputeError::Randomx(
-								err @ RandomxError::CacheAllocationFailed,
-							))) => {
-								warn!("Mining failed: {}", err.description());
-								thread::sleep(Duration::new(10, 0));
-							}
-							Err(err) => {
-								warn!("Mining failed: {:?}", err);
-							}
+						} else {
+							thread::sleep(Duration::new(1, 0));
 						}
-					} else {
-						thread::sleep(Duration::new(1, 0));
 					}
 				});
 			} else {
