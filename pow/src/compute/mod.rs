@@ -212,7 +212,7 @@ fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, FShouldRes
 where
 	FPre: FnMut() -> (Vec<u8>, I),
 	FValidate: Fn(H256, I) -> Loop<Option<R>>,
-    FShouldResetRound: Fn() -> bool,
+	FShouldResetRound: Fn() -> bool,
 {
 	if need_new_vm(key_hash, machine) {
 		do_new_vm(key_hash, machine, shared_caches, f_has_large_pages)?
@@ -272,7 +272,7 @@ where
 							if f_should_reset_round() {
 								remaining_round = round;
 							} else {
-								break
+								break;
 							}
 						}
 					}
@@ -325,18 +325,23 @@ where
 		ComputeMode::Sync => {
 			let full_ret = FULL_MACHINE.with(|machine| {
 				if !need_new_vm::<randomx::WithFullCacheMode>(key_hash, machine) {
-					Ok(
-						loop_raw_with_cache::<randomx::WithFullCacheMode, _, _, _, _, _>(
-							key_hash,
-							machine,
-							&FULL_SHARED_CACHES,
-							f_pre,
-							f_validate,
-							randomx::WithFullCacheMode::has_large_pages,
-							&f_should_reset_round,
-							round,
-						),
-					)
+					Ok(loop_raw_with_cache::<
+						randomx::WithFullCacheMode,
+						_,
+						_,
+						_,
+						_,
+						_,
+					>(
+						key_hash,
+						machine,
+						&FULL_SHARED_CACHES,
+						f_pre,
+						f_validate,
+						randomx::WithFullCacheMode::has_large_pages,
+						&f_should_reset_round,
+						round,
+					))
 				} else {
 					Err((f_pre, f_validate))
 				}
