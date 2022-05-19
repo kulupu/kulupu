@@ -5,6 +5,7 @@
   "bootNodes": [
     "/dns4/monument.bootnode.kulupu.network/tcp/30333/p2p/12D3KooWA2H1NDJRryguyKyxGaPkAE4yPH16PFM9uVzcDDeZSzL3",
     "/dns4/garden.bootnode.kulupu.network/tcp/30333/p2p/12D3KooWMviaZ5JH2b8gkzcWmD5RWt7jAm9eFSSGYbVTe6qrJqv1",
+    "/dns4/ground.bootnode.kulupu.network/tcp/30333/p2p/12D3KooWDVhwprTXtchrsxwC5QEerMZWBTG3R5ry76M8XDRUKWf1",
     "/ip4/135.181.6.137/tcp/30333/p2p/12D3KooWGsBjSr3cgLJz4hGhXNnEeboXzRoz52WpknnqhiV7qGkb",
     "/ip4/46.101.184.250/tcp/30333/p2p/12D3KooWCd4G7eeNHiY6jLPdURzYbHdH7nRVFUNRLBjzBTeBRcfe",
     "/ip4/95.217.4.196/tcp/30333/p2p/12D3KooWNQ99D7cDfMsRAyYHDiQGGttegKsoNj7r98qVk3NuWXHk"
