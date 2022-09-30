@@ -8,7 +8,8 @@
     "/dns4/ground.bootnode.kulupu.network/tcp/30333/p2p/12D3KooWDVhwprTXtchrsxwC5QEerMZWBTG3R5ry76M8XDRUKWf1",
     "/ip4/135.181.6.137/tcp/30333/p2p/12D3KooWGsBjSr3cgLJz4hGhXNnEeboXzRoz52WpknnqhiV7qGkb",
     "/ip4/46.101.184.250/tcp/30333/p2p/12D3KooWCd4G7eeNHiY6jLPdURzYbHdH7nRVFUNRLBjzBTeBRcfe",
-    "/ip4/95.217.4.196/tcp/30333/p2p/12D3KooWNQ99D7cDfMsRAyYHDiQGGttegKsoNj7r98qVk3NuWXHk"
+    "/ip4/95.217.4.196/tcp/30333/p2p/12D3KooWNQ99D7cDfMsRAyYHDiQGGttegKsoNj7r98qVk3NuWXHk",
+    "/ip4/54.190.46.158/tcp/30333/p2p/12D3KooWFJdvPS2K5ZWQK175YNApTsFxSE7SmWcsoJjBeiVy6iEG"
   ],
   "telemetryEndpoints": null,
   "protocolId": "kulupu",
