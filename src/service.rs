@@ -358,6 +358,7 @@ pub fn new_full(
 				let stats = stats.clone();
 
 				thread::spawn(move || loop {
+					let version = worker.version();
 					let metadata = worker.metadata();
 					if let Some(metadata) = metadata {
 						match kulupu_pow::mine(
@@ -369,6 +370,7 @@ pub fn new_full(
 							metadata.difficulty,
 							round,
 							&stats,
+							|| version == worker.version(),
 						) {
 							Ok(Some(seal)) => {
 								let current_metadata = worker.metadata();

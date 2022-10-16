@@ -199,18 +199,20 @@ fn do_new_vm<M: randomx::WithCacheMode>(
 	}
 }
 
-fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, R>(
+fn loop_raw_with_cache<M: randomx::WithCacheMode, FPre, I, FValidate, FShouldResetRound, R>(
 	key_hash: &H256,
 	machine: &RefCell<Option<(H256, randomx::VM<M>)>>,
 	shared_caches: &Arc<Mutex<LruCache<H256, Arc<randomx::Cache<M>>>>>,
 	mut f_pre: FPre,
 	f_validate: FValidate,
 	f_has_large_pages: fn(&Config) -> bool,
+	f_should_reset_round: FShouldResetRound,
 	round: usize,
 ) -> Result<Option<R>, Error>
 where
 	FPre: FnMut() -> (Vec<u8>, I),
 	FValidate: Fn(H256, I) -> Loop<Option<R>>,
+	FShouldResetRound: Fn() -> bool,
 {
 	if need_new_vm(key_hash, machine) {
 		do_new_vm(key_hash, machine, shared_caches, f_has_large_pages)?
@@ -243,10 +245,13 @@ where
 					}
 				}
 				_ => {
+					debug_assert!(round > 1);
+
 					let (prev_pre, mut prev_int) = f_pre();
 					let mut vmn = vm.begin(&prev_pre[..]);
+					let mut remaining_round = round;
 
-					for _ in 1..round {
+					loop {
 						let (pre, int) = f_pre();
 						let prev_hash = H256::from(vmn.next(&pre[..]));
 						let prev_validate = f_validate(prev_hash, prev_int);
@@ -257,6 +262,16 @@ where
 							Loop::Continue => (),
 							Loop::Break(b) => {
 								ret = b;
+								break;
+							}
+						}
+
+						remaining_round -= 1;
+
+						if remaining_round == 0 {
+							if f_should_reset_round() {
+								remaining_round = round;
+							} else {
 								break;
 							}
 						}
@@ -281,43 +296,52 @@ where
 	Ok(ret)
 }
 
-pub fn loop_raw<FPre, I, FValidate, R>(
+pub fn loop_raw<FPre, I, FValidate, FShouldResetRound, R>(
 	key_hash: &H256,
 	mode: ComputeMode,
 	f_pre: FPre,
 	f_validate: FValidate,
+	f_should_reset_round: FShouldResetRound,
 	round: usize,
 ) -> Result<Option<R>, Error>
 where
 	FPre: FnMut() -> (Vec<u8>, I),
 	FValidate: Fn(H256, I) -> Loop<Option<R>>,
+	FShouldResetRound: Fn() -> bool,
 {
 	match mode {
 		ComputeMode::Mining => FULL_MACHINE.with(|machine| {
-			loop_raw_with_cache::<randomx::WithFullCacheMode, _, _, _, _>(
+			loop_raw_with_cache::<randomx::WithFullCacheMode, _, _, _, _, _>(
 				key_hash,
 				machine,
 				&FULL_SHARED_CACHES,
 				f_pre,
 				f_validate,
 				randomx::WithFullCacheMode::has_large_pages,
+				f_should_reset_round,
 				round,
 			)
 		}),
 		ComputeMode::Sync => {
 			let full_ret = FULL_MACHINE.with(|machine| {
 				if !need_new_vm::<randomx::WithFullCacheMode>(key_hash, machine) {
-					Ok(
-						loop_raw_with_cache::<randomx::WithFullCacheMode, _, _, _, _>(
-							key_hash,
-							machine,
-							&FULL_SHARED_CACHES,
-							f_pre,
-							f_validate,
-							randomx::WithFullCacheMode::has_large_pages,
-							round,
-						),
-					)
+					Ok(loop_raw_with_cache::<
+						randomx::WithFullCacheMode,
+						_,
+						_,
+						_,
+						_,
+						_,
+					>(
+						key_hash,
+						machine,
+						&FULL_SHARED_CACHES,
+						f_pre,
+						f_validate,
+						randomx::WithFullCacheMode::has_large_pages,
+						&f_should_reset_round,
+						round,
+					))
 				} else {
 					Err((f_pre, f_validate))
 				}
@@ -326,13 +350,14 @@ where
 			match full_ret {
 				Ok(ret) => ret,
 				Err((f_pre, f_validate)) => LIGHT_MACHINE.with(|machine| {
-					loop_raw_with_cache::<randomx::WithLightCacheMode, _, _, _, _>(
+					loop_raw_with_cache::<randomx::WithLightCacheMode, _, _, _, _, _>(
 						key_hash,
 						machine,
 						&LIGHT_SHARED_CACHES,
 						f_pre,
 						f_validate,
 						randomx::WithLightCacheMode::has_large_pages,
+						f_should_reset_round,
 						round,
 					)
 				}),
@@ -347,6 +372,7 @@ pub fn compute<T: Encode>(key_hash: &H256, input: &T, mode: ComputeMode) -> Resu
 		mode,
 		|| (input.encode(), ()),
 		|hash, ()| Loop::Break(Some(hash)),
+		|| false,
 		1,
 	)?
 	.expect("Loop break always returns Some; qed"))
